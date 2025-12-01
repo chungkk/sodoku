@@ -31,8 +31,9 @@ export function NumberPad({
             className={cn(
               "text-xl sm:text-2xl font-bold touch-action-manipulation",
               "h-12 w-12 sm:h-14 sm:w-14 p-0",
-              "active:scale-95 transition-transform",
-              "hover:bg-primary/10 hover:border-primary/50"
+              "active:scale-95 transition-all duration-200",
+              "bg-card hover:bg-primary/20 hover:border-primary/60 hover:text-primary",
+              "border-border/50"
             )}
           >
             {num}

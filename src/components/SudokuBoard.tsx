@@ -116,7 +116,7 @@ export function SudokuBoard({
     <div
       ref={boardRef}
       className={cn(
-        "inline-grid grid-cols-9 border-2 border-foreground/40 rounded-xl overflow-hidden shadow-lg bg-card",
+        "inline-grid grid-cols-9 rounded-xl overflow-hidden shadow-lg bg-card",
         className
       )}
       tabIndex={0}

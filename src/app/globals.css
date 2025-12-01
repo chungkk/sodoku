@@ -32,33 +32,33 @@
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 8%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 252 100% 67%;
+  --background: 224 30% 8%;
+  --foreground: 210 40% 96%;
+  --card: 224 30% 12%;
+  --card-foreground: 210 40% 96%;
+  --popover: 224 30% 10%;
+  --popover-foreground: 210 40% 96%;
+  --primary: 252 90% 65%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 47 100% 50%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 62.8% 30.6%;
+  --secondary: 220 25% 18%;
+  --secondary-foreground: 210 40% 96%;
+  --muted: 220 25% 16%;
+  --muted-foreground: 215 20% 60%;
+  --accent: 47 95% 55%;
+  --accent-foreground: 224 30% 10%;
+  --destructive: 0 70% 45%;
   --destructive-foreground: 210 40% 98%;
-  --success: 142 76% 36%;
+  --success: 142 70% 40%;
   --success-foreground: 0 0% 100%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 252 100% 67%;
+  --border: 220 20% 20%;
+  --input: 220 20% 18%;
+  --ring: 252 90% 65%;
   
-  --cell-initial: 217.2 32.6% 20%;
-  --cell-selected: 252 50% 30%;
-  --cell-highlighted: 252 30% 20%;
-  --cell-conflict: 0 50% 25%;
-  --cell-correct: 142 40% 25%;
+  --cell-initial: 220 25% 16%;
+  --cell-selected: 252 60% 35%;
+  --cell-highlighted: 252 40% 22%;
+  --cell-conflict: 0 60% 30%;
+  --cell-correct: 142 50% 28%;
 }
 
 * {
@@ -77,6 +77,9 @@ body {
   color: hsl(var(--foreground));
   background: hsl(var(--background));
   font-feature-settings: "rlig" 1, "calt" 1;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 @keyframes fadeIn {
@@ -131,4 +134,11 @@ body {
     height: 3rem;
     font-size: 1.25rem;
   }
+}
+
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(hsl(var(--primary) / 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--primary) / 0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
 }

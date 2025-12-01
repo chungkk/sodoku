@@ -29,6 +29,8 @@ export function Cell({
   const [animate, setAnimate] = useState<"pop" | "shake" | null>(null);
   const isRightBorder = col === 2 || col === 5;
   const isBottomBorder = row === 2 || row === 5;
+  const isLeftEdge = col === 0 || col === 3 || col === 6;
+  const isTopEdge = row === 0 || row === 3 || row === 6;
 
   useEffect(() => {
     if (isConflict) {
@@ -53,18 +55,20 @@ export function Cell({
       disabled={isInitial}
       className={cn(
         "sudoku-cell flex items-center justify-center font-medium touch-action-manipulation",
-        "border border-border/50 transition-all duration-150",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1",
+        "border-[0.5px] border-border/50 transition-all duration-200 ease-out",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background",
         "active:scale-95",
-        isRightBorder && "border-r-2 border-r-foreground/40",
-        isBottomBorder && "border-b-2 border-b-foreground/40",
-        isSelected && "bg-[hsl(var(--cell-selected))] ring-2 ring-primary ring-inset shadow-inner",
+        isRightBorder && "border-r-[3px] border-r-foreground/60",
+        isBottomBorder && "border-b-[3px] border-b-foreground/60",
+        isLeftEdge && "border-l-[3px] border-l-foreground/60",
+        isTopEdge && "border-t-[3px] border-t-foreground/60",
+        isSelected && "bg-[hsl(var(--cell-selected))] ring-2 ring-primary/80 ring-inset shadow-lg shadow-primary/20",
         isHighlighted && !isSelected && "bg-[hsl(var(--cell-highlighted))]",
-        isSameValue && !isSelected && !isHighlighted && "bg-primary/10",
-        isConflict && "bg-[hsl(var(--cell-conflict))] text-destructive font-bold",
+        isSameValue && !isSelected && !isHighlighted && "bg-primary/15 text-primary",
+        isConflict && "bg-[hsl(var(--cell-conflict))] text-red-400 font-bold",
         isInitial
-          ? "bg-[hsl(var(--cell-initial))] text-foreground cursor-default font-bold"
-          : "bg-background hover:bg-muted/50 cursor-pointer",
+          ? "bg-[hsl(var(--cell-initial))] text-foreground/90 cursor-default font-bold"
+          : "bg-card hover:bg-muted/60 cursor-pointer",
         !isInitial && !isConflict && value !== 0 && "text-primary font-semibold",
         animate === "pop" && "animate-pop",
         animate === "shake" && "animate-shake"
