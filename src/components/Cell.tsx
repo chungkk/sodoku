@@ -29,6 +29,7 @@ export function Cell({
   onClick,
 }: CellProps) {
   const [animate, setAnimate] = useState<"pop" | "shake" | null>(null);
+  
   const isRightBorder = col === 2 || col === 5;
   const isBottomBorder = row === 2 || row === 5;
   const isLeftEdge = col === 0 || col === 3 || col === 6;
@@ -37,7 +38,7 @@ export function Cell({
   useEffect(() => {
     if (isConflict) {
       setAnimate("shake");
-      const timer = setTimeout(() => setAnimate(null), 300);
+      const timer = setTimeout(() => setAnimate(null), 250);
       return () => clearTimeout(timer);
     }
   }, [isConflict]);
@@ -45,7 +46,7 @@ export function Cell({
   useEffect(() => {
     if (value !== 0 && !isInitial && !isConflict) {
       setAnimate("pop");
-      const timer = setTimeout(() => setAnimate(null), 200);
+      const timer = setTimeout(() => setAnimate(null), 150);
       return () => clearTimeout(timer);
     }
   }, [value]);
@@ -56,22 +57,25 @@ export function Cell({
       onClick={() => onClick(row, col)}
       disabled={isInitial}
       className={cn(
-        "sudoku-cell relative flex items-center justify-center font-medium touch-action-manipulation",
-        "border-[0.5px] border-border/50 transition-all duration-200 ease-out",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background",
-        "active:scale-95",
-        isRightBorder && "border-r-[3px] border-r-foreground/60",
-        isBottomBorder && "border-b-[3px] border-b-foreground/60",
-        isLeftEdge && "border-l-[3px] border-l-foreground/60",
-        isTopEdge && "border-t-[3px] border-t-foreground/60",
-        isSelected && "bg-[hsl(var(--cell-selected))] ring-2 ring-primary/80 ring-inset shadow-lg shadow-primary/20",
+        "sudoku-cell font-retro relative flex items-center justify-center touch-action-manipulation",
+        "border border-border/50 transition-all duration-100",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+        // Box borders (thicker)
+        isRightBorder && "border-r-[3px] border-r-border",
+        isBottomBorder && "border-b-[3px] border-b-border",
+        isLeftEdge && "border-l-[3px] border-l-border",
+        isTopEdge && "border-t-[3px] border-t-border",
+        // States
+        isSelected && "bg-[hsl(var(--cell-selected))] ring-2 ring-primary z-10",
         isHighlighted && !isSelected && "bg-[hsl(var(--cell-highlighted))]",
-        isSameValue && !isSelected && !isHighlighted && "bg-primary/15 text-primary",
-        isConflict && "bg-[hsl(var(--cell-conflict))] text-red-400 font-bold",
+        isSameValue && !isSelected && !isHighlighted && "bg-primary/20 text-primary",
+        isConflict && "bg-[hsl(var(--cell-conflict))] text-destructive",
+        // Initial vs editable
         isInitial
-          ? "bg-[hsl(var(--cell-initial))] text-foreground/90 cursor-default font-bold"
-          : "bg-card hover:bg-muted/60 cursor-pointer",
-        !isInitial && !isConflict && value !== 0 && "text-primary font-semibold",
+          ? "bg-[hsl(var(--cell-initial))] text-foreground cursor-default font-bold"
+          : "bg-card hover:bg-muted cursor-pointer",
+        !isInitial && !isConflict && value !== 0 && "text-primary font-bold",
+        // Animations
         animate === "pop" && "animate-pop",
         animate === "shake" && "animate-shake"
       )}
@@ -79,7 +83,7 @@ export function Cell({
       {value !== 0 ? (
         value
       ) : notes.length > 0 ? (
-        <span className="absolute top-0.5 left-1 text-[10px] sm:text-xs text-muted-foreground font-normal">
+        <span className="absolute top-0 left-0.5 text-[9px] text-muted-foreground">
           {notes[0]}
         </span>
       ) : null}

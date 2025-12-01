@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Eraser, Pencil, PenLine } from "lucide-react";
 
 type InputMode = "fill" | "notes";
 
@@ -28,7 +27,8 @@ export function NumberPad({
 
   return (
     <div className={cn("space-y-3", className)}>
-      <div className="grid grid-cols-5 sm:grid-cols-9 gap-2">
+      {/* Number grid - 3x3 on mobile, 9x1 on desktop */}
+      <div className="grid grid-cols-3 sm:grid-cols-9 gap-2">
         {numbers.map((num) => (
           <Button
             key={num}
@@ -36,45 +36,45 @@ export function NumberPad({
             disabled={disabled}
             onClick={() => onNumberClick(num)}
             className={cn(
-              "text-xl sm:text-2xl font-bold touch-action-manipulation",
-              "h-12 w-12 sm:h-14 sm:w-14 p-0",
-              "active:scale-95 transition-all duration-200",
-              "bg-card hover:bg-primary/20 hover:border-primary/60 hover:text-primary",
-              "border-border/50"
+              "font-retro text-xl sm:text-2xl touch-action-manipulation",
+              "h-12 w-full sm:h-14 sm:w-14 p-0",
+              "bg-card hover:bg-primary hover:text-primary-foreground",
+              "border-2 border-border hover:border-primary",
+              "active:translate-y-0.5 transition-all duration-100",
+              "retro-btn"
             )}
           >
             {num}
           </Button>
         ))}
       </div>
+      
+      {/* Action buttons */}
       <div className="flex gap-2">
         <Button
           variant={isNotesMode ? "default" : "outline"}
           onClick={() => onInputModeChange?.(isNotesMode ? "fill" : "notes")}
           className={cn(
-            "flex-1 h-12 text-base font-medium touch-action-manipulation",
-            "active:scale-[0.98] transition-all",
-            isNotesMode && "bg-primary text-primary-foreground"
+            "flex-1 h-11 font-retro text-base touch-action-manipulation",
+            "border-2 retro-btn",
+            isNotesMode 
+              ? "bg-primary text-primary-foreground border-primary" 
+              : "bg-card border-border hover:bg-muted"
           )}
         >
-          {isNotesMode ? (
-            <Pencil className="w-5 h-5 mr-2" />
-          ) : (
-            <PenLine className="w-5 h-5 mr-2" />
-          )}
-          {isNotesMode ? "Nháp" : "Điền"}
+          {isNotesMode ? "[ NHÁP ]" : "[ ĐIỀN ]"}
         </Button>
         <Button
-          variant="secondary"
+          variant="outline"
           disabled={disabled}
           onClick={onClear}
           className={cn(
-            "flex-1 h-12 text-base font-medium touch-action-manipulation",
-            "active:scale-[0.98] transition-transform"
+            "flex-1 h-11 font-retro text-base touch-action-manipulation",
+            "border-2 border-border bg-card hover:bg-destructive hover:text-destructive-foreground hover:border-destructive",
+            "retro-btn"
           )}
         >
-          <Eraser className="w-5 h-5 mr-2" />
-          Xóa
+          [ XÓA ]
         </Button>
       </div>
     </div>
