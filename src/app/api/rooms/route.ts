@@ -36,11 +36,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Player not found" }, { status: 404 });
     }
 
+    // Auto-leave old room if player is already in one
     if (player.currentRoomCode) {
-      return NextResponse.json(
-        { error: "Already in a room" },
-        { status: 400 }
-      );
+      const oldRoom = await Room.findOne({ code: player.currentRoomCode });
+      if (oldRoom) {
+        const playerIndex = oldRoom.players.findIndex(
+          (p) => p.toString() === player._id.toString()
+        );
+        if (playerIndex !== -1) {
+          oldRoom.players.splice(playerIndex, 1);
+          if (oldRoom.players.length === 0) {
+            await Room.deleteOne({ _id: oldRoom._id });
+          } else {
+            if (oldRoom.hostPlayerId.toString() === player._id.toString() && oldRoom.players.length > 0) {
+              oldRoom.hostPlayerId = oldRoom.players[0];
+            }
+            await oldRoom.save();
+          }
+        }
+      }
+      player.currentRoomCode = undefined;
     }
 
     let code: string;
@@ -76,10 +91,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         code: room.code,
-        hostPlayerId: room.hostPlayerId.toString(),
+        hostPlayerId: player.sessionId,
         players: [
           {
-            id: player._id.toString(),
+            id: player.sessionId,
             displayName: player.displayName,
             isReady: false,
             isConnected: true,

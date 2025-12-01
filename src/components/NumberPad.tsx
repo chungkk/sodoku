@@ -27,7 +27,7 @@ export function NumberPad({
 
   return (
     <div className={cn("space-y-3", className)}>
-      {/* Number grid - 3x3 on mobile, 9x1 on desktop */}
+      {/* Number grid */}
       <div className="grid grid-cols-3 sm:grid-cols-9 gap-2">
         {numbers.map((num) => (
           <Button
@@ -36,12 +36,11 @@ export function NumberPad({
             disabled={disabled}
             onClick={() => onNumberClick(num)}
             className={cn(
-              "font-retro text-xl sm:text-2xl touch-action-manipulation",
-              "h-12 w-full sm:h-14 sm:w-14 p-0",
+              "font-retro text-2xl sm:text-3xl touch-action-manipulation",
+              "h-14 w-full sm:h-16 sm:w-16 p-0",
               "bg-card hover:bg-primary hover:text-primary-foreground",
-              "border-2 border-border hover:border-primary",
-              "active:translate-y-0.5 transition-all duration-100",
-              "retro-btn"
+              "border border-border hover:border-primary",
+              "active:translate-y-0.5 transition-all duration-100"
             )}
           >
             {num}
@@ -55,26 +54,26 @@ export function NumberPad({
           variant={isNotesMode ? "default" : "outline"}
           onClick={() => onInputModeChange?.(isNotesMode ? "fill" : "notes")}
           className={cn(
-            "flex-1 h-11 font-retro text-base touch-action-manipulation",
-            "border-2 retro-btn",
+            "flex-1 h-12 font-retro text-lg touch-action-manipulation",
+            "border border-border",
             isNotesMode 
-              ? "bg-primary text-primary-foreground border-primary" 
-              : "bg-card border-border hover:bg-muted"
+              ? "bg-accent text-accent-foreground" 
+              : "bg-card hover:bg-muted"
           )}
         >
-          {isNotesMode ? "[ NHÁP ]" : "[ ĐIỀN ]"}
+          {isNotesMode ? "NOTES ON" : "NOTES"}
         </Button>
         <Button
           variant="outline"
           disabled={disabled}
           onClick={onClear}
           className={cn(
-            "flex-1 h-11 font-retro text-base touch-action-manipulation",
-            "border-2 border-border bg-card hover:bg-destructive hover:text-destructive-foreground hover:border-destructive",
-            "retro-btn"
+            "flex-1 h-12 font-retro text-lg touch-action-manipulation",
+            "border border-border bg-card",
+            "hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
           )}
         >
-          [ XÓA ]
+          CLEAR
         </Button>
       </div>
     </div>

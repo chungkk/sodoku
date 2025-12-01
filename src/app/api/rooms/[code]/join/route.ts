@@ -31,11 +31,26 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Player not found" }, { status: 404 });
     }
 
+    // Auto-leave old room if player is in another room
     if (player.currentRoomCode && player.currentRoomCode !== code.toUpperCase()) {
-      return NextResponse.json(
-        { error: "Already in another room" },
-        { status: 400 }
-      );
+      const oldRoom = await Room.findOne({ code: player.currentRoomCode });
+      if (oldRoom) {
+        const playerIndex = oldRoom.players.findIndex(
+          (p) => p.toString() === player._id.toString()
+        );
+        if (playerIndex !== -1) {
+          oldRoom.players.splice(playerIndex, 1);
+          if (oldRoom.players.length === 0) {
+            await Room.deleteOne({ _id: oldRoom._id });
+          } else {
+            if (oldRoom.hostPlayerId.toString() === player._id.toString() && oldRoom.players.length > 0) {
+              oldRoom.hostPlayerId = oldRoom.players[0];
+            }
+            await oldRoom.save();
+          }
+        }
+      }
+      player.currentRoomCode = undefined;
     }
 
     const room = await Room.findOne({ code: code.toUpperCase() });
@@ -72,8 +87,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       "displayName sessionId connectionStatus"
     );
 
+    // Find host's sessionId
+    const hostPlayer = populatedRoom!.players.find(
+      (p: any) => p._id.toString() === populatedRoom!.hostPlayerId.toString()
+    );
+    const hostSessionId = (hostPlayer as any)?.sessionId || "";
+
     const players = populatedRoom!.players.map((p: any) => ({
-      id: p._id.toString(),
+      id: p.sessionId,
       displayName: p.displayName,
       isReady: false,
       isConnected: p.connectionStatus === "connected",
@@ -81,7 +102,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({
       code: populatedRoom!.code,
-      hostPlayerId: populatedRoom!.hostPlayerId.toString(),
+      hostPlayerId: hostSessionId,
       players,
       status: populatedRoom!.status,
       settings: populatedRoom!.settings,

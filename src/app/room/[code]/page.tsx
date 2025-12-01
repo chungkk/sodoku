@@ -65,7 +65,7 @@ export default function RoomPage() {
   } | null>(null);
   const [gameResults, setGameResults] = useState<PlayerResult[] | null>(null);
 
-  const isHost = room?.hostPlayerId === player?.playerId;
+  const isHost = room?.hostPlayerId === player?.sessionId;
   const isPlaying = room?.status === "playing" && gameData !== null;
   const isFinished = room?.status === "finished" || gameResults !== null;
 
@@ -96,9 +96,9 @@ export default function RoomPage() {
   }, [fetchRoom]);
 
   useEffect(() => {
-    if (!socket || !isConnected || !room) return;
+    if (!socket || !isConnected || !room || !player) return;
 
-    socket.emit("room:join", { roomCode: code });
+    socket.emit("room:join", { roomCode: code, displayName: player.displayName });
 
     socket.on("room:player-joined", ({ player: newPlayer }) => {
       setRoom((prev) => {
@@ -195,7 +195,7 @@ export default function RoomPage() {
       socket.off("game:player-gave-up");
       socket.off("game:finished");
     };
-  }, [socket, isConnected, room, code]);
+  }, [socket, isConnected, room, code, player]);
 
   const handleCopyCode = async () => {
     await navigator.clipboard.writeText(code);
@@ -349,7 +349,7 @@ export default function RoomPage() {
               <PlayerList
                 players={room.players}
                 hostId={room.hostPlayerId}
-                currentPlayerId={player?.playerId}
+                currentPlayerId={player?.sessionId}
               />
 
               <div className="flex gap-4">

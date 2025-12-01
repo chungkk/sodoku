@@ -1,104 +1,88 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Đăng nhập và Quản lý Người dùng
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `002-dark-ui` | **Date**: 2025-12-01 | **Spec**: [spec.md](./spec.md)
+**Input**: Yêu cầu người dùng: thêm trang login, trang quản lý user profile với điểm số
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Thêm hệ thống xác thực người dùng (đăng nhập/đăng ký) và trang quản lý profile với:
+- Theo dõi số trận thắng/thua
+- Hệ thống điểm số (thắng +10, thua -10)
+- Bảng xếp hạng người chơi
+
+Sử dụng session cookie đơn giản với bcrypt để hash password, tích hợp vào UI dark theme hiện có.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript 5.x, Node.js 18+  
+**Primary Dependencies**: Next.js 14+, Socket.IO, Mongoose, Tailwind CSS, shadcn/ui, bcryptjs  
+**Storage**: MongoDB (qua Mongoose)  
+**Testing**: Chưa cấu hình (echo test)  
+**Target Platform**: Web browser (desktop + mobile)  
+**Project Type**: web (Next.js full-stack)  
+**Performance Goals**: Response time < 200ms cho API calls  
+**Constraints**: Dark theme UI, tiếng Việt  
+**Scale/Scope**: ~10 screens, hàng trăm người dùng
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Không có vi phạm. Dự án tuân thủ các nguyên tắc cơ bản.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/002-dark-ui/
+├── plan.md              # File này
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output
+├── quickstart.md        # Phase 1 output
+├── contracts/           # Phase 1 output
+│   ├── auth-api.md
+│   └── user-api.md
+└── tasks.md             # Phase 2 output
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
 src/
 ├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   ├── User.ts          # MỚI: Model người dùng
+│   ├── Player.ts
+│   ├── Room.ts
+│   └── GameHistory.ts
+├── lib/
+│   ├── auth.ts          # MỚI: Authentication helpers
+│   ├── mongodb.ts
+│   └── utils.ts
+├── components/
+│   ├── LoginForm.tsx    # MỚI
+│   ├── RegisterForm.tsx # MỚI
+│   ├── ProfileCard.tsx  # MỚI
+│   ├── StatsCard.tsx    # MỚI
+│   └── ui/
+├── contexts/
+│   ├── AuthContext.tsx  # MỚI
+│   ├── GameContext.tsx
+│   └── PlayerContext.tsx
+└── app/
+    ├── login/page.tsx   # MỚI
+    ├── register/page.tsx # MỚI
+    ├── profile/page.tsx # MỚI
+    └── api/
+        ├── auth/        # MỚI
+        │   ├── register/route.ts
+        │   ├── login/route.ts
+        │   ├── logout/route.ts
+        │   └── me/route.ts
+        └── user/        # MỚI
+            ├── profile/route.ts
+            ├── leaderboard/route.ts
+            └── points/update/route.ts
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
-
-## Complexity Tracking
-
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+**Structure Decision**: Next.js full-stack với API routes, tuân theo cấu trúc hiện có của dự án.

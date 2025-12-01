@@ -21,6 +21,8 @@ interface ActiveRoom {
   >;
   status: "waiting" | "playing" | "finished";
   gameStartTime?: number;
+  createdAt: number;
+  emptyAt?: number;
 }
 
 const activeRooms = new Map<string, ActiveRoom>();
@@ -46,7 +48,8 @@ export function setupSocketHandlers(io: SocketIOServer): void {
       sessionId: socket.sessionId,
     });
 
-    socket.on("room:join", ({ roomCode }) => {
+    socket.on("room:join", ({ roomCode, displayName }) => {
+      socket.displayName = displayName || "Player";
       handleRoomJoin(io, socket, roomCode);
     });
 
@@ -90,6 +93,11 @@ export function setupSocketHandlers(io: SocketIOServer): void {
   setInterval(() => {
     syncTimers(io);
   }, 10000);
+
+  // Cleanup empty rooms after 10 minutes
+  setInterval(() => {
+    cleanupEmptyRooms();
+  }, 60000);
 }
 
 function handleRoomJoin(
@@ -97,14 +105,18 @@ function handleRoomJoin(
   socket: AuthenticatedSocket,
   roomCode: string
 ): void {
-  const room = activeRooms.get(roomCode);
+  let room = activeRooms.get(roomCode);
 
+  // Auto-create room in memory if it doesn't exist (room was created via API)
   if (!room) {
-    socket.emit("room:error", {
-      code: "ROOM_NOT_FOUND",
-      message: "Room not found",
-    });
-    return;
+    room = {
+      code: roomCode,
+      hostSocketId: socket.id,
+      players: new Map(),
+      status: "waiting",
+      createdAt: Date.now(),
+    };
+    activeRooms.set(roomCode, room);
   }
 
   if (room.status !== "waiting") {
@@ -123,6 +135,29 @@ function handleRoomJoin(
     return;
   }
 
+  // Check if player already in room (reconnect case)
+  const existingEntry = Array.from(room.players.entries()).find(
+    ([, p]) => p.playerId === socket.sessionId
+  );
+  if (existingEntry) {
+    const [oldSocketId, playerData] = existingEntry;
+    room.players.delete(oldSocketId);
+    playerData.isConnected = true;
+    room.players.set(socket.id, playerData);
+    
+    // Update host socket if this was the host
+    if (room.hostSocketId === oldSocketId) {
+      room.hostSocketId = socket.id;
+    }
+  } else {
+    room.players.set(socket.id, {
+      playerId: socket.sessionId!,
+      displayName: socket.displayName || "Player",
+      isReady: false,
+      isConnected: true,
+    });
+  }
+
   socket.join(roomCode);
   socket.currentRoom = roomCode;
 
@@ -131,18 +166,11 @@ function handleRoomJoin(
     playerInfo.roomCode = roomCode;
   }
 
-  room.players.set(socket.id, {
-    playerId: socket.sessionId!,
-    displayName: socket.displayName || "Player",
-    isReady: false,
-    isConnected: true,
-  });
-
   io.to(roomCode).emit("room:player-joined", {
     player: {
       id: socket.sessionId,
       displayName: socket.displayName || "Player",
-      isReady: false,
+      isReady: existingEntry ? existingEntry[1].isReady : false,
       isConnected: true,
     },
   });
@@ -179,7 +207,7 @@ function handleRoomLeave(
   });
 
   if (room.players.size === 0) {
-    activeRooms.delete(roomCode);
+    room.emptyAt = Date.now();
   }
 
   socket.currentRoom = undefined;
@@ -312,7 +340,7 @@ function handleDisconnect(io: SocketIOServer, socket: AuthenticatedSocket): void
           });
 
           if (room.players.size === 0) {
-            activeRooms.delete(playerInfo.roomCode);
+            room.emptyAt = Date.now();
           }
         } else {
           io.to(playerInfo.roomCode).emit("room:player-disconnected", {
@@ -469,9 +497,29 @@ export function createRoom(
       ],
     ]),
     status: "waiting",
+    createdAt: Date.now(),
   };
   activeRooms.set(code, room);
   return room;
+}
+
+function cleanupEmptyRooms(): void {
+  const now = Date.now();
+  const tenMinutes = 10 * 60 * 1000;
+  const entries = Array.from(activeRooms.entries());
+  
+  for (const [code, room] of entries) {
+    if (room.players.size === 0) {
+      if (!room.emptyAt) {
+        room.emptyAt = now;
+      } else if (now - room.emptyAt >= tenMinutes) {
+        console.log(`Deleting empty room ${code} after 10 minutes`);
+        activeRooms.delete(code);
+      }
+    } else {
+      room.emptyAt = undefined;
+    }
+  }
 }
 
 export function getRoom(code: string): ActiveRoom | undefined {

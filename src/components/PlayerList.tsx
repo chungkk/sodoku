@@ -33,19 +33,21 @@ export function PlayerList({
           <div
             key={player.id}
             className={cn(
-              "flex items-center justify-between p-3 rounded-lg border",
+              "flex items-center justify-between p-3 rounded-lg border transition-all duration-300",
               player.id === currentPlayerId
                 ? "bg-primary/5 border-primary/20"
-                : "bg-card"
+                : "bg-card",
+              player.isReady && "border-green-500/50 bg-green-500/5 shadow-[0_0_10px_rgba(34,197,94,0.2)]"
             )}
           >
             <div className="flex items-center gap-3">
               <div
                 className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
+                  "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300",
                   player.isConnected
                     ? "bg-primary/10 text-primary"
-                    : "bg-muted text-muted-foreground"
+                    : "bg-muted text-muted-foreground",
+                  player.isReady && "bg-green-500/20 text-green-500 ring-2 ring-green-500/30"
                 )}
               >
                 {player.displayName.charAt(0).toUpperCase()}
@@ -73,9 +75,9 @@ export function PlayerList({
                 <WifiOff className="w-4 h-4 text-muted-foreground" />
               )}
               {player.isReady && (
-                <div className="flex items-center gap-1 text-green-500">
+                <div className="flex items-center gap-1 text-green-500 animate-pulse">
                   <Check className="w-4 h-4" />
-                  <span className="text-xs">Ready</span>
+                  <span className="text-xs font-medium">Ready</span>
                 </div>
               )}
             </div>

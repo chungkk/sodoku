@@ -1,6 +1,12 @@
 @import "tailwindcss";
 
 @font-face {
+  font-family: 'PressStart2P';
+  src: url('https://fonts.gstatic.com/s/pressstart2p/v15/e3t4euO8T-267oIAQAu6jDQyK3nVivM.woff2') format('woff2');
+  font-display: swap;
+}
+
+@font-face {
   font-family: 'VT323';
   src: url('https://fonts.gstatic.com/s/vt323/v17/pxiKyp0ihIEF2isfFJU.woff2') format('woff2');
   font-display: swap;
@@ -8,65 +14,77 @@
 
 :root {
   --font-retro: 'VT323', 'Courier New', monospace;
+  --font-pixel: 'PressStart2P', monospace;
   
-  --background: 60 10% 95%;
-  --foreground: 30 10% 15%;
-  --card: 60 15% 90%;
-  --card-foreground: 30 10% 15%;
-  --popover: 60 15% 92%;
-  --popover-foreground: 30 10% 15%;
-  --primary: 30 80% 45%;
-  --primary-foreground: 60 10% 95%;
-  --secondary: 60 10% 85%;
-  --secondary-foreground: 30 10% 20%;
-  --muted: 60 8% 88%;
-  --muted-foreground: 30 8% 45%;
-  --accent: 45 90% 50%;
-  --accent-foreground: 30 10% 15%;
-  --destructive: 0 70% 50%;
-  --destructive-foreground: 60 10% 95%;
-  --success: 120 50% 40%;
-  --success-foreground: 60 10% 95%;
-  --border: 30 15% 70%;
-  --input: 60 10% 88%;
-  --ring: 30 80% 45%;
+  /* Classic Dark Retro Theme */
+  --background: 220 15% 8%;
+  --foreground: 45 10% 85%;
+  --card: 220 12% 12%;
+  --card-foreground: 45 10% 85%;
+  --popover: 220 12% 14%;
+  --popover-foreground: 45 10% 85%;
+  --primary: 45 70% 55%;
+  --primary-foreground: 220 15% 8%;
+  --secondary: 220 10% 18%;
+  --secondary-foreground: 45 10% 80%;
+  --muted: 220 10% 15%;
+  --muted-foreground: 45 8% 55%;
+  --accent: 140 35% 45%;
+  --accent-foreground: 220 15% 8%;
+  --destructive: 0 50% 45%;
+  --destructive-foreground: 45 10% 90%;
+  --success: 140 40% 40%;
+  --success-foreground: 220 15% 8%;
+  --border: 45 30% 35%;
+  --input: 220 10% 15%;
+  --ring: 45 70% 55%;
   --radius: 0;
   
-  --cell-initial: 60 8% 85%;
-  --cell-selected: 45 80% 75%;
-  --cell-highlighted: 60 15% 88%;
-  --cell-conflict: 0 60% 85%;
-  --cell-correct: 120 40% 85%;
+  --cell-initial: 220 12% 16%;
+  --cell-selected: 45 50% 35%;
+  --cell-highlighted: 220 12% 20%;
+  --cell-conflict: 0 40% 25%;
+  --cell-correct: 140 35% 25%;
+  
+  /* Retro accent colors - muted */
+  --retro-gold: 45 70% 55%;
+  --retro-amber: 35 60% 50%;
+  --retro-green: 140 35% 45%;
+  --retro-red: 0 50% 45%;
+  --retro-dark: 220 15% 8%;
+  --retro-darker: 220 15% 5%;
+  --retro-light: 45 10% 85%;
 }
 
 .dark {
-  --background: 220 20% 8%;
-  --foreground: 45 30% 90%;
-  --card: 220 20% 12%;
-  --card-foreground: 45 30% 90%;
-  --popover: 220 20% 10%;
-  --popover-foreground: 45 30% 90%;
-  --primary: 45 100% 55%;
-  --primary-foreground: 220 20% 8%;
-  --secondary: 220 15% 18%;
-  --secondary-foreground: 45 30% 90%;
-  --muted: 220 15% 15%;
-  --muted-foreground: 45 15% 55%;
-  --accent: 30 90% 50%;
-  --accent-foreground: 220 20% 8%;
-  --destructive: 0 70% 50%;
-  --destructive-foreground: 45 30% 95%;
-  --success: 120 60% 45%;
-  --success-foreground: 220 20% 8%;
-  --border: 45 20% 30%;
-  --input: 220 15% 15%;
-  --ring: 45 100% 55%;
+  /* Same as root - already dark */
+  --background: 220 15% 6%;
+  --foreground: 45 10% 85%;
+  --card: 220 12% 10%;
+  --card-foreground: 45 10% 85%;
+  --popover: 220 12% 12%;
+  --popover-foreground: 45 10% 85%;
+  --primary: 45 70% 55%;
+  --primary-foreground: 220 15% 8%;
+  --secondary: 220 10% 16%;
+  --secondary-foreground: 45 10% 80%;
+  --muted: 220 10% 13%;
+  --muted-foreground: 45 8% 50%;
+  --accent: 140 35% 45%;
+  --accent-foreground: 220 15% 8%;
+  --destructive: 0 50% 45%;
+  --destructive-foreground: 45 10% 90%;
+  --success: 140 40% 40%;
+  --success-foreground: 220 15% 8%;
+  --border: 45 25% 30%;
+  --input: 220 10% 13%;
+  --ring: 45 70% 55%;
   
-  --cell-initial: 220 15% 18%;
-  --cell-selected: 45 70% 40%;
-  --cell-highlighted: 45 30% 20%;
-  --cell-conflict: 0 50% 25%;
-  --cell-correct: 120 40% 25%;
+  --cell-initial: 220 12% 14%;
+  --cell-selected: 45 50% 30%;
+  --cell-highlighted: 220 12% 18%;
+  --cell-conflict: 0 40% 22%;
+  --cell-correct: 140 35% 22%;
 }
 
 * {
@@ -90,20 +108,48 @@ body {
 
 .font-retro {
   font-family: var(--font-retro);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
+  font-weight: 400;
+  -webkit-font-smoothing: none;
 }
 
-/* Retro border style */
+.font-pixel {
+  font-family: var(--font-pixel);
+  letter-spacing: 0;
+}
+
+.font-num {
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* Classic retro border */
 .retro-border {
-  border: 3px solid hsl(var(--border));
+  border: 2px solid hsl(var(--border));
   box-shadow: 
-    4px 4px 0 hsl(var(--foreground) / 0.2),
-    inset 1px 1px 0 hsl(var(--foreground) / 0.1);
+    inset 0 1px 0 hsl(var(--foreground) / 0.1),
+    0 2px 4px hsl(var(--retro-darker) / 0.5);
 }
 
 .retro-border-sm {
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 2px hsl(var(--retro-darker) / 0.3);
+}
+
+/* Accent block style */
+.question-block {
+  background: hsl(var(--card));
   border: 2px solid hsl(var(--border));
-  box-shadow: 2px 2px 0 hsl(var(--foreground) / 0.15);
+  box-shadow: 
+    inset 0 1px 0 hsl(var(--foreground) / 0.05),
+    0 2px 4px hsl(var(--retro-darker) / 0.5);
+}
+
+/* Green accent style */
+.pipe-block {
+  background: hsl(var(--muted));
+  border: 2px solid hsl(var(--accent) / 0.5);
 }
 
 /* Retro button hover */
@@ -153,24 +199,26 @@ body {
 
 /* Sudoku cell responsive */
 .sudoku-cell {
-  width: 36px;
-  height: 36px;
-  font-size: 18px;
+  width: 38px;
+  height: 38px;
+  font-size: 22px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-weight: 700;
 }
 
 @media (min-width: 480px) {
   .sudoku-cell {
-    width: 42px;
-    height: 42px;
-    font-size: 22px;
+    width: 46px;
+    height: 46px;
+    font-size: 26px;
   }
 }
 
 @media (min-width: 768px) {
   .sudoku-cell {
-    width: 48px;
-    height: 48px;
-    font-size: 26px;
+    width: 54px;
+    height: 54px;
+    font-size: 30px;
   }
 }
 

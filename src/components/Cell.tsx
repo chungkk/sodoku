@@ -57,24 +57,24 @@ export function Cell({
       onClick={() => onClick(row, col)}
       disabled={isInitial}
       className={cn(
-        "sudoku-cell font-retro relative flex items-center justify-center touch-action-manipulation",
+        "sudoku-cell relative flex items-center justify-center touch-action-manipulation",
         "border border-border/50 transition-all duration-100",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         // Box borders (thicker)
-        isRightBorder && "border-r-[3px] border-r-border",
-        isBottomBorder && "border-b-[3px] border-b-border",
-        isLeftEdge && "border-l-[3px] border-l-border",
-        isTopEdge && "border-t-[3px] border-t-border",
+        isRightBorder && "border-r-2 border-r-border",
+        isBottomBorder && "border-b-2 border-b-border",
+        isLeftEdge && "border-l-2 border-l-border",
+        isTopEdge && "border-t-2 border-t-border",
         // States
         isSelected && "bg-[hsl(var(--cell-selected))] ring-2 ring-primary z-10",
         isHighlighted && !isSelected && "bg-[hsl(var(--cell-highlighted))]",
-        isSameValue && !isSelected && !isHighlighted && "bg-primary/20 text-primary",
+        isSameValue && !isSelected && !isHighlighted && "bg-primary/15 text-primary",
         isConflict && "bg-[hsl(var(--cell-conflict))] text-destructive",
         // Initial vs editable
         isInitial
           ? "bg-[hsl(var(--cell-initial))] text-foreground cursor-default font-bold"
           : "bg-card hover:bg-muted cursor-pointer",
-        !isInitial && !isConflict && value !== 0 && "text-primary font-bold",
+        !isInitial && !isConflict && value !== 0 && "text-primary font-semibold",
         // Animations
         animate === "pop" && "animate-pop",
         animate === "shake" && "animate-shake"

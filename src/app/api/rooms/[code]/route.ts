@@ -29,8 +29,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
 
+    // Find host's sessionId
+    const hostPlayer = await Player.findById(room.hostPlayerId);
+    const hostSessionId = hostPlayer?.sessionId || "";
+
     const players = room.players.map((p: any) => ({
-      id: p._id.toString(),
+      id: p.sessionId,
       displayName: p.displayName,
       isReady: false,
       isConnected: p.connectionStatus === "connected",
@@ -38,7 +42,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({
       code: room.code,
-      hostPlayerId: room.hostPlayerId.toString(),
+      hostPlayerId: hostSessionId,
       players,
       status: room.status,
       settings: room.settings,
