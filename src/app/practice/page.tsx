@@ -20,6 +20,7 @@ import { generatePuzzle, boardToGrid, gridToBoard, validateCell, getConflicts } 
 import { toast } from "sonner";
 
 type Difficulty = "easy" | "medium" | "hard";
+type InputMode = "fill" | "notes";
 
 interface PuzzleData {
   initialBoard: string;
@@ -55,6 +56,11 @@ export default function PracticePage() {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [finalScore, setFinalScore] = useState<number | null>(null);
+  const [inputMode, setInputMode] = useState<InputMode>("fill");
+  const [notes, setNotes] = useState<number[][][]>([]);
+
+  const createEmptyNotes = () => 
+    Array(9).fill(null).map(() => Array(9).fill(null).map(() => [] as number[]));
 
   const startNewGame = useCallback((diff: Difficulty) => {
     const puzzle = generatePuzzle(diff);
@@ -67,6 +73,8 @@ export default function PracticePage() {
     setElapsedMs(0);
     setIsComplete(false);
     setFinalScore(null);
+    setInputMode("fill");
+    setNotes(createEmptyNotes());
   }, []);
 
   useEffect(() => {
@@ -117,6 +125,21 @@ export default function PracticePage() {
 
     if (initialGrid[row][col] !== 0) return;
 
+    if (inputMode === "notes") {
+      if (board[row][col] !== 0) return;
+      setNotes((prev) => {
+        const newNotes = prev.map((r) => r.map((c) => [...c]));
+        const cellNotes = newNotes[row][col];
+        if (cellNotes.includes(value)) {
+          newNotes[row][col] = [];
+        } else {
+          newNotes[row][col] = [value];
+        }
+        return newNotes;
+      });
+      return;
+    }
+
     const isValid = validateCell(puzzleData.solution, row, col, value);
 
     if (isValid) {
@@ -124,6 +147,11 @@ export default function PracticePage() {
         const newBoard = prev.map((r) => [...r]);
         newBoard[row][col] = value;
         return newBoard;
+      });
+      setNotes((prev) => {
+        const newNotes = prev.map((r) => r.map((c) => [...c]));
+        newNotes[row][col] = [];
+        return newNotes;
       });
       setConflicts([]);
     } else {
@@ -145,6 +173,11 @@ export default function PracticePage() {
       const newBoard = prev.map((r) => [...r]);
       newBoard[row][col] = 0;
       return newBoard;
+    });
+    setNotes((prev) => {
+      const newNotes = prev.map((r) => r.map((c) => [...c]));
+      newNotes[row][col] = [];
+      return newNotes;
     });
     setConflicts([]);
   };
@@ -210,6 +243,7 @@ export default function PracticePage() {
               initialBoard={initialGrid}
               selectedCell={selectedCell}
               conflicts={conflicts}
+              notes={notes}
               onCellClick={handleCellClick}
               onNumberInput={handleNumberInput}
               onClear={handleClear}
@@ -219,6 +253,8 @@ export default function PracticePage() {
               onNumberClick={handleNumberInput}
               onClear={handleClear}
               disabled={!selectedCell || isComplete}
+              inputMode={inputMode}
+              onInputModeChange={setInputMode}
             />
 
             <Button variant="outline" onClick={handleNewGame} className="mt-2">

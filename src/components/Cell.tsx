@@ -12,6 +12,7 @@ interface CellProps {
   isHighlighted: boolean;
   isConflict: boolean;
   isSameValue?: boolean;
+  notes?: number[];
   onClick: (row: number, col: number) => void;
 }
 
@@ -24,6 +25,7 @@ export function Cell({
   isHighlighted,
   isConflict,
   isSameValue,
+  notes = [],
   onClick,
 }: CellProps) {
   const [animate, setAnimate] = useState<"pop" | "shake" | null>(null);
@@ -54,7 +56,7 @@ export function Cell({
       onClick={() => onClick(row, col)}
       disabled={isInitial}
       className={cn(
-        "sudoku-cell flex items-center justify-center font-medium touch-action-manipulation",
+        "sudoku-cell relative flex items-center justify-center font-medium touch-action-manipulation",
         "border-[0.5px] border-border/50 transition-all duration-200 ease-out",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background",
         "active:scale-95",
@@ -74,7 +76,13 @@ export function Cell({
         animate === "shake" && "animate-shake"
       )}
     >
-      {value !== 0 ? value : ""}
+      {value !== 0 ? (
+        value
+      ) : notes.length > 0 ? (
+        <span className="absolute top-0.5 left-1 text-[10px] sm:text-xs text-muted-foreground font-normal">
+          {notes[0]}
+        </span>
+      ) : null}
     </button>
   );
 }

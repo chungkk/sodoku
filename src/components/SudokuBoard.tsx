@@ -9,6 +9,7 @@ interface SudokuBoardProps {
   initialBoard: number[][];
   selectedCell: { row: number; col: number } | null;
   conflicts: { row: number; col: number }[];
+  notes?: number[][][];
   onCellClick: (row: number, col: number) => void;
   onNumberInput: (value: number) => void;
   onClear: () => void;
@@ -20,6 +21,7 @@ export function SudokuBoard({
   initialBoard,
   selectedCell,
   conflicts,
+  notes,
   onCellClick,
   onNumberInput,
   onClear,
@@ -135,6 +137,7 @@ export function SudokuBoard({
             isHighlighted={isHighlighted(rowIndex, colIndex)}
             isConflict={isConflict(rowIndex, colIndex)}
             isSameValue={isSameValue(rowIndex, colIndex)}
+            notes={notes?.[rowIndex]?.[colIndex]}
             onClick={onCellClick}
           />
         ))

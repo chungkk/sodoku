@@ -2,13 +2,17 @@
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Eraser } from "lucide-react";
+import { Eraser, Pencil, PenLine } from "lucide-react";
+
+type InputMode = "fill" | "notes";
 
 interface NumberPadProps {
   onNumberClick: (value: number) => void;
   onClear: () => void;
   disabled?: boolean;
   className?: string;
+  inputMode?: InputMode;
+  onInputModeChange?: (mode: InputMode) => void;
 }
 
 export function NumberPad({
@@ -16,8 +20,11 @@ export function NumberPad({
   onClear,
   disabled = false,
   className,
+  inputMode = "fill",
+  onInputModeChange,
 }: NumberPadProps) {
   const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  const isNotesMode = inputMode === "notes";
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -40,18 +47,36 @@ export function NumberPad({
           </Button>
         ))}
       </div>
-      <Button
-        variant="secondary"
-        disabled={disabled}
-        onClick={onClear}
-        className={cn(
-          "w-full h-12 text-base font-medium touch-action-manipulation",
-          "active:scale-[0.98] transition-transform"
-        )}
-      >
-        <Eraser className="w-5 h-5 mr-2" />
-        Clear
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          variant={isNotesMode ? "default" : "outline"}
+          onClick={() => onInputModeChange?.(isNotesMode ? "fill" : "notes")}
+          className={cn(
+            "flex-1 h-12 text-base font-medium touch-action-manipulation",
+            "active:scale-[0.98] transition-all",
+            isNotesMode && "bg-primary text-primary-foreground"
+          )}
+        >
+          {isNotesMode ? (
+            <Pencil className="w-5 h-5 mr-2" />
+          ) : (
+            <PenLine className="w-5 h-5 mr-2" />
+          )}
+          {isNotesMode ? "Nháp" : "Điền"}
+        </Button>
+        <Button
+          variant="secondary"
+          disabled={disabled}
+          onClick={onClear}
+          className={cn(
+            "flex-1 h-12 text-base font-medium touch-action-manipulation",
+            "active:scale-[0.98] transition-transform"
+          )}
+        >
+          <Eraser className="w-5 h-5 mr-2" />
+          Xóa
+        </Button>
+      </div>
     </div>
   );
 }

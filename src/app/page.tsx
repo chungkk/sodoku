@@ -14,7 +14,7 @@ export default function Home() {
   const { player } = usePlayer();
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="bg-gradient-to-br from-background via-background to-primary/5">
       {/* Hero Section */}
       <section className="relative overflow-hidden border-b border-border/50">
         <div className="absolute inset-0 bg-grid-pattern opacity-5" />
@@ -139,18 +139,8 @@ export default function Home() {
               </section>
             </>
           )}
-
-          {/* Footer Info */}
-          <section className="text-center py-6 border-t border-border/50">
-            <p className="text-sm text-muted-foreground">
-              Tạo phòng và chia sẻ mã với bạn bè, hoặc tham gia phòng có sẵn
-            </p>
-            <p className="text-xs text-muted-foreground/70 mt-1">
-              Từ 2 người trở lên là có thể bắt đầu chơi!
-            </p>
-          </section>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
