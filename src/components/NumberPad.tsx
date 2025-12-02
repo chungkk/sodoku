@@ -20,69 +20,79 @@ const NumberPad = memo(function NumberPad({
   selectedNumber,
   disabled = false,
 }: NumberPadProps) {
-  const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  const row1 = [1, 2, 3, 4, 5];
+  const row2 = [6, 7, 8, 9];
+
+  const NumberButton = ({ num }: { num: number }) => (
+    <motion.button
+      onClick={() => onNumberClick(num)}
+      disabled={disabled}
+      whileHover={{ scale: disabled ? 1 : 1.05 }}
+      whileTap={{ scale: disabled ? 1 : 0.95 }}
+      className={`
+        h-12 sm:h-14 rounded-xl text-xl sm:text-2xl font-bold
+        transition-all duration-150
+        ${selectedNumber === num 
+          ? "bg-primary-500 text-white shadow-md" 
+          : "bg-primary-50 text-primary-700 hover:bg-primary-100"
+        }
+        ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+      `}
+    >
+      {num}
+    </motion.button>
+  );
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-5 sm:grid-cols-9 gap-2">
-        {numbers.map((num) => (
-          <motion.button
-            key={num}
-            onClick={() => onNumberClick(num)}
-            disabled={disabled}
-            whileHover={{ scale: disabled ? 1 : 1.05 }}
-            whileTap={{ scale: disabled ? 1 : 0.95 }}
-            className={`number-pad-btn ${
-              selectedNumber === num ? "number-pad-btn-active" : ""
-            } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-            aria-label={`Number ${num}`}
-          >
-            {num}
-          </motion.button>
+    <div className="flex flex-col gap-2">
+      {/* Row 1: 1-5 */}
+      <div className="grid grid-cols-5 gap-2">
+        {row1.map((num) => (
+          <NumberButton key={num} num={num} />
         ))}
       </div>
 
-      <div className="flex gap-2 justify-center">
+      {/* Row 2: 6-9 + Delete */}
+      <div className="grid grid-cols-5 gap-2">
+        {row2.map((num) => (
+          <NumberButton key={num} num={num} />
+        ))}
         <motion.button
           onClick={onClear}
           disabled={disabled}
-          whileHover={{ scale: disabled ? 1 : 1.02 }}
-          whileTap={{ scale: disabled ? 1 : 0.98 }}
+          whileHover={{ scale: disabled ? 1 : 1.05 }}
+          whileTap={{ scale: disabled ? 1 : 0.95 }}
           className={`
-            flex items-center justify-center gap-2
-            px-4 py-2 rounded-xl font-medium
-            bg-gray-100 text-gray-700
-            hover:bg-gray-200 transition-colors
+            h-12 sm:h-14 rounded-xl text-xl
+            bg-gray-100 text-gray-600 hover:bg-gray-200
+            transition-all duration-150
             ${disabled ? "opacity-50 cursor-not-allowed" : ""}
           `}
-          aria-label="Clear cell"
         >
-          <span>🗑️</span>
-          <span className="hidden sm:inline">Xóa</span>
-        </motion.button>
-
-        <motion.button
-          onClick={onToggleNoteMode}
-          disabled={disabled}
-          whileHover={{ scale: disabled ? 1 : 1.02 }}
-          whileTap={{ scale: disabled ? 1 : 0.98 }}
-          className={`
-            flex items-center justify-center gap-2
-            px-4 py-2 rounded-xl font-medium
-            transition-colors
-            ${
-              isNoteMode
-                ? "bg-primary-500 text-white hover:bg-primary-600"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }
-            ${disabled ? "opacity-50 cursor-not-allowed" : ""}
-          `}
-          aria-label={isNoteMode ? "Exit note mode" : "Enter note mode"}
-        >
-          <span>✏️</span>
-          <span className="hidden sm:inline">Nháp {isNoteMode ? "(Bật)" : ""}</span>
+          ⌫
         </motion.button>
       </div>
+
+      {/* Note mode toggle - compact on mobile */}
+      <motion.button
+        onClick={onToggleNoteMode}
+        disabled={disabled}
+        whileHover={{ scale: disabled ? 1 : 1.02 }}
+        whileTap={{ scale: disabled ? 1 : 0.98 }}
+        className={`
+          flex items-center justify-center gap-2
+          h-10 rounded-xl font-medium text-sm
+          transition-colors
+          ${isNoteMode
+            ? "bg-primary-500 text-white"
+            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }
+          ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+        `}
+      >
+        <span>✏️</span>
+        <span>Nháp {isNoteMode ? "(Bật)" : "(Tắt)"}</span>
+      </motion.button>
     </div>
   );
 });

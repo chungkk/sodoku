@@ -132,41 +132,40 @@ function PracticeContent() {
   }, [game.selectedCell, timer.isPaused, game.mode]);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className="max-w-4xl mx-auto px-2 sm:px-4 py-2 sm:py-6">
+      {/* Header - compact on mobile */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6"
+        className="flex items-center justify-between gap-2 mb-3 sm:mb-6"
       >
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-gray-900">Tập luyện</h1>
-          <span className="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Sudoku</h1>
+          <span className="px-2 py-0.5 sm:px-3 sm:py-1 bg-primary-100 text-primary-700 rounded-full text-xs sm:text-sm font-medium">
             {difficultyLabels[game.difficulty]}
           </span>
         </div>
 
-        <div className="flex items-center gap-4">
-          <Timer
-            seconds={timer.seconds}
-            isPaused={timer.isPaused}
-            onPauseToggle={handlePauseToggle}
-          />
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <span>Lỗi: <span className="font-bold text-error-600">{game.errors}</span></span>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => setShowNewGameModal(true)}
+            className="hidden sm:flex"
           >
-            🔄 Ván mới
+            🔄
           </Button>
         </div>
       </motion.div>
 
-      <div className="flex flex-col lg:flex-row gap-6 items-start justify-center">
+      <div className="flex flex-col lg:flex-row gap-3 sm:gap-6 items-start justify-center">
+        {/* Sudoku Board */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3 }}
-          className="w-full max-w-[400px] mx-auto lg:mx-0"
+          className="w-full max-w-[360px] sm:max-w-[400px] mx-auto lg:mx-0"
         >
           <SudokuBoard
             puzzle={game.puzzle}
@@ -178,40 +177,47 @@ function PracticeContent() {
           />
         </motion.div>
 
+        {/* Controls */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
-          className="w-full lg:w-auto"
+          className="w-full max-w-[360px] sm:max-w-[400px] mx-auto lg:w-auto"
         >
-          <Card padding="md" className="space-y-4">
-            <div className="flex items-center justify-between text-sm text-gray-600">
-              <span>Tiến độ: {game.progress}%</span>
-              <span>Lỗi: {game.errors}</span>
-            </div>
-
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <motion.div
-                className="bg-primary-500 h-2 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${game.progress}%` }}
-                transition={{ duration: 0.3 }}
-              />
-            </div>
-
-            <NumberPad
-              onNumberClick={handleNumberClick}
-              onClear={handleClear}
-              onToggleNoteMode={game.toggleMode}
-              isNoteMode={game.mode === "note"}
-              selectedNumber={null}
-              disabled={timer.isPaused}
+          {/* Timer & Progress - compact bar on mobile */}
+          <div className="flex items-center justify-between mb-3 px-1">
+            <Timer
+              seconds={timer.seconds}
+              isPaused={timer.isPaused}
+              onPauseToggle={handlePauseToggle}
             />
-
-            <div className="text-xs text-gray-500 text-center pt-2 border-t border-gray-100">
-              <p>⌨️ Phím tắt: 1-9 nhập số, Space tạm dừng, N chế độ nháp</p>
+            <div className="flex items-center gap-2">
+              <div className="w-20 sm:w-24 bg-gray-200 rounded-full h-2">
+                <motion.div
+                  className="bg-primary-500 h-2 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${game.progress}%` }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+              <span className="text-xs text-gray-500">{game.progress}%</span>
             </div>
-          </Card>
+          </div>
+
+          {/* Number Pad */}
+          <NumberPad
+            onNumberClick={handleNumberClick}
+            onClear={handleClear}
+            onToggleNoteMode={game.toggleMode}
+            isNoteMode={game.mode === "note"}
+            selectedNumber={null}
+            disabled={timer.isPaused}
+          />
+
+          {/* Keyboard shortcuts - hidden on mobile */}
+          <div className="hidden sm:block text-xs text-gray-500 text-center pt-3 mt-3 border-t border-gray-100">
+            <p>⌨️ Phím tắt: 1-9 nhập số, Space tạm dừng, N chế độ nháp</p>
+          </div>
         </motion.div>
       </div>
 
