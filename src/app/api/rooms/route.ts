@@ -42,8 +42,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Create room error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to create room" },
+      { error: "Failed to create room", details: errorMessage },
       { status: 500 }
     );
   }

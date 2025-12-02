@@ -62,10 +62,17 @@ export function CreateRoomForm({ onCancel }: CreateRoomFormProps) {
       return;
     }
 
+    if (!player.visitorId || !player.name) {
+      setError("Thông tin người chơi không hợp lệ. Vui lòng thử lại.");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
+      console.log("Creating room with:", { visitorId: player.visitorId, hostName: player.name, difficulty });
+      
       const response = await fetch("/api/rooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -77,15 +84,18 @@ export function CreateRoomForm({ onCancel }: CreateRoomFormProps) {
         }),
       });
 
+      const data = await response.json();
+      
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to create room");
+        console.error("Create room failed:", data);
+        throw new Error(data.details || data.error || "Không thể tạo phòng");
       }
 
-      const data = await response.json();
+      console.log("Room created:", data.code);
       router.push(`/room/${data.code}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Đã xảy ra lỗi");
+      console.error("Create room error:", err);
+      setError(err instanceof Error ? err.message : "Đã xảy ra lỗi khi tạo phòng");
       setIsLoading(false);
     }
   }, [player, difficulty, router]);
