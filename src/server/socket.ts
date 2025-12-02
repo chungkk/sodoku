@@ -1,4 +1,5 @@
 import { Server, Socket } from "socket.io";
+import connectDB from "../lib/mongodb";
 
 interface SocketAuth {
   visitorId: string;
@@ -64,8 +65,21 @@ export function setupSocketHandlers(io: Server): void {
       handleLeaveRoom(io, playerSocket, roomCode);
     });
 
-    playerSocket.on("set_ready", (data: { roomCode: string; ready: boolean }) => {
+    playerSocket.on("set_ready", async (data: { roomCode: string; ready: boolean }) => {
       const { roomCode, ready } = data;
+      
+      try {
+        await connectDB();
+        const Room = (await import("../models/Room")).default;
+        await Room.findOneAndUpdate(
+          { code: roomCode, "players.visitorId": visitorId },
+          { $set: { "players.$.isReady": ready } }
+        );
+        console.log(`${name} set ready=${ready} in room ${roomCode}`);
+      } catch (error) {
+        console.error("Failed to update ready status:", error);
+      }
+      
       io.to(roomCode).emit("player_ready", { visitorId, ready });
     });
 
