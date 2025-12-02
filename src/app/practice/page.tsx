@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { usePlayer } from "@/contexts/PlayerContext";
-import { ChevronDown, RotateCcw, PenLine, Delete, Lightbulb, Pause, Play, MoreHorizontal } from "lucide-react";
+import { ChevronDown, RotateCcw, PenLine, Delete, Lightbulb, Pause, Play, MoreHorizontal, Home, Trophy } from "lucide-react";
 import { generatePuzzle, boardToGrid, gridToBoard, validateCell, getConflicts } from "@/lib/sudoku";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 type Difficulty = "easy" | "medium" | "hard";
 type InputMode = "fill" | "notes";
@@ -22,6 +23,12 @@ const difficultyLabels: Record<Difficulty, string> = {
   easy: "Dễ",
   medium: "Trung bình", 
   hard: "Khó",
+};
+
+const difficultyColors: Record<Difficulty, string> = {
+  easy: "bg-accent/10 text-accent border-accent/30",
+  medium: "bg-primary/10 text-primary border-primary/30", 
+  hard: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
 export default function PracticePage() {
@@ -208,8 +215,8 @@ export default function PracticePage() {
 
   if (!player || !puzzleData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="animate-pulse text-gray-500">Đang tải...</div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">Đang tải...</div>
       </div>
     );
   }
@@ -217,32 +224,37 @@ export default function PracticePage() {
   const initialGrid = boardToGrid(puzzleData.initialBoard);
 
   return (
-    <main className="min-h-screen bg-white flex flex-col">
+    <main className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button onClick={() => router.push("/")} className="text-gray-900 font-semibold text-lg">
-              Sudoku
+      <header className="px-4 py-3 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => router.push("/")} 
+              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
+            >
+              <Home className="w-5 h-5 text-muted-foreground" />
             </button>
-            <span className="text-gray-400">&gt;</span>
             <div className="relative">
               <button 
                 onClick={() => setShowDifficultyMenu(!showDifficultyMenu)}
-                className="bg-red-500 text-white px-4 py-1.5 rounded-full text-sm font-medium flex items-center gap-1"
+                className={cn(
+                  "px-4 py-1.5 rounded-full text-sm font-medium flex items-center gap-1.5 border transition-colors",
+                  difficultyColors[difficulty]
+                )}
               >
                 {difficultyLabels[difficulty]}
                 <ChevronDown className="w-4 h-4" />
               </button>
               {showDifficultyMenu && (
-                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-[120px]">
+                <div className="absolute top-full left-0 mt-2 bg-card border border-border rounded-xl shadow-xl py-1 z-50 min-w-[140px] overflow-hidden">
                   {(["easy", "medium", "hard"] as Difficulty[]).map((d) => (
                     <button
                       key={d}
                       onClick={() => { setDifficulty(d); setShowDifficultyMenu(false); startNewGame(d); }}
                       className={cn(
-                        "w-full px-4 py-2 text-left text-sm hover:bg-gray-100",
-                        d === difficulty && "bg-red-50 text-red-500"
+                        "w-full px-4 py-2.5 text-left text-sm hover:bg-muted transition-colors",
+                        d === difficulty && "bg-primary/10 text-primary font-medium"
                       )}
                     >
                       {difficultyLabels[d]}
@@ -252,20 +264,23 @@ export default function PracticePage() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-gray-700">Sai: <span className="font-semibold">{mistakesCount}</span></span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-muted rounded-full text-sm">
+              <span className="text-muted-foreground">Sai:</span>
+              <span className="font-semibold text-destructive">{mistakesCount}</span>
+            </div>
             <div className="relative">
               <button 
                 onClick={() => setShowMenu(!showMenu)}
-                className="p-2 hover:bg-gray-100 rounded-lg"
+                className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
               >
-                <MoreHorizontal className="w-5 h-5 text-gray-600" />
+                <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
               </button>
               {showMenu && (
-                <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-[140px]">
+                <div className="absolute top-full right-0 mt-2 bg-card border border-border rounded-xl shadow-xl py-1 z-50 min-w-[150px] overflow-hidden">
                   <button
                     onClick={() => { startNewGame(difficulty); setShowMenu(false); }}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                    className="w-full px-4 py-2.5 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
                   >
                     <RotateCcw className="w-4 h-4" />
                     Chơi lại
@@ -278,81 +293,84 @@ export default function PracticePage() {
       </header>
 
       {/* Game Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 gap-6">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-6 gap-6">
         {/* Sudoku Board */}
-        <div className="border-2 border-gray-900">
-          {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((row) => (
-            <div key={row} className="flex">
-              {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((col) => {
-                const value = board[row][col];
-                const isInitial = initialGrid[row][col] !== 0;
-                const isSelected = selectedCell?.row === row && selectedCell?.col === col;
-                const cellNotes = notes[row]?.[col] || [];
-                
-                const rightBorder = col === 2 || col === 5;
-                const bottomBorder = row === 2 || row === 5;
-                
-                return (
-                  <button
-                    key={`${row}-${col}`}
-                    onClick={() => handleCellClick(row, col)}
-                    className={cn(
-                      "w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center text-xl sm:text-2xl font-medium border-r border-b border-gray-300 transition-colors",
-                      rightBorder && "border-r-2 border-r-gray-900",
-                      bottomBorder && "border-b-2 border-b-gray-900",
-                      col === 0 && "border-l border-l-gray-300",
-                      row === 0 && "border-t border-t-gray-300",
-                      isSelected && "bg-red-200",
-                      !isSelected && isHighlighted(row, col) && "bg-gray-100",
-                      !isSelected && !isHighlighted(row, col) && isSameValue(row, col) && "bg-red-50",
-                      isConflict(row, col) && "bg-red-300 text-red-700",
-                      isInitial ? "text-gray-900 font-bold" : "text-gray-600"
-                    )}
-                  >
-                    {value !== 0 ? value : (
-                      cellNotes.length > 0 && (
-                        <span className="text-[8px] text-gray-400 leading-tight">
-                          {cellNotes.slice(0, 4).join(" ")}
-                        </span>
-                      )
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
+        <div className="bg-card border border-border rounded-xl p-2 shadow-lg">
+          <div className="rounded-lg overflow-hidden">
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((row) => (
+              <div key={row} className="flex">
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((col) => {
+                  const value = board[row][col];
+                  const isInitial = initialGrid[row][col] !== 0;
+                  const isSelected = selectedCell?.row === row && selectedCell?.col === col;
+                  const cellNotes = notes[row]?.[col] || [];
+                  
+                  const rightBorder = col === 2 || col === 5;
+                  const bottomBorder = row === 2 || row === 5;
+                  
+                  return (
+                    <button
+                      key={`${row}-${col}`}
+                      onClick={() => handleCellClick(row, col)}
+                      className={cn(
+                        "w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center text-lg sm:text-xl font-medium transition-all duration-100",
+                        "border-r border-b border-border/50",
+                        rightBorder && "border-r-2 border-r-border",
+                        bottomBorder && "border-b-2 border-b-border",
+                        col === 0 && "border-l border-l-border/50",
+                        row === 0 && "border-t border-t-border/50",
+                        isSelected && "bg-primary/20 ring-2 ring-primary ring-inset",
+                        !isSelected && isHighlighted(row, col) && "bg-muted",
+                        !isSelected && !isHighlighted(row, col) && isSameValue(row, col) && "bg-primary/10",
+                        isConflict(row, col) && "bg-destructive/20 text-destructive animate-shake",
+                        isInitial ? "text-foreground font-bold" : "text-primary"
+                      )}
+                    >
+                      {value !== 0 ? value : (
+                        cellNotes.length > 0 && (
+                          <span className="text-[8px] text-muted-foreground leading-tight">
+                            {cellNotes.slice(0, 4).join(" ")}
+                          </span>
+                        )
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Controls Row */}
-        <div className="flex items-center justify-center gap-4 w-full max-w-[360px]">
+        <div className="flex items-center justify-center gap-3 w-full max-w-[380px]">
           {/* Notes Toggle */}
           <button 
             onClick={() => setInputMode(inputMode === "notes" ? "fill" : "notes")}
             className={cn(
-              "flex flex-col items-center gap-1 px-4 py-2 rounded-lg border-2 min-w-[80px]",
+              "flex flex-col items-center gap-1.5 px-4 py-2.5 rounded-xl border min-w-[90px] transition-all",
               inputMode === "notes" 
-                ? "border-red-500 bg-white" 
-                : "border-gray-200 bg-white"
+                ? "border-primary bg-primary/10" 
+                : "border-border bg-card hover:bg-muted"
             )}
           >
             <span className={cn(
-              "text-[10px] font-medium px-2 py-0.5 rounded",
-              inputMode === "notes" ? "bg-red-500 text-white" : "bg-gray-200 text-gray-600"
+              "text-[10px] font-medium px-2 py-0.5 rounded-full",
+              inputMode === "notes" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
             )}>
               {inputMode === "notes" ? "Bật" : "Tắt"}
             </span>
-            <div className="flex items-center gap-1">
-              <PenLine className="w-4 h-4 text-gray-600" />
-              <span className="text-sm text-gray-700">Ghi chú</span>
+            <div className="flex items-center gap-1.5">
+              <PenLine className={cn("w-4 h-4", inputMode === "notes" ? "text-primary" : "text-muted-foreground")} />
+              <span className={cn("text-sm", inputMode === "notes" ? "text-primary" : "text-foreground")}>Ghi chú</span>
             </div>
           </button>
 
           {/* Timer */}
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-2xl font-mono font-semibold text-gray-900">{formatTime()}</span>
+          <div className="flex flex-col items-center gap-1 px-4">
+            <span className="text-2xl font-mono font-semibold text-foreground tabular-nums">{formatTime()}</span>
             <button 
               onClick={() => setIsPaused(!isPaused)}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-muted-foreground hover:text-primary transition-colors"
             >
               {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
             </button>
@@ -362,34 +380,34 @@ export default function PracticePage() {
           <button 
             onClick={() => setHelpEnabled(!helpEnabled)}
             className={cn(
-              "flex flex-col items-center gap-1 px-4 py-2 rounded-lg border-2 min-w-[80px]",
+              "flex flex-col items-center gap-1.5 px-4 py-2.5 rounded-xl border min-w-[90px] transition-all",
               helpEnabled 
-                ? "border-red-500 bg-white" 
-                : "border-gray-200 bg-white"
+                ? "border-accent bg-accent/10" 
+                : "border-border bg-card hover:bg-muted"
             )}
           >
             <span className={cn(
-              "text-[10px] font-medium px-2 py-0.5 rounded",
-              helpEnabled ? "bg-red-500 text-white" : "bg-gray-200 text-gray-600"
+              "text-[10px] font-medium px-2 py-0.5 rounded-full",
+              helpEnabled ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"
             )}>
               {helpEnabled ? "Bật" : "Tắt"}
             </span>
-            <div className="flex items-center gap-1">
-              <Lightbulb className="w-4 h-4 text-gray-600" />
-              <span className="text-sm text-gray-700">Gợi ý</span>
+            <div className="flex items-center gap-1.5">
+              <Lightbulb className={cn("w-4 h-4", helpEnabled ? "text-accent" : "text-muted-foreground")} />
+              <span className={cn("text-sm", helpEnabled ? "text-accent" : "text-foreground")}>Gợi ý</span>
             </div>
           </button>
         </div>
 
         {/* Number Pad */}
-        <div className="w-full max-w-[360px]">
+        <div className="w-full max-w-[380px]">
           <div className="grid grid-cols-5 gap-2 mb-2">
             {[1, 2, 3, 4, 5].map((num) => (
               <button
                 key={num}
                 onClick={() => handleNumberInput(num)}
                 disabled={!selectedCell || isComplete}
-                className="h-14 bg-red-50 hover:bg-red-100 text-red-600 text-2xl font-semibold rounded-lg transition-colors disabled:opacity-50"
+                className="h-14 bg-card hover:bg-primary/10 text-primary text-2xl font-semibold rounded-xl border border-border transition-all disabled:opacity-40 active:scale-95"
               >
                 {num}
               </button>
@@ -401,7 +419,7 @@ export default function PracticePage() {
                 key={num}
                 onClick={() => handleNumberInput(num)}
                 disabled={!selectedCell || isComplete}
-                className="h-14 bg-red-50 hover:bg-red-100 text-red-600 text-2xl font-semibold rounded-lg transition-colors disabled:opacity-50"
+                className="h-14 bg-card hover:bg-primary/10 text-primary text-2xl font-semibold rounded-xl border border-border transition-all disabled:opacity-40 active:scale-95"
               >
                 {num}
               </button>
@@ -409,7 +427,7 @@ export default function PracticePage() {
             <button
               onClick={handleClear}
               disabled={!selectedCell || isComplete}
-              className="h-14 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center"
+              className="h-14 bg-card hover:bg-destructive/10 text-destructive rounded-xl border border-border transition-all disabled:opacity-40 flex items-center justify-center active:scale-95"
             >
               <Delete className="w-6 h-6" />
             </button>
@@ -419,17 +437,29 @@ export default function PracticePage() {
 
       {/* Complete Modal */}
       {isComplete && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 text-center max-w-sm mx-4 shadow-xl">
-            <h2 className="text-2xl font-bold text-green-600 mb-4">Hoàn thành!</h2>
-            <p className="text-gray-600 mb-2">Thời gian: <span className="font-semibold">{formatTime()}</span></p>
-            <p className="text-gray-600 mb-6">Số lần sai: <span className="font-semibold">{mistakesCount}</span></p>
-            <button 
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-card border border-border rounded-2xl p-8 text-center max-w-sm mx-4 shadow-2xl animate-fadeIn">
+            <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trophy className="w-8 h-8 text-accent" />
+            </div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Hoàn thành!</h2>
+            <p className="text-muted-foreground mb-4">Bạn đã giải xong bài Sudoku</p>
+            <div className="flex justify-center gap-6 mb-6">
+              <div className="text-center">
+                <p className="text-2xl font-mono font-bold text-primary">{formatTime()}</p>
+                <p className="text-xs text-muted-foreground">Thời gian</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-destructive">{mistakesCount}</p>
+                <p className="text-xs text-muted-foreground">Lỗi sai</p>
+              </div>
+            </div>
+            <Button 
               onClick={() => startNewGame(difficulty)}
-              className="bg-red-500 text-white px-8 py-3 rounded-full font-medium hover:bg-red-600 transition-colors"
+              className="w-full h-12 bg-accent hover:bg-accent/90 text-accent-foreground font-medium"
             >
               Chơi tiếp
-            </button>
+            </Button>
           </div>
         </div>
       )}

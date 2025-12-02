@@ -69,31 +69,34 @@ export default function RoomPage() {
   const isPlaying = room?.status === "playing" && gameData !== null;
   const isFinished = room?.status === "finished" || gameResults !== null;
 
-  const fetchRoom = useCallback(async () => {
+
+
+  const joinRoom = useCallback(async () => {
     if (!player) return;
 
     try {
-      const response = await fetch(`/api/rooms/${code}`, {
+      const response = await fetch(`/api/rooms/${code}/join`, {
+        method: "POST",
         headers: { "X-Session-ID": player.sessionId },
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Room not found");
+        throw new Error(data.error || "Failed to join room");
       }
 
       const data = await response.json();
       setRoom(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load room");
+      setError(err instanceof Error ? err.message : "Failed to join room");
     } finally {
       setIsLoading(false);
     }
   }, [code, player]);
 
   useEffect(() => {
-    fetchRoom();
-  }, [fetchRoom]);
+    joinRoom();
+  }, [joinRoom]);
 
   useEffect(() => {
     if (!socket || !isConnected || !room || !player) return;
@@ -156,6 +159,24 @@ export default function RoomPage() {
       });
     });
 
+    // Sync room state (including isReady status) when joining
+    socket.on("room:state", ({ room: roomState }) => {
+      setRoom((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          hostPlayerId: roomState.hostPlayerId || prev.hostPlayerId,
+          players: roomState.players,
+          status: roomState.status,
+        };
+      });
+      // Sync local isReady state
+      const myPlayer = roomState.players.find((p: Player) => p.id === player?.sessionId);
+      if (myPlayer) {
+        setIsReady(myPlayer.isReady);
+      }
+    });
+
     socket.on("game:starting", ({ countdown }) => {
       console.log("Game starting in", countdown);
     });
@@ -188,6 +209,7 @@ export default function RoomPage() {
       socket.off("room:player-ready");
       socket.off("room:player-disconnected");
       socket.off("room:player-reconnected");
+      socket.off("room:state");
       socket.off("game:starting");
       socket.off("game:started");
       socket.off("game:time-sync");

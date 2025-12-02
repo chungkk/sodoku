@@ -16,75 +16,74 @@
   --font-retro: 'VT323', 'Courier New', monospace;
   --font-pixel: 'PressStart2P', monospace;
   
-  /* Classic Dark Retro Theme */
-  --background: 220 15% 8%;
-  --foreground: 45 10% 85%;
-  --card: 220 12% 12%;
-  --card-foreground: 45 10% 85%;
-  --popover: 220 12% 14%;
-  --popover-foreground: 45 10% 85%;
-  --primary: 45 70% 55%;
-  --primary-foreground: 220 15% 8%;
-  --secondary: 220 10% 18%;
-  --secondary-foreground: 45 10% 80%;
-  --muted: 220 10% 15%;
-  --muted-foreground: 45 8% 55%;
-  --accent: 140 35% 45%;
-  --accent-foreground: 220 15% 8%;
-  --destructive: 0 50% 45%;
-  --destructive-foreground: 45 10% 90%;
-  --success: 140 40% 40%;
-  --success-foreground: 220 15% 8%;
-  --border: 45 30% 35%;
-  --input: 220 10% 15%;
-  --ring: 45 70% 55%;
-  --radius: 0;
+  /* Modern Light Theme */
+  --background: 0 0% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 221 83% 53%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 9% 46%;
+  --accent: 142 71% 45%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 142 71% 45%;
+  --success-foreground: 0 0% 100%;
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 221 83% 53%;
+  --radius: 8px;
   
-  --cell-initial: 220 12% 16%;
-  --cell-selected: 45 50% 35%;
-  --cell-highlighted: 220 12% 20%;
-  --cell-conflict: 0 40% 25%;
-  --cell-correct: 140 35% 25%;
+  --cell-initial: 220 14% 96%;
+  --cell-selected: 221 83% 90%;
+  --cell-highlighted: 220 14% 96%;
+  --cell-conflict: 0 84% 92%;
+  --cell-correct: 142 71% 90%;
   
-  /* Retro accent colors - muted */
-  --retro-gold: 45 70% 55%;
-  --retro-amber: 35 60% 50%;
-  --retro-green: 140 35% 45%;
-  --retro-red: 0 50% 45%;
-  --retro-dark: 220 15% 8%;
-  --retro-darker: 220 15% 5%;
-  --retro-light: 45 10% 85%;
+  /* Accent colors */
+  --retro-gold: 38 92% 50%;
+  --retro-amber: 30 80% 50%;
+  --retro-green: 142 71% 45%;
+  --retro-red: 0 84% 60%;
+  --retro-dark: 222 47% 11%;
+  --retro-darker: 222 47% 5%;
+  --retro-light: 0 0% 98%;
 }
 
 .dark {
-  /* Same as root - already dark */
-  --background: 220 15% 6%;
-  --foreground: 45 10% 85%;
-  --card: 220 12% 10%;
-  --card-foreground: 45 10% 85%;
-  --popover: 220 12% 12%;
-  --popover-foreground: 45 10% 85%;
-  --primary: 45 70% 55%;
-  --primary-foreground: 220 15% 8%;
-  --secondary: 220 10% 16%;
-  --secondary-foreground: 45 10% 80%;
-  --muted: 220 10% 13%;
-  --muted-foreground: 45 8% 50%;
-  --accent: 140 35% 45%;
-  --accent-foreground: 220 15% 8%;
-  --destructive: 0 50% 45%;
-  --destructive-foreground: 45 10% 90%;
-  --success: 140 40% 40%;
-  --success-foreground: 220 15% 8%;
-  --border: 45 25% 30%;
-  --input: 220 10% 13%;
-  --ring: 45 70% 55%;
+  --background: 222 47% 5%;
+  --foreground: 210 20% 92%;
+  --card: 222 47% 8%;
+  --card-foreground: 210 20% 92%;
+  --popover: 222 47% 10%;
+  --popover-foreground: 210 20% 92%;
+  --primary: 221 83% 53%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 222 30% 13%;
+  --secondary-foreground: 210 20% 85%;
+  --muted: 222 30% 11%;
+  --muted-foreground: 215 15% 50%;
+  --accent: 142 71% 45%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 142 71% 45%;
+  --success-foreground: 0 0% 100%;
+  --border: 222 20% 20%;
+  --input: 222 30% 11%;
+  --ring: 221 83% 53%;
   
-  --cell-initial: 220 12% 14%;
-  --cell-selected: 45 50% 30%;
-  --cell-highlighted: 220 12% 18%;
-  --cell-conflict: 0 40% 22%;
-  --cell-correct: 140 35% 22%;
+  --cell-initial: 222 30% 12%;
+  --cell-selected: 221 83% 25%;
+  --cell-highlighted: 222 30% 14%;
+  --cell-conflict: 0 50% 20%;
+  --cell-correct: 142 50% 20%;
 }
 
 * {
@@ -124,44 +123,43 @@ body {
   letter-spacing: 0;
 }
 
-/* Classic retro border */
+/* Modern card border */
 .retro-border {
-  border: 2px solid hsl(var(--border));
-  box-shadow: 
-    inset 0 1px 0 hsl(var(--foreground) / 0.1),
-    0 2px 4px hsl(var(--retro-darker) / 0.5);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  box-shadow: 0 4px 6px -1px hsl(var(--retro-darker) / 0.3);
 }
 
 .retro-border-sm {
   border: 1px solid hsl(var(--border));
-  box-shadow: 0 1px 2px hsl(var(--retro-darker) / 0.3);
+  border-radius: calc(var(--radius) - 2px);
 }
 
-/* Accent block style */
+/* Card styles */
 .question-block {
   background: hsl(var(--card));
-  border: 2px solid hsl(var(--border));
-  box-shadow: 
-    inset 0 1px 0 hsl(var(--foreground) / 0.05),
-    0 2px 4px hsl(var(--retro-darker) / 0.5);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  box-shadow: 0 4px 6px -1px hsl(var(--retro-darker) / 0.3);
 }
 
-/* Green accent style */
 .pipe-block {
   background: hsl(var(--muted));
-  border: 2px solid hsl(var(--accent) / 0.5);
+  border: 1px solid hsl(var(--accent) / 0.3);
+  border-radius: var(--radius);
 }
 
-/* Retro button hover */
+/* Button hover */
 .retro-btn {
-  transition: all 0.1s ease;
+  transition: all 0.15s ease;
+  border-radius: var(--radius);
 }
 .retro-btn:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0 hsl(var(--foreground) / 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px hsl(var(--primary) / 0.25);
 }
 .retro-btn:active {
-  transform: translate(1px, 1px);
+  transform: translateY(0);
   box-shadow: none;
 }
 
@@ -201,38 +199,48 @@ body {
 .sudoku-cell {
   width: 38px;
   height: 38px;
-  font-size: 22px;
+  font-size: 20px;
   font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-  font-weight: 700;
+  font-weight: 600;
+  border-radius: 4px;
 }
 
 @media (min-width: 480px) {
   .sudoku-cell {
-    width: 46px;
-    height: 46px;
-    font-size: 26px;
+    width: 44px;
+    height: 44px;
+    font-size: 24px;
   }
 }
 
 @media (min-width: 768px) {
   .sudoku-cell {
-    width: 54px;
-    height: 54px;
-    font-size: 30px;
+    width: 52px;
+    height: 52px;
+    font-size: 28px;
   }
 }
 
-/* Scanline effect for retro feel */
-.scanlines::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    hsl(var(--foreground) / 0.03) 2px,
-    hsl(var(--foreground) / 0.03) 4px
-  );
-  pointer-events: none;
+/* Glass effect */
+.glass {
+  background: hsl(var(--card) / 0.9);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(221 83% 53%), hsl(262 83% 58%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow effect */
+.glow-primary {
+  box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+}
+
+.glow-accent {
+  box-shadow: 0 0 20px hsl(var(--accent) / 0.3);
 }

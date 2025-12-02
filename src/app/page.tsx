@@ -7,6 +7,7 @@ import { NameInput } from "@/components/NameInput";
 import { CreateRoomForm } from "@/components/CreateRoomForm";
 import { JoinRoomForm } from "@/components/JoinRoomForm";
 import { Button } from "@/components/ui/button";
+import { Gamepad2, Users, ChevronDown, ChevronUp, Zap, Target, Grid3X3 } from "lucide-react";
 
 export default function Home() {
   const router = useRouter();
@@ -14,114 +15,150 @@ export default function Home() {
   const [showArena, setShowArena] = useState(false);
 
   return (
-    <div className="min-h-full flex flex-col items-center">
-      {/* Hero - Classic Dark Retro */}
-      <section className="w-full bg-card border-b border-border">
-        <div className="max-w-4xl mx-auto px-4 py-8 md:py-10 text-center">
-          <h1 className="font-pixel text-xl md:text-2xl text-primary mb-2">
-            SUDOKU
+    <div className="min-h-full flex flex-col">
+      {/* Hero */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
+        <div className="max-w-5xl mx-auto px-4 py-12 md:py-16 text-center relative">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full text-sm text-primary mb-4">
+            <Zap className="w-4 h-4" />
+            <span>Trò chơi giải đố số kinh điển</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-3">
+            <span className="gradient-text">Sudoku</span>
           </h1>
-          <p className="font-retro text-lg text-muted-foreground">
-            Classic Number Puzzle
+          <p className="text-lg text-muted-foreground max-w-md mx-auto">
+            Rèn luyện tư duy logic với trò chơi giải đố huyền thoại
           </p>
         </div>
       </section>
 
       {/* Main content */}
-      <div className="w-full max-w-4xl mx-auto px-4 py-6 md:py-8">
-        {/* Desktop: side-by-side layout */}
-        {/* Mobile: stacked layout */}
-        <div className="w-full">
-          
-          {/* Player section */}
-          <section className="bg-card retro-border p-4 mb-6">
-            <p className="font-retro text-base text-muted-foreground mb-3">
-              PLAYER NAME
-            </p>
-            <NameInput />
-          </section>
+      <div className="flex-1 w-full max-w-5xl mx-auto px-4 pb-8">
+        {/* Player section */}
+        <section className="bg-card border border-border rounded-xl p-5 mb-6 shadow-lg">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+              <Users className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-foreground">Tên người chơi</h2>
+              <p className="text-sm text-muted-foreground">Nhập tên để bắt đầu</p>
+            </div>
+          </div>
+          <NameInput />
+        </section>
 
-          {player && (
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Practice Mode */}
-              <section className="bg-card retro-border p-4">
-                <div className="mb-4">
-                  <h2 className="font-retro text-2xl text-foreground mb-1">
-                    PRACTICE
+        {player && (
+          <div className="grid md:grid-cols-2 gap-6 animate-fadeIn">
+            {/* Practice Mode */}
+            <section className="bg-card border border-border rounded-xl p-5 shadow-lg hover:shadow-xl transition-shadow">
+              <div className="flex items-start gap-4 mb-5">
+                <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center shrink-0">
+                  <Gamepad2 className="w-6 h-6 text-accent" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-foreground mb-1">
+                    Luyện tập
                   </h2>
-                  <p className="font-retro text-base text-muted-foreground">
-                    Single Player
+                  <p className="text-sm text-muted-foreground">
+                    Chế độ chơi đơn • Không giới hạn thời gian
                   </p>
                 </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <p className="text-sm text-muted-foreground mb-3">Độ khó:</p>
+                  <div className="flex gap-2 flex-wrap">
+                    <span className="text-xs px-3 py-1.5 bg-accent/10 text-accent rounded-full font-medium">Dễ</span>
+                    <span className="text-xs px-3 py-1.5 bg-primary/10 text-primary rounded-full font-medium">Trung bình</span>
+                    <span className="text-xs px-3 py-1.5 bg-destructive/10 text-destructive rounded-full font-medium">Khó</span>
+                  </div>
+                </div>
                 
-                <div className="space-y-3">
-                  <div className="bg-muted p-3 retro-border-sm">
-                    <p className="font-retro text-base text-muted-foreground mb-2">
-                      DIFFICULTY:
-                    </p>
-                    <div className="flex gap-2 flex-wrap">
-                      <span className="font-retro text-sm px-2 py-1 bg-accent/20 text-accent border border-accent/30">EASY</span>
-                      <span className="font-retro text-sm px-2 py-1 bg-primary/20 text-primary border border-primary/30">NORMAL</span>
-                      <span className="font-retro text-sm px-2 py-1 bg-destructive/20 text-destructive border border-destructive/30">HARD</span>
+                <Button 
+                  onClick={() => router.push("/practice")}
+                  className="w-full h-12 text-base font-medium bg-accent hover:bg-accent/90 text-accent-foreground"
+                >
+                  Bắt đầu chơi
+                </Button>
+              </div>
+            </section>
+
+            {/* Arena Mode */}
+            <section className="bg-card border border-border rounded-xl p-5 shadow-lg">
+              <button
+                onClick={() => setShowArena(!showArena)}
+                className="w-full flex items-start gap-4 mb-4"
+              >
+                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                  <Target className="w-6 h-6 text-primary" />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-semibold text-foreground">
+                      Đấu trường
+                    </h2>
+                    {showArena ? (
+                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Chế độ nhiều người • 2-4 người chơi
+                  </p>
+                </div>
+              </button>
+              
+              {showArena ? (
+                <div className="space-y-4 animate-fadeIn">
+                  <CreateRoomForm />
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-border" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="bg-card px-3 text-sm text-muted-foreground">hoặc</span>
                     </div>
                   </div>
-                  
-                  <Button 
-                    onClick={() => router.push("/practice")}
-                    className="w-full font-retro text-lg h-12 retro-btn border border-border bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    START GAME
-                  </Button>
+                  <JoinRoomForm />
                 </div>
-              </section>
-
-              {/* Arena Mode */}
-              <section className="bg-card retro-border p-4">
-                <button
-                  onClick={() => setShowArena(!showArena)}
-                  className="w-full text-left mb-4"
-                >
-                  <h2 className="font-retro text-2xl text-foreground mb-1">
-                    ARENA {showArena ? "[-]" : "[+]"}
-                  </h2>
-                  <p className="font-retro text-base text-muted-foreground">
-                    Multiplayer • 2-4 Players
+              ) : (
+                <div className="bg-muted/50 rounded-lg p-4 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Nhấn để mở rộng
                   </p>
-                </button>
-                
-                {showArena ? (
-                  <div className="space-y-4 animate-fadeIn">
-                    <CreateRoomForm />
-                    <div className="border-t border-border my-4" />
-                    <JoinRoomForm />
-                  </div>
-                ) : (
-                  <div className="bg-muted p-3 retro-border-sm">
-                    <p className="font-retro text-base text-muted-foreground text-center">
-                      Click to expand
-                    </p>
-                  </div>
-                )}
-              </section>
-            </div>
-          )}
+                </div>
+              )}
+            </section>
+          </div>
+        )}
 
-          {/* Instructions - Desktop only */}
-          <section className="hidden md:block mt-8 bg-card retro-border p-4">
-            <h3 className="font-retro text-xl text-foreground mb-3">HOW TO PLAY</h3>
-            <div className="grid grid-cols-3 gap-4 font-retro text-base text-muted-foreground">
-              <div>
-                <span className="text-primary">1.</span> Fill each row with 1-9
-              </div>
-              <div>
-                <span className="text-primary">2.</span> Fill each column with 1-9
-              </div>
-              <div>
-                <span className="text-primary">3.</span> Fill each 3x3 box with 1-9
-              </div>
+        {/* Instructions */}
+        <section className="mt-8 bg-card border border-border rounded-xl p-5 shadow-lg">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+              <Grid3X3 className="w-5 h-5 text-foreground" />
             </div>
-          </section>
-        </div>
+            <h3 className="font-semibold text-foreground">Cách chơi</h3>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-4">
+            <div className="flex items-start gap-3">
+              <span className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-sm font-medium text-primary shrink-0">1</span>
+              <p className="text-sm text-muted-foreground">Điền số 1-9 vào mỗi hàng</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-sm font-medium text-primary shrink-0">2</span>
+              <p className="text-sm text-muted-foreground">Điền số 1-9 vào mỗi cột</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-sm font-medium text-primary shrink-0">3</span>
+              <p className="text-sm text-muted-foreground">Điền số 1-9 vào mỗi ô 3x3</p>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

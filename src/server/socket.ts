@@ -174,6 +174,24 @@ function handleRoomJoin(
       isConnected: true,
     },
   });
+
+  // Send current room state to the joining player (sync isReady status)
+  const allPlayers = Array.from(room.players.entries()).map(([sockId, p]) => ({
+    id: p.playerId,
+    displayName: p.displayName,
+    isReady: p.isReady,
+    isConnected: p.isConnected,
+  }));
+
+  const hostPlayer = room.players.get(room.hostSocketId);
+  socket.emit("room:state", {
+    room: {
+      code: roomCode,
+      hostPlayerId: hostPlayer?.playerId || "",
+      players: allPlayers,
+      status: room.status,
+    },
+  });
 }
 
 function handleRoomLeave(
