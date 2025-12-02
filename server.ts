@@ -1,6 +1,8 @@
 import { createServer } from "http";
 import { parse } from "url";
 import next from "next";
+import { Server as SocketIOServer } from "socket.io";
+import { setupSocketHandlers } from "./src/server/socket";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -21,9 +23,23 @@ app.prepare().then(() => {
     }
   });
 
+  const io = new SocketIOServer(httpServer, {
+    path: "/api/socketio",
+    cors: {
+      origin: dev ? "http://localhost:3000" : process.env.NEXTAUTH_URL,
+      methods: ["GET", "POST"],
+      credentials: true,
+    },
+    pingTimeout: 60000,
+    pingInterval: 25000,
+  });
+
+  setupSocketHandlers(io);
+
   httpServer.listen(port, () => {
     console.log(
       `> Ready on http://${hostname}:${port} as ${dev ? "development" : process.env.NODE_ENV}`
     );
+    console.log("> Socket.io server running on /api/socketio");
   });
 });

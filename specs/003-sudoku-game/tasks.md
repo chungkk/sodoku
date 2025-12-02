@@ -37,27 +37,27 @@
 
 ### Database & Models
 
-- [ ] T008 Create MongoDB connection utility in src/lib/mongodb.ts
-- [ ] T009 [P] Create User model with schema in src/models/User.ts
-- [ ] T010 [P] Create Puzzle model with schema in src/models/Puzzle.ts
-- [ ] T011 [P] Create Room model with embedded Player schema in src/models/Room.ts
+- [x] T008 Create MongoDB connection utility in src/lib/mongodb.ts
+- [x] T009 [P] Create User model with schema in src/models/User.ts
+- [x] T010 [P] Create Puzzle model with schema in src/models/Puzzle.ts
+- [x] T011 [P] Create Room model with embedded Player schema in src/models/Room.ts
 
 ### Authentication
 
-- [ ] T012 Create auth utilities and session handling in src/lib/auth.ts
-- [ ] T013 Implement NextAuth config with credentials provider in src/app/api/auth/[...nextauth]/route.ts
-- [ ] T014 [P] Create PlayerContext for session management in src/contexts/PlayerContext.tsx
+- [x] T012 Create auth utilities and session handling in src/lib/auth.ts
+- [x] T013 Implement NextAuth config with credentials provider in src/app/api/auth/[...nextauth]/route.ts
+- [x] T014 [P] Create PlayerContext for session management in src/contexts/PlayerContext.tsx
 
 ### Real-time Infrastructure
 
-- [ ] T015 Create Socket.io client setup in src/lib/socket.ts
-- [ ] T016 Create custom server with Socket.io in server.ts
-- [ ] T017 Implement Socket.io server handlers base in src/server/socket.ts
+- [x] T015 Create Socket.io client setup in src/lib/socket.ts
+- [x] T016 Create custom server with Socket.io in server.ts
+- [x] T017 Implement Socket.io server handlers base in src/server/socket.ts
 
 ### Core Utilities
 
-- [ ] T018 Implement Sudoku puzzle generator with difficulty levels in src/lib/sudoku.ts
-- [ ] T019 Add puzzle validation functions (check conflicts) in src/lib/sudoku.ts
+- [x] T018 Implement Sudoku puzzle generator with difficulty levels in src/lib/sudoku.ts
+- [x] T019 Add puzzle validation functions (check conflicts) in src/lib/sudoku.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
