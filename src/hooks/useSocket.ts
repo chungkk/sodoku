@@ -33,9 +33,11 @@ export function useSocket({
     if (socketRef.current?.connected) return;
 
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "";
+    const isExternalSocket = socketUrl && !socketUrl.includes("localhost:3000");
     
     socketRef.current = io(socketUrl, {
-      path: "/api/socketio",
+      // Only use custom path for local dev (same origin)
+      ...(isExternalSocket ? {} : { path: "/api/socketio" }),
       auth: { visitorId, name },
       reconnection: true,
       reconnectionAttempts: 5,
