@@ -71,47 +71,47 @@
 
 ### Core UI Components (US5)
 
-- [ ] T020 [P] [US5] Create base Button component in src/components/ui/button.tsx
-- [ ] T021 [P] [US5] Create base Card component in src/components/ui/card.tsx
-- [ ] T022 [P] [US5] Create base Input component in src/components/ui/input.tsx
-- [ ] T023 [P] [US5] Create base Dialog component in src/components/ui/dialog.tsx
-- [ ] T024 [P] [US5] Create base Select component in src/components/ui/select.tsx
+- [x] T020 [P] [US5] Create base Button component in src/components/ui/button.tsx
+- [x] T021 [P] [US5] Create base Card component in src/components/ui/card.tsx
+- [x] T022 [P] [US5] Create base Input component in src/components/ui/input.tsx
+- [x] T023 [P] [US5] Create base Dialog component in src/components/ui/dialog.tsx
+- [x] T024 [P] [US5] Create base Select component in src/components/ui/select.tsx
 
 ### Layout Components (US5)
 
-- [ ] T025 [P] [US5] Create Header with logo and nav in src/components/Header.tsx
-- [ ] T026 [P] [US5] Create Footer with copyright in src/components/Footer.tsx
-- [ ] T027 [US5] Create root layout with Header/Footer in src/app/layout.tsx
-- [ ] T028 [US5] Setup global styles with light theme in src/app/globals.css
+- [x] T025 [P] [US5] Create Header with logo and nav in src/components/Header.tsx
+- [x] T026 [P] [US5] Create Footer with copyright in src/components/Footer.tsx
+- [x] T027 [US5] Create root layout with Header/Footer in src/app/layout.tsx
+- [x] T028 [US5] Setup global styles with light theme in src/app/globals.css
 
 ### Game Components (US1 + US5)
 
-- [ ] T029 [P] [US1] Create Cell component with highlight states in src/components/Cell.tsx
-- [ ] T030 [P] [US1] Create NumberPad component (1-9 buttons) in src/components/NumberPad.tsx
-- [ ] T031 [P] [US1] Create Timer component with pause support in src/components/Timer.tsx
-- [ ] T032 [US1] Create SudokuBoard component (9x9 grid) in src/components/SudokuBoard.tsx
-- [ ] T033 [US1] Implement cell selection and highlighting logic in src/components/SudokuBoard.tsx
-- [ ] T034 [US1] Implement note mode (small numbers) in Cell and SudokuBoard
+- [x] T029 [P] [US1] Create Cell component with highlight states in src/components/Cell.tsx
+- [x] T030 [P] [US1] Create NumberPad component (1-9 buttons) in src/components/NumberPad.tsx
+- [x] T031 [P] [US1] Create Timer component with pause support in src/components/Timer.tsx
+- [x] T032 [US1] Create SudokuBoard component (9x9 grid) in src/components/SudokuBoard.tsx
+- [x] T033 [US1] Implement cell selection and highlighting logic in src/components/SudokuBoard.tsx
+- [x] T034 [US1] Implement note mode (small numbers) in Cell and SudokuBoard
 
 ### Game State Management (US1)
 
-- [ ] T035 [US1] Create useTimer hook in src/hooks/useTimer.ts
-- [ ] T036 [US1] Create useGame hook with reducer in src/hooks/useGame.ts
-- [ ] T037 [US1] Create GameContext provider in src/contexts/GameContext.tsx
+- [x] T035 [US1] Create useTimer hook in src/hooks/useTimer.ts
+- [x] T036 [US1] Create useGame hook with reducer in src/hooks/useGame.ts
+- [x] T037 [US1] Create GameContext provider in src/contexts/GameContext.tsx
 
 ### Pages (US1)
 
-- [ ] T038 [US1] Create home page with mode selection in src/app/page.tsx
-- [ ] T039 [US1] Create practice page with difficulty selector in src/app/practice/page.tsx
-- [ ] T040 [US1] Implement pause overlay with resume button in src/app/practice/page.tsx
-- [ ] T041 [US1] Implement victory modal with time display in src/app/practice/page.tsx
-- [ ] T042 [US1] Add real-time conflict highlighting (red cells) in src/components/SudokuBoard.tsx
+- [x] T038 [US1] Create home page with mode selection in src/app/page.tsx
+- [x] T039 [US1] Create practice page with difficulty selector in src/app/practice/page.tsx
+- [x] T040 [US1] Implement pause overlay with resume button in src/app/practice/page.tsx
+- [x] T041 [US1] Implement victory modal with time display in src/app/practice/page.tsx
+- [x] T042 [US1] Add real-time conflict highlighting (red cells) in src/components/SudokuBoard.tsx
 
 ### Mobile Responsiveness (US5)
 
-- [ ] T043 [US5] Add responsive styles for board scaling on mobile in src/components/SudokuBoard.tsx
-- [ ] T044 [US5] Add touch-optimized NumberPad for mobile in src/components/NumberPad.tsx
-- [ ] T045 [US5] Add subtle animations with Framer Motion in src/components/Cell.tsx
+- [x] T043 [US5] Add responsive styles for board scaling on mobile in src/components/SudokuBoard.tsx
+- [x] T044 [US5] Add touch-optimized NumberPad for mobile in src/components/NumberPad.tsx
+- [x] T045 [US5] Add subtle animations with Framer Motion in src/components/Cell.tsx
 
 **Checkpoint**: Practice mode fully functional - can play Sudoku offline without multiplayer
 

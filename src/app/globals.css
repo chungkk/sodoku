@@ -3,25 +3,90 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  * {
+    @apply border-gray-200;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .sudoku-cell {
+    @apply flex items-center justify-center
+           text-lg sm:text-xl md:text-2xl font-semibold
+           transition-all duration-150
+           select-none cursor-pointer;
+  }
+
+  .sudoku-cell-given {
+    @apply text-gray-800 bg-gray-100;
+  }
+
+  .sudoku-cell-user {
+    @apply text-primary-600 bg-white;
+  }
+
+  .sudoku-cell-selected {
+    @apply bg-primary-100 ring-2 ring-primary-500;
+  }
+
+  .sudoku-cell-highlighted {
+    @apply bg-primary-50;
+  }
+
+  .sudoku-cell-conflict {
+    @apply bg-error-500/20 text-error-600;
+  }
+
+  .sudoku-cell-note {
+    @apply text-[10px] sm:text-xs text-gray-500;
+  }
+
+  .number-pad-btn {
+    @apply flex items-center justify-center
+           w-10 h-10 sm:w-12 sm:h-12
+           text-lg sm:text-xl font-semibold
+           bg-white border border-gray-200 rounded-xl
+           hover:bg-primary-50 hover:border-primary-300
+           active:scale-95 transition-all duration-150
+           touch-manipulation;
+  }
+
+  .number-pad-btn-active {
+    @apply bg-primary-500 text-white border-primary-500
+           hover:bg-primary-600;
+  }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .grid-sudoku {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 1px;
+    background: #cbd5e1;
+  }
+
+  .grid-sudoku > *:nth-child(3n) {
+    border-right: 2px solid #475569;
+  }
+
+  .grid-sudoku > *:nth-child(9n) {
+    border-right: none;
+  }
+
+  .grid-sudoku > *:nth-child(n+19):nth-child(-n+27),
+  .grid-sudoku > *:nth-child(n+46):nth-child(-n+54) {
+    border-bottom: 2px solid #475569;
+  }
+
+  .touch-manipulation {
+    touch-action: manipulation;
   }
 }

@@ -4,7 +4,7 @@ import { Difficulty } from "./Puzzle";
 export type RoomStatus = "waiting" | "playing" | "finished";
 
 export interface IPlayer {
-visitorId: string;
+  visitorId: string;
   oderId: Types.ObjectId | null;
   name: string;
   isHost: boolean;
@@ -28,11 +28,25 @@ export interface IRoom extends Document {
   finishedAt: Date | null;
   winnerId: string | null;
   createdAt: Date;
+  addPlayer(visitorId: string, name: string, userId?: Types.ObjectId | null): boolean;
+  removePlayer(visitorId: string): boolean;
+  setPlayerReady(visitorId: string, ready: boolean): boolean;
+  canStart(): boolean;
+}
+
+interface IRoomModel extends Model<IRoom> {
+  generateRoomCode(): string;
+  createRoom(
+    hostId: string,
+    hostName: string,
+    difficulty: Difficulty,
+    userId?: Types.ObjectId | null
+  ): Promise<IRoom>;
 }
 
 const PlayerSchema = new Schema<IPlayer>(
   {
-visitorId: { type: String, required: true },
+    visitorId: { type: String, required: true },
     oderId: { type: Schema.Types.ObjectId, ref: "User", default: null },
     name: { type: String, required: true, trim: true, maxlength: 20 },
     isHost: { type: Boolean, default: false },
@@ -109,8 +123,17 @@ RoomSchema.statics.createRoom = async function (
   let code: string;
   let exists = true;
 
+  const generateCode = (): string => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let result = "";
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
   while (exists) {
-    code = this.generateRoomCode();
+    code = generateCode();
     exists = await this.exists({ code });
   }
 
@@ -120,7 +143,7 @@ RoomSchema.statics.createRoom = async function (
     difficulty,
     players: [
       {
-visitorId: hostId,
+        visitorId: hostId,
         oderId: userId,
         name: hostName,
         isHost: true,
@@ -134,7 +157,7 @@ visitorId: hostId,
 };
 
 RoomSchema.methods.addPlayer = function (
-visitorId: string,
+  visitorId: string,
   name: string,
   userId: Types.ObjectId | null = null
 ): boolean {
@@ -143,7 +166,7 @@ visitorId: string,
   if (this.players.some((p: IPlayer) => p.visitorId === visitorId)) return false;
 
   this.players.push({
-visitorId,
+    visitorId,
     oderId: userId,
     name,
     isHost: false,
@@ -175,7 +198,7 @@ RoomSchema.methods.removePlayer = function (visitorId: string): boolean {
 };
 
 RoomSchema.methods.setPlayerReady = function (
-visitorId: string,
+  visitorId: string,
   ready: boolean
 ): boolean {
   const player = this.players.find((p: IPlayer) => p.visitorId === visitorId);
@@ -193,7 +216,7 @@ RoomSchema.methods.canStart = function (): boolean {
   return nonHostPlayers.some((p: IPlayer) => p.isReady);
 };
 
-const Room: Model<IRoom> =
-  mongoose.models.Room || mongoose.model<IRoom>("Room", RoomSchema);
+const Room = (mongoose.models.Room as IRoomModel) || 
+  mongoose.model<IRoom, IRoomModel>("Room", RoomSchema);
 
 export default Room;

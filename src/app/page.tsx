@@ -1,101 +1,166 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Select } from "@/components/ui/select";
+import { usePlayer } from "@/contexts/PlayerContext";
+import { Input } from "@/components/ui/input";
+import { Difficulty } from "@/lib/sudoku";
+
+const difficultyOptions = [
+  { value: "easy", label: "🟢 Dễ" },
+  { value: "medium", label: "🟡 Trung bình" },
+  { value: "hard", label: "🔴 Khó" },
+];
+
+export default function HomePage() {
+  const { player, setGuestName } = usePlayer();
+  const [guestNameInput, setGuestNameInput] = useState("");
+  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
+  const [showNameInput, setShowNameInput] = useState(false);
+
+  const handleStartPractice = () => {
+    if (!player) {
+      setShowNameInput(true);
+      return;
+    }
+    window.location.href = `/practice?difficulty=${difficulty}`;
+  };
+
+  const handleGuestSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (guestNameInput.trim().length >= 2) {
+      setGuestName(guestNameInput.trim());
+      window.location.href = `/practice?difficulty=${difficulty}`;
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-center mb-12"
+      >
+        <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
+          🧩 Sudoku Online
+        </h1>
+        <p className="text-lg text-gray-600 max-w-xl mx-auto">
+          Rèn luyện tư duy logic với trò chơi Sudoku kinh điển.
+          Chơi một mình hoặc thi đấu cùng bạn bè!
+        </p>
+      </motion.div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+      <div className="grid md:grid-cols-2 gap-6">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          <Card variant="elevated" className="h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-2xl">🎯</span>
+                Tập luyện
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-6">
+                Chơi Sudoku một mình với 3 mức độ khó. Hoàn hảo để luyện tập và
+                cải thiện kỹ năng của bạn.
+              </p>
+
+              {showNameInput && !player ? (
+                <form onSubmit={handleGuestSubmit} className="space-y-4">
+                  <Input
+                    label="Tên của bạn"
+                    placeholder="Nhập tên (ít nhất 2 ký tự)"
+                    value={guestNameInput}
+                    onChange={(e) => setGuestNameInput(e.target.value)}
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <Button type="submit" fullWidth disabled={guestNameInput.trim().length < 2}>
+                      Bắt đầu chơi
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setShowNameInput(false)}
+                    >
+                      Hủy
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <div className="space-y-4">
+                  <Select
+                    label="Độ khó"
+                    options={difficultyOptions}
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+                  />
+                  <Button onClick={handleStartPractice} fullWidth size="lg">
+                    🎮 Bắt đầu chơi
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          <Card variant="elevated" className="h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-2xl">🏆</span>
+                Thi đấu Solo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-6">
+                Tạo phòng và mời bạn bè cùng thi đấu. Ai hoàn thành nhanh nhất sẽ
+                là người chiến thắng!
+              </p>
+
+              <div className="space-y-3">
+                <Button variant="outline" fullWidth size="lg" disabled>
+                  🚀 Tạo phòng
+                  <span className="ml-2 text-xs bg-gray-100 px-2 py-0.5 rounded">Sắp ra mắt</span>
+                </Button>
+                <Button variant="ghost" fullWidth disabled>
+                  🔗 Tham gia phòng
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+        className="mt-12 text-center"
+      >
+        <Card padding="lg" className="bg-gradient-to-r from-primary-50 to-blue-50">
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            Cách chơi Sudoku
+          </h3>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            Điền các số từ 1-9 vào bảng 9x9 sao cho mỗi hàng, mỗi cột và mỗi ô vuông 3x3
+            đều chứa đủ các số từ 1 đến 9, không trùng lặp.
+          </p>
+        </Card>
+      </motion.div>
     </div>
   );
 }
