@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,7 @@ export default function RoomPage() {
   const [isReady, setIsReady] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const hasJoined = useRef(false);
 
   const { isConnected, emit, on, off } = useSocket({
     visitorId: player?.visitorId || "",
@@ -74,10 +75,10 @@ export default function RoomPage() {
     }
   }, [code]);
 
-  const joinRoom = useCallback(async () => {
-    if (!player || !room) return;
+  const joinRoom = useCallback(async (currentRoom: RoomData) => {
+    if (!player || hasJoined.current) return;
 
-    const isAlreadyInRoom = room.players.some(p => p.visitorId === player.visitorId);
+    const isAlreadyInRoom = currentRoom.players.some(p => p.visitorId === player.visitorId);
     
     if (!isAlreadyInRoom) {
       try {
@@ -94,25 +95,27 @@ export default function RoomPage() {
           const data = await response.json();
           throw new Error(data.error || "Failed to join room");
         }
+        
+        await fetchRoom();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to join room");
         return;
       }
     }
 
+    hasJoined.current = true;
     emit("join_room", { roomCode: code });
-    fetchRoom();
-  }, [player, room, code, emit, fetchRoom]);
+  }, [player, code, emit, fetchRoom]);
 
   useEffect(() => {
     fetchRoom();
   }, [fetchRoom]);
 
   useEffect(() => {
-    if (room && player && isConnected) {
-      joinRoom();
+    if (room && player && isConnected && !hasJoined.current) {
+      joinRoom(room);
     }
-  }, [room, player, isConnected]);
+  }, [room, player, isConnected, joinRoom]);
 
   useEffect(() => {
     if (!player && !loading && room) {
