@@ -125,33 +125,33 @@
 
 ### API Endpoints (US2)
 
-- [ ] T046 [P] [US2] Create guest session endpoint POST /api/player/session in src/app/api/player/session/route.ts
-- [ ] T047 [P] [US2] Create room endpoint POST /api/rooms in src/app/api/rooms/route.ts
-- [ ] T048 [P] [US2] Get room endpoint GET /api/rooms/[code] in src/app/api/rooms/[code]/route.ts
-- [ ] T049 [US2] Start game endpoint POST /api/rooms/[code]/start in src/app/api/rooms/[code]/start/route.ts
+- [x] T046 [P] [US2] Create guest session endpoint POST /api/player/session in src/app/api/player/session/route.ts
+- [x] T047 [P] [US2] Create room endpoint POST /api/rooms in src/app/api/rooms/route.ts
+- [x] T048 [P] [US2] Get room endpoint GET /api/rooms/[code] in src/app/api/rooms/[code]/route.ts
+- [x] T049 [US2] Start game endpoint POST /api/rooms/[code]/start in src/app/api/rooms/[code]/start/route.ts
 
 ### Socket Events (US2)
 
-- [ ] T050 [US2] Implement join_room socket event in src/server/socket.ts
-- [ ] T051 [US2] Implement leave_room socket event in src/server/socket.ts
-- [ ] T052 [US2] Implement start_game socket event in src/server/socket.ts
-- [ ] T053 [US2] Emit room_updated, player_joined events in src/server/socket.ts
+- [x] T050 [US2] Implement join_room socket event in src/server/socket.ts
+- [x] T051 [US2] Implement leave_room socket event in src/server/socket.ts
+- [x] T052 [US2] Implement start_game socket event in src/server/socket.ts
+- [x] T053 [US2] Emit room_updated, player_joined events in src/server/socket.ts
 
 ### Components (US2)
 
-- [ ] T054 [P] [US2] Create NameInput component for guest name in src/components/NameInput.tsx
-- [ ] T055 [P] [US2] Create PlayerList component in src/components/PlayerList.tsx
-- [ ] T056 [US2] Create CreateRoomForm with difficulty selector in src/components/CreateRoomForm.tsx
+- [x] T054 [P] [US2] Create NameInput component for guest name in src/components/NameInput.tsx
+- [x] T055 [P] [US2] Create PlayerList component in src/components/PlayerList.tsx
+- [x] T056 [US2] Create CreateRoomForm with difficulty selector in src/components/CreateRoomForm.tsx
 
 ### Hooks (US2)
 
-- [ ] T057 [US2] Create useSocket hook for connection management in src/hooks/useSocket.ts
+- [x] T057 [US2] Create useSocket hook for connection management in src/hooks/useSocket.ts
 
 ### Pages (US2)
 
-- [ ] T058 [US2] Add "Create Room" section to home page in src/app/page.tsx
-- [ ] T059 [US2] Create room page with waiting room UI in src/app/room/[code]/page.tsx
-- [ ] T060 [US2] Implement host controls (Start button) in src/app/room/[code]/page.tsx
+- [x] T058 [US2] Add "Create Room" section to home page in src/app/page.tsx
+- [x] T059 [US2] Create room page with waiting room UI in src/app/room/[code]/page.tsx
+- [x] T060 [US2] Implement host controls (Start button) in src/app/room/[code]/page.tsx
 
 **Checkpoint**: Can create room, see room code, wait for players
 
@@ -295,12 +295,12 @@ Phase 7 (Polish)
 
 ### User Story Dependencies
 
-| Story | Depends On | Can Parallel With |
-|-------|------------|-------------------|
-| US1+US5 (P1) | Phase 2 only | None (MVP first) |
-| US2 (P2) | Phase 2, US1+US5 components | US3 |
-| US3 (P2) | Phase 2, US2 (room creation) | US4 |
-| US4 (P3) | US2, US3 (need rooms working) | Polish tasks |
+| Story        | Depends On                    | Can Parallel With |
+| ------------ | ----------------------------- | ----------------- |
+| US1+US5 (P1) | Phase 2 only                  | None (MVP first)  |
+| US2 (P2)     | Phase 2, US1+US5 components   | US3               |
+| US3 (P2)     | Phase 2, US2 (room creation)  | US4               |
+| US4 (P3)     | US2, US3 (need rooms working) | Polish tasks      |
 
 ### Parallel Opportunities Per Phase
 
@@ -352,26 +352,26 @@ T031: Create Timer in src/components/Timer.tsx
 
 ### Incremental Delivery
 
-| Milestone | Stories | Value Delivered |
-|-----------|---------|-----------------|
-| MVP | US1+US5 | Single-player Sudoku with great UI |
-| v1.1 | +US2 | Can create multiplayer rooms |
-| v1.2 | +US3 | Can join rooms, ready up |
-| v1.3 | +US4 | Full competition with winner |
-| v1.4 | +Polish | Auth, profiles, history |
+| Milestone | Stories | Value Delivered                    |
+| --------- | ------- | ---------------------------------- |
+| MVP       | US1+US5 | Single-player Sudoku with great UI |
+| v1.1      | +US2    | Can create multiplayer rooms       |
+| v1.2      | +US3    | Can join rooms, ready up           |
+| v1.3      | +US4    | Full competition with winner       |
+| v1.4      | +Polish | Auth, profiles, history            |
 
 ### Estimated Time
 
-| Phase | Tasks | Est. Time |
-|-------|-------|-----------|
-| Setup | 7 | 30 min |
-| Foundational | 12 | 2 hours |
-| US1+US5 (MVP) | 26 | 4 hours |
-| US2 | 15 | 2 hours |
-| US3 | 9 | 1.5 hours |
-| US4 | 19 | 3 hours |
-| Polish | 21 | 3 hours |
-| **Total** | **109** | **~16 hours** |
+| Phase         | Tasks   | Est. Time     |
+| ------------- | ------- | ------------- |
+| Setup         | 7       | 30 min        |
+| Foundational  | 12      | 2 hours       |
+| US1+US5 (MVP) | 26      | 4 hours       |
+| US2           | 15      | 2 hours       |
+| US3           | 9       | 1.5 hours     |
+| US4           | 19      | 3 hours       |
+| Polish        | 21      | 3 hours       |
+| **Total**     | **109** | **~16 hours** |
 
 ---
 

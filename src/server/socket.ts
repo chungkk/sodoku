@@ -48,6 +48,12 @@ export function setupSocketHandlers(io: Server): void {
       roomPlayers.get(roomCode)!.add(visitorId);
 
       io.to(roomCode).emit("player_joined", { visitorId, name });
+      io.to(roomCode).emit("room_updated", { 
+        roomCode,
+        action: "player_joined",
+        playerId: visitorId,
+        playerName: name,
+      });
       console.log(`${name} joined room ${roomCode}`);
     });
 

@@ -8,7 +8,7 @@ interface PlayerContextType {
   player: PlayerSession | null;
   isLoading: boolean;
   isGuest: boolean;
-  setGuestName: (name: string) => void;
+  setGuestName: (name: string, visitorId?: string) => void;
   clearSession: () => void;
 }
 
@@ -42,8 +42,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, [session, status]);
 
-  const setGuestName = useCallback((name: string) => {
-    const newSession = createGuestSession(name);
+  const setGuestName = useCallback((name: string, visitorId?: string) => {
+    const newSession: PlayerSession = visitorId 
+      ? { visitorId, name, isGuest: true }
+      : createGuestSession(name);
     setGuestSession(newSession);
     localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(newSession));
   }, []);
