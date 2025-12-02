@@ -12,6 +12,8 @@ interface PlayerSocket extends Socket {
 
 const playerSockets = new Map<string, PlayerSocket>();
 const roomPlayers = new Map<string, Set<string>>();
+const disconnectTimeouts = new Map<string, NodeJS.Timeout>();
+const DISCONNECT_TIMEOUT = 30000;
 
 export function setupSocketHandlers(io: Server): void {
   io.use((socket: Socket, next) => {
@@ -77,11 +79,24 @@ export function setupSocketHandlers(io: Server): void {
       row: number;
       col: number;
       value: number | null;
+      valid?: boolean;
+      conflicts?: { row: number; col: number }[];
     }) => {
       playerSocket.to(data.roomCode).emit("cell_update", {
         visitorId,
-        ...data,
+        row: data.row,
+        col: data.col,
+        value: data.value,
       });
+
+      if (data.valid === false && data.conflicts) {
+        playerSocket.emit("cell_validated", {
+          row: data.row,
+          col: data.col,
+          valid: false,
+          conflicts: data.conflicts,
+        });
+      }
     });
 
     playerSocket.on("progress_update", (data: {
@@ -89,8 +104,9 @@ export function setupSocketHandlers(io: Server): void {
       progress: number;
       errors: number;
     }) => {
-      playerSocket.to(data.roomCode).emit("progress_update", {
+      io.to(data.roomCode).emit("progress_update", {
         visitorId,
+        name,
         progress: data.progress,
         errors: data.errors,
       });
@@ -99,20 +115,63 @@ export function setupSocketHandlers(io: Server): void {
     playerSocket.on("complete_puzzle", (data: {
       roomCode: string;
       grid: number[][];
+      time: number;
+      errors: number;
+      gameEnded?: boolean;
+      winnerId?: string;
     }) => {
       io.to(data.roomCode).emit("player_completed", {
         visitorId,
         name,
-        time: Date.now(),
+        time: data.time,
+        errors: data.errors,
       });
+
+      if (data.gameEnded) {
+        io.to(data.roomCode).emit("game_ended", {
+          winnerId: data.winnerId,
+          reason: "completed",
+        });
+      }
     });
 
-    playerSocket.on("give_up", (data: { roomCode: string }) => {
+    playerSocket.on("give_up", (data: { 
+      roomCode: string;
+      gameEnded?: boolean;
+      winnerId?: string;
+    }) => {
       io.to(data.roomCode).emit("player_gave_up", { visitorId, name });
+
+      if (data.gameEnded) {
+        io.to(data.roomCode).emit("game_ended", {
+          winnerId: data.winnerId,
+          reason: "all_gave_up",
+        });
+      }
     });
 
     playerSocket.on("ping", () => {
       playerSocket.emit("pong");
+    });
+
+    playerSocket.on("reconnect_game", (data: { roomCode: string }) => {
+      const { roomCode } = data;
+      const existingTimeout = disconnectTimeouts.get(`${roomCode}_${visitorId}`);
+      if (existingTimeout) {
+        clearTimeout(existingTimeout);
+        disconnectTimeouts.delete(`${roomCode}_${visitorId}`);
+      }
+
+      playerSocket.join(roomCode);
+      playerSocket.roomCode = roomCode;
+
+      if (!roomPlayers.has(roomCode)) {
+        roomPlayers.set(roomCode, new Set());
+      }
+      roomPlayers.get(roomCode)!.add(visitorId);
+
+      io.to(roomCode).emit("player_reconnected", { visitorId, name });
+      console.log(`${name} reconnected to room ${roomCode}`);
     });
 
     playerSocket.on("disconnect", (reason) => {
@@ -120,7 +179,25 @@ export function setupSocketHandlers(io: Server): void {
       playerSockets.delete(visitorId);
 
       if (playerSocket.roomCode) {
-        handleLeaveRoom(io, playerSocket, playerSocket.roomCode, true);
+        const roomCode = playerSocket.roomCode;
+        
+        io.to(roomCode).emit("player_disconnected", {
+          visitorId,
+          name,
+          timeout: DISCONNECT_TIMEOUT / 1000,
+        });
+
+        const timeoutId = setTimeout(() => {
+          handleLeaveRoom(io, playerSocket, roomCode, true);
+          disconnectTimeouts.delete(`${roomCode}_${visitorId}`);
+          
+          io.to(roomCode).emit("player_timeout", {
+            visitorId,
+            name,
+          });
+        }, DISCONNECT_TIMEOUT);
+
+        disconnectTimeouts.set(`${roomCode}_${visitorId}`, timeoutId);
       }
     });
   });

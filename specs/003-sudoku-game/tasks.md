@@ -196,37 +196,37 @@
 
 ### API Endpoints (US4)
 
-- [ ] T070 [P] [US4] Progress update endpoint POST /api/games/[roomCode]/progress in src/app/api/games/[roomCode]/progress/route.ts
-- [ ] T071 [P] [US4] Validate cell endpoint POST /api/games/[roomCode]/validate in src/app/api/games/[roomCode]/validate/route.ts
-- [ ] T072 [P] [US4] Complete game endpoint POST /api/games/[roomCode]/complete in src/app/api/games/[roomCode]/complete/route.ts
-- [ ] T073 [P] [US4] Get results endpoint GET /api/games/[roomCode]/results in src/app/api/games/[roomCode]/results/route.ts
-- [ ] T074 [US4] Give up endpoint POST /api/games/[roomCode]/give-up in src/app/api/games/[roomCode]/give-up/route.ts
+- [x] T070 [P] [US4] Progress update endpoint POST /api/games/[roomCode]/progress in src/app/api/games/[roomCode]/progress/route.ts
+- [x] T071 [P] [US4] Validate cell endpoint POST /api/games/[roomCode]/validate in src/app/api/games/[roomCode]/validate/route.ts
+- [x] T072 [P] [US4] Complete game endpoint POST /api/games/[roomCode]/complete in src/app/api/games/[roomCode]/complete/route.ts
+- [x] T073 [P] [US4] Get results endpoint GET /api/games/[roomCode]/results in src/app/api/games/[roomCode]/results/route.ts
+- [x] T074 [US4] Give up endpoint POST /api/games/[roomCode]/give-up in src/app/api/games/[roomCode]/give-up/route.ts
 
 ### Socket Events (US4)
 
-- [ ] T075 [US4] Implement cell_update socket event in src/server/socket.ts
-- [ ] T076 [US4] Implement complete_puzzle socket event in src/server/socket.ts
-- [ ] T077 [US4] Implement give_up socket event in src/server/socket.ts
-- [ ] T078 [US4] Emit progress_update, player_completed, game_ended events in src/server/socket.ts
-- [ ] T079 [US4] Implement winner determination (time + errors tiebreaker) in src/server/socket.ts
+- [x] T075 [US4] Implement cell_update socket event in src/server/socket.ts
+- [x] T076 [US4] Implement complete_puzzle socket event in src/server/socket.ts
+- [x] T077 [US4] Implement give_up socket event in src/server/socket.ts
+- [x] T078 [US4] Emit progress_update, player_completed, game_ended events in src/server/socket.ts
+- [x] T079 [US4] Implement winner determination (time + errors tiebreaker) in src/server/socket.ts
 
 ### Components (US4)
 
-- [ ] T080 [US4] Create Leaderboard component with progress bars in src/components/Leaderboard.tsx
-- [ ] T081 [US4] Add progress display to PlayerList in src/components/PlayerList.tsx
+- [x] T080 [US4] Create Leaderboard component with progress bars in src/components/Leaderboard.tsx
+- [x] T081 [US4] Add progress display to PlayerList in src/components/PlayerList.tsx
 
 ### Pages (US4)
 
-- [ ] T082 [US4] Implement multiplayer game view in src/app/room/[code]/page.tsx
-- [ ] T083 [US4] Show real-time leaderboard during game in src/app/room/[code]/page.tsx
-- [ ] T084 [US4] Implement results modal with rankings in src/app/room/[code]/page.tsx
-- [ ] T085 [US4] Handle player disconnect/reconnect UI in src/app/room/[code]/page.tsx
+- [x] T082 [US4] Implement multiplayer game view in src/app/room/[code]/page.tsx
+- [x] T083 [US4] Show real-time leaderboard during game in src/app/room/[code]/page.tsx
+- [x] T084 [US4] Implement results modal with rankings in src/app/room/[code]/page.tsx
+- [x] T085 [US4] Handle player disconnect/reconnect UI in src/app/room/[code]/page.tsx
 
 ### Edge Cases (US4)
 
-- [ ] T086 [US4] Implement 30s host disconnect timeout in src/server/socket.ts
-- [ ] T087 [US4] Handle simultaneous completion (fewer errors wins) in src/server/socket.ts
-- [ ] T088 [US4] Auto-assign new host when host leaves waiting room in src/server/socket.ts
+- [x] T086 [US4] Implement 30s host disconnect timeout in src/server/socket.ts
+- [x] T087 [US4] Handle simultaneous completion (fewer errors wins) in src/server/socket.ts
+- [x] T088 [US4] Auto-assign new host when host leaves waiting room in src/server/socket.ts
 
 **Checkpoint**: Full multiplayer experience - compete, track progress, determine winner
 
@@ -238,30 +238,30 @@
 
 ### Auth Pages
 
-- [ ] T089 [P] Create login page in src/app/login/page.tsx
-- [ ] T090 [P] Create register page in src/app/register/page.tsx
-- [ ] T091 [P] Create LoginForm component in src/components/LoginForm.tsx
-- [ ] T092 [P] Create RegisterForm component in src/components/RegisterForm.tsx
+- [x] T089 [P] Create login page in src/app/login/page.tsx
+- [x] T090 [P] Create register page in src/app/register/page.tsx
+- [x] T091 [P] Create LoginForm component in src/components/LoginForm.tsx
+- [x] T092 [P] Create RegisterForm component in src/components/RegisterForm.tsx
 
 ### Auth API
 
-- [ ] T093 [P] Register endpoint POST /api/auth/register in src/app/api/auth/register/route.ts
-- [ ] T094 [P] Login endpoint POST /api/auth/login in src/app/api/auth/login/route.ts
-- [ ] T095 [P] Logout endpoint POST /api/auth/logout in src/app/api/auth/logout/route.ts
-- [ ] T096 [P] Get current user GET /api/auth/me in src/app/api/auth/me/route.ts
+- [x] T093 [P] Register endpoint POST /api/auth/register in src/app/api/auth/register/route.ts
+- [x] T094 [P] Login endpoint POST /api/auth/login in src/app/api/auth/login/route.ts (via NextAuth)
+- [x] T095 [P] Logout endpoint POST /api/auth/logout in src/app/api/auth/logout/route.ts
+- [x] T096 [P] Get current user GET /api/auth/me in src/app/api/auth/me/route.ts
 
 ### Profile & History
 
-- [ ] T097 Create profile page in src/app/profile/page.tsx
-- [ ] T098 [P] Create ProfileCard component in src/components/ProfileCard.tsx
-- [ ] T099 [P] Create StatsCard component in src/components/StatsCard.tsx
-- [ ] T100 [P] Create RecentGamesCard component in src/components/RecentGamesCard.tsx
-- [ ] T101 [P] Profile endpoint GET /api/player/profile in src/app/api/player/profile/route.ts
-- [ ] T102 [P] History endpoint GET /api/player/history in src/app/api/player/history/route.ts
+- [x] T097 Create profile page in src/app/profile/page.tsx
+- [x] T098 [P] Create ProfileCard component in src/components/ProfileCard.tsx
+- [x] T099 [P] Create StatsCard component in src/components/StatsCard.tsx
+- [x] T100 [P] Create RecentGamesCard component in src/components/RecentGamesCard.tsx
+- [x] T101 [P] Profile endpoint GET /api/player/profile in src/app/api/player/profile/route.ts
+- [x] T102 [P] History endpoint GET /api/player/history in src/app/api/player/history/route.ts
 
 ### Save Game History
 
-- [ ] T103 Create GameHistory model in src/models/GameHistory.ts
+- [x] T103 Create GameHistory model in src/models/GameHistory.ts (integrated in User model)
 - [ ] T104 Save practice game results for logged-in users in src/app/practice/page.tsx
 - [ ] T105 Save solo game results for logged-in users in src/app/room/[code]/page.tsx
 
@@ -269,7 +269,7 @@
 
 - [ ] T106 Add error boundaries and error pages
 - [ ] T107 Add loading states with skeleton components
-- [ ] T108 Performance optimization (React.memo, useMemo where needed)
+- [x] T108 Performance optimization (React.memo, useMemo where needed)
 - [ ] T109 Run quickstart.md validation
 
 ---
