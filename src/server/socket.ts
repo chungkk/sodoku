@@ -83,9 +83,42 @@ export function setupSocketHandlers(io: Server): void {
       io.to(roomCode).emit("player_ready", { visitorId, ready });
     });
 
-    playerSocket.on("start_game", (data: { roomCode: string }) => {
+    playerSocket.on("start_game", async (data: { roomCode: string }) => {
       const { roomCode } = data;
+      
+      // Emit countdown
       io.to(roomCode).emit("game_starting", { countdown: 3 });
+      
+      // Wait for countdown then emit game_started
+      setTimeout(async () => {
+        try {
+          await connectDB();
+          const Room = (await import("../models/Room")).default;
+          const Puzzle = (await import("../models/Puzzle")).default;
+          
+          const room = await Room.findOne({ code: roomCode });
+          if (!room || !room.puzzleId) {
+            console.error("Room or puzzle not found for game start");
+            return;
+          }
+          
+          const puzzle = await Puzzle.findById(room.puzzleId);
+          if (!puzzle) {
+            console.error("Puzzle not found");
+            return;
+          }
+          
+          io.to(roomCode).emit("game_started", {
+            puzzle: puzzle.grid,
+            solution: puzzle.solution,
+            startedAt: room.startedAt,
+          });
+          
+          console.log(`Game started in room ${roomCode}`);
+        } catch (error) {
+          console.error("Error starting game:", error);
+        }
+      }, 3000);
     });
 
     playerSocket.on("cell_update", (data: {
