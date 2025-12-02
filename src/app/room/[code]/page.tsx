@@ -105,6 +105,9 @@ export default function RoomPage() {
 
     hasJoined.current = true;
     emit("join_room", { roomCode: code });
+    
+    // Refetch room data after joining to get latest ready status
+    setTimeout(() => fetchRoom(), 500);
   }, [player, code, emit, fetchRoom]);
 
   useEffect(() => {
@@ -135,6 +138,7 @@ export default function RoomPage() {
     });
 
     on<{ visitorId: string; ready: boolean }>("player_ready", (data) => {
+      console.log("Received player_ready:", data);
       setRoom(prev => {
         if (!prev) return prev;
         return {
@@ -171,6 +175,17 @@ export default function RoomPage() {
       return () => clearTimeout(timer);
     }
   }, [countdown]);
+
+  // Poll room data every 3s while waiting (backup for socket issues)
+  useEffect(() => {
+    if (room?.status !== "waiting") return;
+    
+    const interval = setInterval(() => {
+      fetchRoom();
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, [room?.status, fetchRoom]);
 
   const handleNameSubmit = async (name: string) => {
     try {
