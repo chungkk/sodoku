@@ -45,7 +45,7 @@ const GameRecordSchema = new Schema<GameRecord>(
     },
     roomCode: { type: String },
   },
-  { _id: false }
+  { _id: false, suppressReservedKeysWarning: true }
 );
 
 const UserSchema = new Schema<IUser>(
@@ -95,7 +95,6 @@ const UserSchema = new Schema<IUser>(
   }
 );
 
-UserSchema.index({ email: 1 }, { unique: true });
 UserSchema.index({ createdAt: -1 });
 
 UserSchema.methods.addGameRecord = function (record: Omit<GameRecord, "date">) {
