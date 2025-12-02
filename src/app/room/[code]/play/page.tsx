@@ -59,26 +59,42 @@ export default function GamePlayPage() {
 
   const fetchGameData = useCallback(async () => {
     try {
-      const [roomRes, progressRes] = await Promise.all([
+      const [roomRes, progressRes, puzzleRes] = await Promise.all([
         fetch(`/api/rooms/${code}`),
         fetch(`/api/games/${code}/progress`),
+        fetch(`/api/games/${code}/puzzle`),
       ]);
 
-      if (!roomRes.ok || !progressRes.ok) {
+      if (!roomRes.ok) {
         router.push(`/room/${code}`);
         return;
       }
 
       const roomData = await roomRes.json();
-      const progressData = await progressRes.json();
 
       if (roomData.status !== "playing" && roomData.status !== "finished") {
         router.push(`/room/${code}`);
         return;
       }
 
-      const puzzleRes = await fetch(`/api/rooms/${code}`);
-      const puzzle = await puzzleRes.json();
+      if (puzzleRes.ok) {
+        const puzzleData = await puzzleRes.json();
+        game.loadPuzzle(
+          puzzleData.puzzle,
+          puzzleData.solution,
+          puzzleData.difficulty
+        );
+        timer.start();
+      }
+
+      if (progressRes.ok) {
+        const progressData = await progressRes.json();
+        setPlayersProgress(progressData.players.map((p: PlayerProgress) => ({
+          ...p,
+          finished: p.progress === 100,
+          gaveUp: p.progress === -1,
+        })));
+      }
 
       if (roomData.status === "finished") {
         setGameEnded(true);
@@ -86,17 +102,12 @@ export default function GamePlayPage() {
         setShowResultsModal(true);
       }
 
-      setPlayersProgress(progressData.players.map((p: PlayerProgress) => ({
-        ...p,
-        finished: p.progress === 100,
-        gaveUp: p.progress === -1,
-      })));
-
       setLoading(false);
     } catch (error) {
       console.error("Failed to fetch game data:", error);
       router.push(`/room/${code}`);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, router]);
 
   useEffect(() => {

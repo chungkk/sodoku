@@ -26,6 +26,7 @@ interface GameState {
 
 type GameAction =
   | { type: "START_GAME"; difficulty: Difficulty }
+  | { type: "LOAD_PUZZLE"; puzzle: number[][]; solution: number[][]; difficulty: Difficulty; userInput?: (number | null)[][] }
   | { type: "SELECT_CELL"; row: number; col: number }
   | { type: "INPUT_NUMBER"; number: number }
   | { type: "CLEAR_CELL" }
@@ -71,6 +72,18 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         puzzle: grid,
         solution,
         userInput: createEmptyUserInput(),
+        notes: createEmptyNotes(),
+        difficulty: action.difficulty,
+        isStarted: true,
+      };
+    }
+
+    case "LOAD_PUZZLE": {
+      return {
+        ...initialState,
+        puzzle: action.puzzle,
+        solution: action.solution,
+        userInput: action.userInput || createEmptyUserInput(),
         notes: createEmptyNotes(),
         difficulty: action.difficulty,
         isStarted: true,
@@ -204,6 +217,15 @@ export function useGame() {
     dispatch({ type: "START_GAME", difficulty });
   }, []);
 
+  const loadPuzzle = useCallback((
+    puzzle: number[][],
+    solution: number[][],
+    difficulty: Difficulty,
+    userInput?: (number | null)[][]
+  ) => {
+    dispatch({ type: "LOAD_PUZZLE", puzzle, solution, difficulty, userInput });
+  }, []);
+
   const selectCell = useCallback((row: number, col: number) => {
     dispatch({ type: "SELECT_CELL", row, col });
   }, []);
@@ -244,6 +266,7 @@ export function useGame() {
     ...state,
     progress,
     startGame,
+    loadPuzzle,
     selectCell,
     inputNumber,
     clearCell,
