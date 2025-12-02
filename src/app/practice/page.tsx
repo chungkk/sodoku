@@ -133,7 +133,7 @@ function PracticeContent() {
 
   return (
     <div className="max-w-4xl mx-auto px-2 sm:px-4 py-2 sm:py-6">
-      {/* Header - compact on mobile */}
+      {/* Header - single row on mobile */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -146,16 +146,23 @@ function PracticeContent() {
           </span>
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <span>Lỗi: <span className="font-bold text-error-600">{game.errors}</span></span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowNewGameModal(true)}
-            className="hidden sm:flex"
-          >
-            🔄
-          </Button>
+        {/* Timer, Progress, Errors - all in one row */}
+        <div className="flex items-center gap-3 text-sm">
+          <Timer
+            seconds={timer.seconds}
+            isPaused={timer.isPaused}
+            onPauseToggle={handlePauseToggle}
+          />
+          <div className="hidden sm:flex items-center gap-2">
+            <div className="w-16 bg-gray-200 rounded-full h-1.5">
+              <div
+                className="bg-primary-500 h-1.5 rounded-full transition-all"
+                style={{ width: `${game.progress}%` }}
+              />
+            </div>
+            <span className="text-xs text-gray-500">{game.progress}%</span>
+          </div>
+          <span className="text-gray-600">Lỗi: <span className="font-bold text-error-600">{game.errors}</span></span>
         </div>
       </motion.div>
 
@@ -184,26 +191,6 @@ function PracticeContent() {
           transition={{ duration: 0.3, delay: 0.1 }}
           className="w-full max-w-[360px] sm:max-w-[400px] mx-auto lg:w-auto"
         >
-          {/* Timer & Progress - compact bar on mobile */}
-          <div className="flex items-center justify-between mb-3 px-1">
-            <Timer
-              seconds={timer.seconds}
-              isPaused={timer.isPaused}
-              onPauseToggle={handlePauseToggle}
-            />
-            <div className="flex items-center gap-2">
-              <div className="w-20 sm:w-24 bg-gray-200 rounded-full h-2">
-                <motion.div
-                  className="bg-primary-500 h-2 rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${game.progress}%` }}
-                  transition={{ duration: 0.3 }}
-                />
-              </div>
-              <span className="text-xs text-gray-500">{game.progress}%</span>
-            </div>
-          </div>
-
           {/* Number Pad */}
           <NumberPad
             onNumberClick={handleNumberClick}
