@@ -101,7 +101,6 @@ const RoomSchema = new Schema<IRoom>(
   }
 );
 
-RoomSchema.index({ code: 1 }, { unique: true });
 RoomSchema.index({ status: 1 });
 RoomSchema.index({ createdAt: 1 }, { expireAfterSeconds: 86400 });
 
@@ -120,8 +119,8 @@ RoomSchema.statics.createRoom = async function (
   difficulty: Difficulty,
   userId: Types.ObjectId | null = null
 ): Promise<IRoom> {
-  let code: string;
-  let exists = true;
+  let code: string = "";
+  let codeExists = true;
 
   const generateCode = (): string => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -132,13 +131,14 @@ RoomSchema.statics.createRoom = async function (
     return result;
   };
 
-  while (exists) {
+  while (codeExists) {
     code = generateCode();
-    exists = await this.exists({ code });
+    const existing = await this.exists({ code });
+    codeExists = existing !== null;
   }
 
   const room = new this({
-    code: code!,
+    code,
     hostId,
     difficulty,
     players: [
