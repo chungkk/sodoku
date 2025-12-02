@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback, use } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { SudokuBoard } from "@/components/SudokuBoard";
 import { NumberPad } from "@/components/NumberPad";
@@ -34,8 +34,9 @@ interface GameData {
   startedAt: string;
 }
 
-export default function GamePlayPage({ params }: { params: Promise<{ code: string }> }) {
-  const { code } = use(params);
+export default function GamePlayPage() {
+  const params = useParams();
+  const code = params.code as string;
   const router = useRouter();
   const { player } = usePlayer();
 
