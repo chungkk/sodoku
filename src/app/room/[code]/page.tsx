@@ -82,11 +82,15 @@ export default function RoomPage() {
 
   const joinRoom = useCallback(async (currentRoom: RoomData) => {
     if (!player || hasJoined.current) return;
+    
+    // Set immediately to prevent race condition
+    hasJoined.current = true;
 
     const isAlreadyInRoom = currentRoom.players.some(p => p.visitorId === player.visitorId);
     
     if (!isAlreadyInRoom) {
       try {
+        console.log("Joining room via API:", code, player.visitorId);
         const response = await fetch(`/api/rooms/${code}/join`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -98,6 +102,7 @@ export default function RoomPage() {
 
         if (!response.ok) {
           const data = await response.json();
+          hasJoined.current = false; // Reset on error
           throw new Error(data.error || "Failed to join room");
         }
         
@@ -108,7 +113,6 @@ export default function RoomPage() {
       }
     }
 
-    hasJoined.current = true;
     console.log("Emitting join_room for", code);
     emit("join_room", { roomCode: code });
     
