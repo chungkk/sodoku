@@ -67,9 +67,14 @@ const Cell = memo(function Cell({
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
           <span
             key={num}
-            className={`sudoku-cell-note flex items-center justify-center ${
-              notes.has(num) ? "text-gray-600" : "text-transparent"
-            }`}
+            className={`
+              flex items-center justify-center
+              text-[8px] sm:text-[10px] font-medium leading-none
+              ${notes.has(num) 
+                ? "text-gray-700 bg-yellow-200 rounded-sm" 
+                : "text-transparent"
+              }
+            `}
           >
             {num}
           </span>
