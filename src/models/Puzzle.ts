@@ -7,6 +7,7 @@ export interface IPuzzle extends Document {
   solution: number[][];
   difficulty: Difficulty;
   givenCells: number;
+  isPregenerated: boolean;
   createdAt: Date;
 }
 
@@ -53,18 +54,34 @@ const PuzzleSchema = new Schema<IPuzzle>(
       min: 17,
       max: 81,
     },
+    isPregenerated: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
   }
 );
 
-PuzzleSchema.index({ difficulty: 1 });
+PuzzleSchema.index({ difficulty: 1, isPregenerated: 1 });
 PuzzleSchema.index({ createdAt: -1 });
 
 PuzzleSchema.statics.getRandomByDifficulty = async function (
   difficulty: Difficulty
 ): Promise<IPuzzle | null> {
+  // Prefer pre-generated puzzles
+  const pregeneratedCount = await this.countDocuments({ 
+    difficulty, 
+    isPregenerated: true 
+  });
+  
+  if (pregeneratedCount > 0) {
+    const random = Math.floor(Math.random() * pregeneratedCount);
+    return this.findOne({ difficulty, isPregenerated: true }).skip(random);
+  }
+
+  // Fallback to any puzzle
   const count = await this.countDocuments({ difficulty });
   if (count === 0) return null;
 

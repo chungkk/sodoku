@@ -7,7 +7,8 @@
     "dev:next": "next dev",
     "build": "next build",
     "start": "NODE_ENV=production ts-node --project tsconfig.server.json server.ts",
-    "lint": "next lint"
+    "lint": "next lint",
+    "seed:puzzles": "ts-node --project tsconfig.server.json scripts/seed-puzzles.ts"
   },
   "dependencies": {
     "@tailwindcss/forms": "^0.5.10",

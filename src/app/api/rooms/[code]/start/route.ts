@@ -60,15 +60,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const { grid, solution } = generatePuzzle(room.difficulty);
-
-    const puzzle = new Puzzle({
-      grid,
-      solution,
-      difficulty: room.difficulty,
-      givenCells: grid.flat().filter((c) => c !== 0).length,
-    });
-    await puzzle.save();
+    // Try to get a pre-generated puzzle first
+    let puzzle = await (Puzzle as any).getRandomByDifficulty(room.difficulty);
+    
+    // Fallback: generate new puzzle if none available
+    if (!puzzle) {
+      const { grid, solution } = generatePuzzle(room.difficulty);
+      puzzle = new Puzzle({
+        grid,
+        solution,
+        difficulty: room.difficulty,
+        givenCells: grid.flat().filter((c: number) => c !== 0).length,
+        isPregenerated: false,
+      });
+      await puzzle.save();
+    }
 
     room.puzzleId = puzzle._id;
     room.status = "playing";
@@ -77,7 +83,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     room.players.forEach((player) => {
       player.progress = 0;
       player.errors = 0;
-      player.currentGrid = grid.map((row) => [...row]);
+      player.currentGrid = puzzle.grid.map((row: number[]) => [...row]);
       player.finishedAt = null;
     });
 
@@ -85,7 +91,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({
       success: true,
-      puzzle: grid,
+      puzzle: puzzle.grid,
       startedAt: room.startedAt,
       players: room.players.map((p) => ({
         visitorId: p.visitorId,
