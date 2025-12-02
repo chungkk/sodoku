@@ -1,8 +1,6 @@
 import { createServer } from "http";
 import { parse } from "url";
 import next from "next";
-import { Server as SocketIOServer } from "socket.io";
-import { setupSocketHandlers } from "./src/server/socket";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -12,24 +10,20 @@ const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
-  const server = createServer((req, res) => {
-    const parsedUrl = parse(req.url!, true);
-    handle(req, res, parsedUrl);
+  const httpServer = createServer(async (req, res) => {
+    try {
+      const parsedUrl = parse(req.url!, true);
+      await handle(req, res, parsedUrl);
+    } catch (err) {
+      console.error("Error occurred handling", req.url, err);
+      res.statusCode = 500;
+      res.end("internal server error");
+    }
   });
 
-  const io = new SocketIOServer(server, {
-    cors: {
-      origin: process.env.NEXTAUTH_URL || "http://localhost:3000",
-      methods: ["GET", "POST"],
-      credentials: true,
-    },
-    transports: ["websocket", "polling"],
-  });
-
-  setupSocketHandlers(io);
-
-  server.listen(port, () => {
-    console.log(`> Ready on http://${hostname}:${port}`);
-    console.log(`> Socket.IO server running`);
+  httpServer.listen(port, () => {
+    console.log(
+      `> Ready on http://${hostname}:${port} as ${dev ? "development" : process.env.NODE_ENV}`
+    );
   });
 });
