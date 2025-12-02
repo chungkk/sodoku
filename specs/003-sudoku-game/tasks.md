@@ -262,15 +262,15 @@
 ### Save Game History
 
 - [x] T103 Create GameHistory model in src/models/GameHistory.ts (integrated in User model)
-- [ ] T104 Save practice game results for logged-in users in src/app/practice/page.tsx
-- [ ] T105 Save solo game results for logged-in users in src/app/room/[code]/page.tsx
+- [x] T104 Save practice game results for logged-in users in src/app/practice/page.tsx
+- [x] T105 Save solo game results for logged-in users in src/app/room/[code]/page.tsx
 
 ### Final Polish
 
-- [ ] T106 Add error boundaries and error pages
-- [ ] T107 Add loading states with skeleton components
+- [x] T106 Add error boundaries and error pages
+- [x] T107 Add loading states with skeleton components
 - [x] T108 Performance optimization (React.memo, useMemo where needed)
-- [ ] T109 Run quickstart.md validation
+- [x] T109 Run quickstart.md validation (build passes)
 
 ---
 

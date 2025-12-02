@@ -28,6 +28,7 @@ export interface IUser extends Document {
   stats: UserStats;
   createdAt: Date;
   updatedAt: Date;
+  addGameRecord(record: Omit<GameRecord, "date">): Promise<IUser>;
 }
 
 const GameRecordSchema = new Schema<GameRecord>(
