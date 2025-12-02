@@ -1,0 +1,39 @@
+{
+  "name": "sudoku-game",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "ts-node --project tsconfig.server.json server.ts",
+    "dev:next": "next dev",
+    "build": "next build",
+    "start": "NODE_ENV=production ts-node --project tsconfig.server.json server.ts",
+    "lint": "next lint",
+    "seed:puzzles": "ts-node --project tsconfig.server.json scripts/seed-puzzles.ts"
+  },
+  "dependencies": {
+    "@tailwindcss/forms": "^0.5.10",
+    "bcryptjs": "^3.0.3",
+    "framer-motion": "^12.23.25",
+    "mongoose": "^9.0.0",
+    "next": "14.2.33",
+    "next-auth": "^4.24.13",
+    "react": "^18",
+    "react-dom": "^18",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@types/uuid": "^10.0.0",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.33",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5"
+  }
+}

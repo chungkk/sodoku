@@ -1,0 +1,538 @@
+openapi: 3.0.3
+info:
+  title: Sudoku Game API
+  version: 1.0.0
+  description: REST API for Sudoku game with practice and multiplayer modes
+
+servers:
+  - url: /api
+
+paths:
+  # ============ AUTH ============
+  /auth/register:
+    post:
+      summary: Register new user account
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, displayName]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 6
+                displayName:
+                  type: string
+                  minLength: 2
+                  maxLength: 20
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid input
+        '409':
+          description: Email already exists
+
+  /auth/login:
+    post:
+      summary: Login with email/password
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      summary: Logout current session
+      tags: [Auth]
+      responses:
+        '200':
+          description: Logged out
+
+  /auth/me:
+    get:
+      summary: Get current user info
+      tags: [Auth]
+      responses:
+        '200':
+          description: User info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Not authenticated
+
+  # ============ PLAYER SESSION ============
+  /player/session:
+    post:
+      summary: Create guest session
+      tags: [Player]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 20
+      responses:
+        '201':
+          description: Guest session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  oderId:
+                    type: string
+                  name:
+                    type: string
+                  isGuest:
+                    type: boolean
+
+  /player/profile:
+    get:
+      summary: Get player profile with stats
+      tags: [Player]
+      responses:
+        '200':
+          description: Player profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerProfile'
+
+  /player/history:
+    get:
+      summary: Get game history (authenticated users only)
+      tags: [Player]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        '200':
+          description: Game history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GameRecord'
+        '401':
+          description: Not authenticated (guests have no history)
+
+  # ============ ROOMS ============
+  /rooms:
+    post:
+      summary: Create new game room
+      tags: [Rooms]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [difficulty]
+              properties:
+                difficulty:
+                  type: string
+                  enum: [easy, medium, hard]
+      responses:
+        '201':
+          description: Room created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+
+  /rooms/{code}:
+    get:
+      summary: Get room details
+      tags: [Rooms]
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[A-Z0-9]{6}$'
+      responses:
+        '200':
+          description: Room details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+        '404':
+          description: Room not found
+
+  /rooms/{code}/join:
+    post:
+      summary: Join a room
+      tags: [Rooms]
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Joined room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+        '400':
+          description: Room full or game already started
+        '404':
+          description: Room not found
+
+  /rooms/{code}/leave:
+    post:
+      summary: Leave a room
+      tags: [Rooms]
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Left room
+
+  /rooms/{code}/start:
+    post:
+      summary: Start game (host only)
+      tags: [Rooms]
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Game started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameStart'
+        '400':
+          description: Not enough ready players
+        '403':
+          description: Not the host
+
+  # ============ GAMES ============
+  /games/{roomCode}/progress:
+    post:
+      summary: Update player progress
+      tags: [Games]
+      parameters:
+        - name: roomCode
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                grid:
+                  type: array
+                  items:
+                    type: array
+                    items:
+                      type: integer
+                progress:
+                  type: integer
+                  minimum: 0
+                  maximum: 100
+      responses:
+        '200':
+          description: Progress updated
+
+  /games/{roomCode}/validate:
+    post:
+      summary: Validate a cell input
+      tags: [Games]
+      parameters:
+        - name: roomCode
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [row, col, value]
+              properties:
+                row:
+                  type: integer
+                  minimum: 0
+                  maximum: 8
+                col:
+                  type: integer
+                  minimum: 0
+                  maximum: 8
+                value:
+                  type: integer
+                  minimum: 1
+                  maximum: 9
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  conflicts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        row:
+                          type: integer
+                        col:
+                          type: integer
+
+  /games/{roomCode}/complete:
+    post:
+      summary: Mark game as complete
+      tags: [Games]
+      parameters:
+        - name: roomCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Completion verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  correct:
+                    type: boolean
+                  time:
+                    type: integer
+                  errors:
+                    type: integer
+                  rank:
+                    type: integer
+
+  /games/{roomCode}/results:
+    get:
+      summary: Get game results
+      tags: [Games]
+      parameters:
+        - name: roomCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Game results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameResults'
+
+  /games/{roomCode}/give-up:
+    post:
+      summary: Give up current game
+      tags: [Games]
+      parameters:
+        - name: roomCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Gave up
+
+components:
+  schemas:
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: string
+        isGuest:
+          type: boolean
+
+    PlayerProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        isGuest:
+          type: boolean
+        stats:
+          type: object
+          properties:
+            totalGames:
+              type: integer
+            wins:
+              type: integer
+            bestTime:
+              type: object
+              properties:
+                easy:
+                  type: integer
+                  nullable: true
+                medium:
+                  type: integer
+                  nullable: true
+                hard:
+                  type: integer
+                  nullable: true
+
+    GameRecord:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date-time
+        mode:
+          type: string
+          enum: [practice, solo]
+        difficulty:
+          type: string
+          enum: [easy, medium, hard]
+        time:
+          type: integer
+        errors:
+          type: integer
+        result:
+          type: string
+          enum: [completed, abandoned, won, lost]
+
+    Room:
+      type: object
+      properties:
+        code:
+          type: string
+        status:
+          type: string
+          enum: [waiting, playing, finished]
+        difficulty:
+          type: string
+          enum: [easy, medium, hard]
+        hostId:
+          type: string
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/Player'
+
+    Player:
+      type: object
+      properties:
+        oderId:
+          type: string
+        name:
+          type: string
+        isHost:
+          type: boolean
+        isReady:
+          type: boolean
+        isConnected:
+          type: boolean
+        progress:
+          type: integer
+        errors:
+          type: integer
+
+    GameStart:
+      type: object
+      properties:
+        puzzle:
+          type: array
+          items:
+            type: array
+            items:
+              type: integer
+        startedAt:
+          type: string
+          format: date-time
+
+    GameResults:
+      type: object
+      properties:
+        winnerId:
+          type: string
+          nullable: true
+        players:
+          type: array
+          items:
+            type: object
+            properties:
+              oderId:
+                type: string
+              name:
+                type: string
+              time:
+                type: integer
+                nullable: true
+              errors:
+                type: integer
+              completed:
+                type: boolean
