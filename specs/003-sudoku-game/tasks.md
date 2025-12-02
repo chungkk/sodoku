@@ -165,24 +165,24 @@
 
 ### API Endpoints (US3)
 
-- [ ] T061 [P] [US3] Join room endpoint POST /api/rooms/[code]/join in src/app/api/rooms/[code]/join/route.ts
-- [ ] T062 [P] [US3] Leave room endpoint POST /api/rooms/[code]/leave in src/app/api/rooms/[code]/leave/route.ts
+- [x] T061 [P] [US3] Join room endpoint POST /api/rooms/[code]/join in src/app/api/rooms/[code]/join/route.ts
+- [x] T062 [P] [US3] Leave room endpoint POST /api/rooms/[code]/leave in src/app/api/rooms/[code]/leave/route.ts
 
 ### Socket Events (US3)
 
-- [ ] T063 [US3] Implement set_ready socket event in src/server/socket.ts
-- [ ] T064 [US3] Emit player_ready, player_left events in src/server/socket.ts
+- [x] T063 [US3] Implement set_ready socket event in src/server/socket.ts
+- [x] T064 [US3] Emit player_ready, player_left events in src/server/socket.ts
 
 ### Components (US3)
 
-- [ ] T065 [US3] Create JoinRoomForm with code input in src/components/JoinRoomForm.tsx
-- [ ] T066 [US3] Add Ready button to PlayerList in src/components/PlayerList.tsx
+- [x] T065 [US3] Create JoinRoomForm with code input in src/components/JoinRoomForm.tsx
+- [x] T066 [US3] Add Ready button to PlayerList in src/components/PlayerList.tsx
 
 ### Pages (US3)
 
-- [ ] T067 [US3] Add "Join Room" section to home page in src/app/page.tsx
-- [ ] T068 [US3] Implement player view (ready button) in room page in src/app/room/[code]/page.tsx
-- [ ] T069 [US3] Handle room full error in src/app/room/[code]/page.tsx
+- [x] T067 [US3] Add "Join Room" section to home page in src/app/page.tsx
+- [x] T068 [US3] Implement player view (ready button) in room page in src/app/room/[code]/page.tsx
+- [x] T069 [US3] Handle room full error in src/app/room/[code]/page.tsx
 
 **Checkpoint**: Multiple players can join and ready up - host can start game
 

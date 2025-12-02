@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -10,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogHeader, DialogTitle, DialogContent } from "@/components/ui/dialog";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { CreateRoomForm } from "@/components/CreateRoomForm";
+import { JoinRoomForm } from "@/components/JoinRoomForm";
 import { Difficulty } from "@/lib/sudoku";
 
 const difficultyOptions = [
@@ -19,16 +19,12 @@ const difficultyOptions = [
 ];
 
 export default function HomePage() {
-  const router = useRouter();
   const { player, setGuestName } = usePlayer();
   const [guestNameInput, setGuestNameInput] = useState("");
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [showNameInput, setShowNameInput] = useState(false);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [showJoinRoom, setShowJoinRoom] = useState(false);
-  const [roomCode, setRoomCode] = useState("");
-  const [joinError, setJoinError] = useState<string | null>(null);
-  const [isJoining, setIsJoining] = useState(false);
 
   const handleStartPractice = () => {
     if (!player) {
@@ -43,33 +39,6 @@ export default function HomePage() {
     if (guestNameInput.trim().length >= 2) {
       setGuestName(guestNameInput.trim());
       window.location.href = `/practice?difficulty=${difficulty}`;
-    }
-  };
-
-  const handleJoinRoom = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const code = roomCode.trim().toUpperCase();
-    
-    if (code.length !== 6) {
-      setJoinError("Mã phòng phải có 6 ký tự");
-      return;
-    }
-
-    setIsJoining(true);
-    setJoinError(null);
-
-    try {
-      const response = await fetch(`/api/rooms/${code}`);
-      
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Không tìm thấy phòng");
-      }
-
-      router.push(`/room/${code}`);
-    } catch (err) {
-      setJoinError(err instanceof Error ? err.message : "Đã xảy ra lỗi");
-      setIsJoining(false);
     }
   };
 
@@ -219,36 +188,7 @@ export default function HomePage() {
           <DialogTitle>Tham gia phòng</DialogTitle>
         </DialogHeader>
         <DialogContent>
-          <form onSubmit={handleJoinRoom} className="space-y-4">
-            <Input
-              label="Mã phòng"
-              placeholder="Nhập mã phòng 6 ký tự"
-              value={roomCode}
-              onChange={(e) => {
-                setRoomCode(e.target.value.toUpperCase());
-                setJoinError(null);
-              }}
-              error={joinError || undefined}
-              maxLength={6}
-              autoFocus
-            />
-            <Button 
-              type="submit" 
-              fullWidth 
-              disabled={roomCode.length !== 6 || isJoining}
-              isLoading={isJoining}
-            >
-              Tham gia
-            </Button>
-            <Button 
-              type="button"
-              variant="ghost" 
-              fullWidth 
-              onClick={() => setShowJoinRoom(false)}
-            >
-              Hủy
-            </Button>
-          </form>
+          <JoinRoomForm onCancel={() => setShowJoinRoom(false)} />
         </DialogContent>
       </Dialog>
     </div>
