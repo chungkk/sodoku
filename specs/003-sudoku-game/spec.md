@@ -94,6 +94,8 @@ Người chơi muốn có giao diện dễ nhìn, vui tươi trên cả desktop 
 
 - Người chơi mất kết nối giữa game Solo - hệ thống xử lý timeout và thông báo cho người chơi khác
 - Host rời phòng khi chưa bắt đầu - hệ thống chỉ định host mới hoặc đóng phòng
+- Host mất kết nối giữa game Solo - chờ reconnect 30 giây, nếu không thì xử thắng cho người chơi còn lại (nếu có) hoặc kết thúc game
+- Hai người hoàn thành cùng lúc - người có ít lỗi sai hơn trong quá trình chơi thắng
 - Người chơi cố nhập số không hợp lệ (chữ, ký tự đặc biệt) - chỉ chấp nhận số 1-9
 - Người chơi điền số vào ô đã có số gốc - không cho phép sửa ô gốc
 - Mất điện/refresh trang giữa game - lưu trạng thái và cho phép tiếp tục (với chế độ Tập Luyện)
@@ -108,6 +110,13 @@ Người chơi muốn có giao diện dễ nhìn, vui tươi trên cả desktop 
 - **FR-003**: Hệ thống PHẢI responsive trên desktop (>1024px) và mobile (<768px)
 - **FR-004**: Giao diện PHẢI sử dụng tone màu sáng, thân thiện với yếu tố hoạt hình
 
+**Xác thực người dùng:**
+- **FR-024**: Hệ thống PHẢI hỗ trợ chế độ Khách - yêu cầu nhập tên trước khi chơi/vào phòng
+- **FR-025**: Hệ thống PHẢI hỗ trợ Đăng ký tài khoản (email/password)
+- **FR-026**: Hệ thống PHẢI hỗ trợ Đăng nhập cho người dùng đã đăng ký
+- **FR-027**: Người dùng đăng nhập PHẢI có lịch sử game được lưu lại
+- **FR-028**: Khách KHÔNG lưu lịch sử game (chỉ chơi tạm thời)
+
 **Bàn chơi Sudoku:**
 - **FR-005**: Hệ thống PHẢI hiển thị bàn Sudoku 9x9 với các ô 3x3 được phân biệt rõ ràng
 - **FR-006**: Người chơi PHẢI có thể chọn ô trống và nhập số từ 1-9
@@ -115,12 +124,14 @@ Người chơi muốn có giao diện dễ nhìn, vui tươi trên cả desktop 
 - **FR-008**: Số pad PHẢI hiển thị các số 1-9 để người chơi click chọn
 - **FR-009**: Ô gốc của puzzle PHẢI được hiển thị khác biệt và không cho sửa
 - **FR-010**: Hệ thống PHẢI highlight ô đang chọn và các ô liên quan (cùng hàng, cột, block)
+- **FR-029**: Hệ thống PHẢI kiểm tra real-time và highlight đỏ ngay khi người chơi nhập số trùng với hàng/cột/block
 
 **Chế độ Tập Luyện:**
 - **FR-011**: Người chơi PHẢI có thể bắt đầu game Tập Luyện ngay từ trang chủ
 - **FR-012**: Hệ thống PHẢI hiển thị timer đếm thời gian chơi
 - **FR-013**: Người chơi PHẢI có thể Tạm dừng (pause) game, timer dừng và bàn cờ bị ẩn
 - **FR-014**: Hệ thống PHẢI thông báo khi người chơi hoàn thành đúng puzzle
+- **FR-032**: Người chơi PHẢI có thể chọn độ khó: Dễ, Trung bình, Khó trước khi bắt đầu game
 
 **Chế độ Solo (Multiplayer):**
 - **FR-015**: Host PHẢI có thể tạo phòng và nhận mã phòng duy nhất
@@ -132,13 +143,17 @@ Người chơi muốn có giao diện dễ nhìn, vui tươi trên cả desktop 
 - **FR-021**: Tất cả người chơi trong phòng PHẢI nhận cùng một puzzle khi game bắt đầu
 - **FR-022**: Hệ thống PHẢI hiển thị tiến độ (%) của tất cả người chơi real-time
 - **FR-023**: Hệ thống PHẢI xác định và thông báo người thắng (hoàn thành đúng đầu tiên)
+- **FR-030**: Hệ thống PHẢI theo dõi số lỗi sai của mỗi người chơi trong game Solo
+- **FR-031**: Khi 2 người hoàn thành cùng lúc, người có ít lỗi sai hơn PHẢI được xác định thắng
 
 ### Key Entities
 
+- **User**: Tài khoản đăng ký (email, password hash, tên hiển thị, lịch sử game)
+- **Guest**: Người chơi khách (tên tạm thời, session ID, không lưu lịch sử)
 - **Puzzle**: Bàn Sudoku 9x9, các ô gốc, lời giải đúng
 - **Game Session**: Trạng thái game hiện tại, thời gian, tiến độ, chế độ chơi
 - **Room (Solo)**: Mã phòng, danh sách người chơi, host, trạng thái (chờ/đang chơi/kết thúc)
-- **Player**: Tên/định danh, trạng thái sẵn sàng, tiến độ hoàn thành, thời gian
+- **Player**: Tên/định danh, trạng thái sẵn sàng, tiến độ hoàn thành, thời gian (có thể là User hoặc Guest)
 
 ## Success Criteria *(mandatory)*
 
@@ -152,10 +167,20 @@ Người chơi muốn có giao diện dễ nhìn, vui tươi trên cả desktop 
 - **SC-006**: Hệ thống hỗ trợ ít nhất 10 phòng Solo hoạt động đồng thời
 - **SC-007**: Người dùng đánh giá giao diện "thân thiện" và "dễ nhìn" qua khảo sát
 
+## Clarifications
+
+### Session 2025-12-02
+
+- Q: Cách định danh người chơi trong chế độ Solo? → A: Có 2 chế độ - Khách (hỏi tên khi vào) hoặc Đăng ký/Đăng nhập để chơi
+- Q: Xử lý khi Host mất kết nối giữa game Solo? → A: Chờ host reconnect 30 giây, nếu không thì xử thắng cho người chơi còn lại hoặc kết thúc game
+- Q: Thời điểm kiểm tra số nhập vào? → A: Real-time - highlight đỏ ngay khi nhập sai (trùng hàng/cột/block)
+- Q: Xử lý khi 2 người hoàn thành cùng lúc? → A: Người có ít lỗi sai hơn trong quá trình chơi thắng
+- Q: Độ khó của puzzle? → A: Có 3 level: Dễ, Trung bình, Khó - người chơi tự chọn
+
 ## Assumptions
 
 - Người dùng có kết nối internet ổn định cho chế độ Solo
 - Browser hỗ trợ WebSocket hoặc tương đương cho real-time updates
-- Không cần đăng nhập/đăng ký để chơi (chơi với tên tạm thời)
-- Puzzle Sudoku được generate có độ khó trung bình (một level duy nhất ban đầu)
-- Không cần lưu lịch sử game trong phase đầu
+- Puzzle Sudoku có 3 độ khó: Dễ (nhiều ô gợi ý), Trung bình, Khó (ít ô gợi ý)
+- Người dùng đăng nhập có thể lưu lịch sử game, khách không lưu
+- Trong chế độ Solo, host chọn độ khó cho cả phòng
