@@ -1,4 +1,4 @@
-export type Difficulty = "easy" | "medium" | "hard";
+export type Difficulty = "easy" | "medium" | "hard" | "expert" | "master" | "extreme";
 
 export interface SudokuPuzzle {
   grid: number[][];
@@ -16,6 +16,9 @@ const DIFFICULTY_RANGES: Record<Difficulty, { min: number; max: number }> = {
   easy: { min: 36, max: 40 },
   medium: { min: 30, max: 35 },
   hard: { min: 24, max: 29 },
+  expert: { min: 22, max: 26 },
+  master: { min: 20, max: 24 },
+  extreme: { min: 17, max: 21 },
 };
 
 function shuffleArray<T>(array: T[]): T[] {

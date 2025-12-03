@@ -4,37 +4,41 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { SudokuBoard } from "@/components/SudokuBoard";
-import { NumberPad } from "@/components/NumberPad";
-import { GameToolbar } from "@/components/GameToolbar";
 import { formatTime } from "@/components/Timer";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from "@/components/ui/dialog";
-import { Select } from "@/components/ui/select";
 import { useGame } from "@/hooks/useGame";
 import { useTimer } from "@/hooks/useTimer";
 import { Difficulty } from "@/lib/sudoku";
 
-const difficultyOptions = [
-  { value: "easy", label: "Dễ" },
-  { value: "medium", label: "Trung bình" },
-  { value: "hard", label: "Khó" },
+const difficultyOptions: { value: Difficulty; label: string }[] = [
+  { value: "easy", label: "Easy" },
+  { value: "medium", label: "Medium" },
+  { value: "hard", label: "Hard" },
+  { value: "expert", label: "Expert" },
+  { value: "master", label: "Master" },
+  { value: "extreme", label: "Extreme" },
 ];
 
 const difficultyLabels: Record<Difficulty, string> = {
-  easy: "Dễ",
-  medium: "Trung bình",
-  hard: "Khó",
+  easy: "Easy",
+  medium: "Medium",
+  hard: "Hard",
+  expert: "Expert",
+  master: "Master",
+  extreme: "Extreme",
 };
 
 function PracticeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const initialDifficulty = (searchParams.get("difficulty") as Difficulty) || "medium";
+  const initialDifficulty = (searchParams.get("difficulty") as Difficulty) || "easy";
 
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(initialDifficulty);
   const [showVictoryModal, setShowVictoryModal] = useState(false);
   const [showNewGameModal, setShowNewGameModal] = useState(false);
   const [hintsRemaining, setHintsRemaining] = useState(3);
+  const [score, setScore] = useState(0);
 
   const game = useGame();
   const timer = useTimer();
@@ -101,8 +105,18 @@ function PracticeContent() {
     timer.reset(0);
     timer.start();
     setHintsRemaining(3);
+    setScore(0);
     setShowNewGameModal(false);
     setShowVictoryModal(false);
+  };
+
+  const handleDifficultyChange = (diff: Difficulty) => {
+    setSelectedDifficulty(diff);
+    game.startGame(diff);
+    timer.reset(0);
+    timer.start();
+    setHintsRemaining(3);
+    setScore(0);
   };
 
   const handlePlayAgain = () => {
@@ -156,82 +170,315 @@ function PracticeContent() {
     : null;
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      {/* Fixed Header + Board on mobile */}
-      <div className="sticky top-16 z-20 bg-white md:static md:bg-transparent">
-        {/* Info Row */}
-        <div className="px-4 pt-4 pb-2">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex flex-col">
-              <span className="text-gray-500 text-xs">Difficulty</span>
-              <span className="text-[#1e3a5f] font-medium">{difficultyLabels[game.difficulty]}</span>
-            </div>
-            
-            <div className="flex flex-col items-center">
-              <span className="text-gray-500 text-xs">Mistakes</span>
-              <span className="text-[#1e3a5f] font-medium">{game.errors}/3</span>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <div className="flex flex-col items-end">
-                <span className="text-gray-500 text-xs">Time</span>
-                <span className="text-[#1e3a5f] font-medium">{formatTime(timer.seconds)}</span>
-              </div>
+    <div className="min-h-screen bg-white">
+      {/* Desktop Layout */}
+      <div className="hidden md:block">
+        {/* Top Bar - Difficulty tabs and Score */}
+        <div className="flex items-center justify-between px-8 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 mr-2">Difficulty:</span>
+            {difficultyOptions.map((opt) => (
               <button
-                onClick={handlePauseToggle}
-                className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
+                key={opt.value}
+                onClick={() => handleDifficultyChange(opt.value)}
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                  game.difficulty === opt.value
+                    ? "text-[#4a90d9]"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
               >
-                {timer.isPaused ? (
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                  </svg>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <div className="text-[#4a90d9] text-3xl font-bold">{score}</div>
+        </div>
+
+        {/* Main Content - Grid + Controls */}
+        <div className="flex justify-center items-start gap-12 px-8 py-8">
+          {/* Sudoku Board */}
+          <div className="flex-shrink-0">
+            <div className="w-[450px]">
+              <SudokuBoard
+                puzzle={game.puzzle}
+                userInput={game.userInput}
+                notes={game.notes}
+                selectedCell={game.selectedCell}
+                onCellClick={game.selectCell}
+                isPaused={timer.isPaused}
+              />
+            </div>
+          </div>
+
+          {/* Right Panel */}
+          <div className="w-[280px] flex flex-col gap-6">
+            {/* Mistakes & Time */}
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Mistakes</p>
+                <p className="text-[#1e3a5f] text-xl font-medium">{game.errors}/3</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-gray-400 text-sm">Time</p>
+                  <p className="text-[#1e3a5f] text-xl font-medium">{formatTime(timer.seconds)}</p>
+                </div>
+                <button
+                  onClick={handlePauseToggle}
+                  className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50"
+                >
+                  {timer.isPaused ? (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between px-2">
+              {/* Undo */}
+              <button
+                onClick={handleUndo}
+                disabled={timer.isPaused || !game.canUndo}
+                className={`flex flex-col items-center gap-1 w-14 h-14 rounded-full bg-[#f0f4f8] flex items-center justify-center ${
+                  timer.isPaused || !game.canUndo ? "opacity-40" : "hover:bg-[#e0e8f0]"
+                }`}
+              >
+                <svg className="w-6 h-6 text-[#5a7a9a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M3 10h10a5 5 0 015 5v0a5 5 0 01-5 5H8M3 10l4-4m-4 4l4 4" />
+                </svg>
+              </button>
+
+              {/* Erase */}
+              <button
+                onClick={handleClear}
+                disabled={timer.isPaused}
+                className={`flex flex-col items-center gap-1 w-14 h-14 rounded-full bg-[#f0f4f8] flex items-center justify-center ${
+                  timer.isPaused ? "opacity-40" : "hover:bg-[#e0e8f0]"
+                }`}
+              >
+                <svg className="w-6 h-6 text-[#5a7a9a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+
+              {/* Notes */}
+              <button
+                onClick={game.toggleMode}
+                disabled={timer.isPaused}
+                className={`relative flex flex-col items-center gap-1 w-14 h-14 rounded-full bg-[#f0f4f8] flex items-center justify-center ${
+                  timer.isPaused ? "opacity-40" : "hover:bg-[#e0e8f0]"
+                } ${game.mode === "note" ? "ring-2 ring-[#4a90d9]" : ""}`}
+              >
+                <svg className={`w-6 h-6 ${game.mode === "note" ? "text-[#4a90d9]" : "text-[#5a7a9a]"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                {game.mode !== "note" && (
+                  <span className="absolute -top-1 -right-1 bg-gray-400 text-white text-[9px] px-1.5 py-0.5 rounded-full font-medium">
+                    OFF
+                  </span>
                 )}
               </button>
+
+              {/* Hint */}
+              <button
+                onClick={handleHint}
+                disabled={timer.isPaused || hintsRemaining === 0}
+                className={`relative flex flex-col items-center gap-1 w-14 h-14 rounded-full bg-[#f0f4f8] flex items-center justify-center ${
+                  timer.isPaused || hintsRemaining === 0 ? "opacity-40" : "hover:bg-[#e0e8f0]"
+                }`}
+              >
+                <svg className="w-6 h-6 text-[#5a7a9a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                <span className="absolute -top-1 -right-1 bg-[#4a90d9] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-medium">
+                  {hintsRemaining}
+                </span>
+              </button>
             </div>
+
+            {/* Number Pad - 3x3 Grid */}
+            <div className="grid grid-cols-3 gap-3">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                <button
+                  key={num}
+                  onClick={() => handleNumberClick(num)}
+                  disabled={timer.isPaused}
+                  className={`w-full aspect-square rounded-xl text-3xl font-medium transition-all ${
+                    timer.isPaused
+                      ? "bg-[#f0f4f8] text-gray-300 cursor-not-allowed"
+                      : selectedValue === num
+                      ? "bg-[#4a90d9] text-white"
+                      : "bg-[#f0f4f8] text-[#1e3a5f] hover:bg-[#e0e8f0]"
+                  }`}
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+
+            {/* New Game Button */}
+            <button
+              onClick={() => setShowNewGameModal(true)}
+              className="w-full py-4 bg-[#5a7a9a] text-white text-lg font-medium rounded-xl hover:bg-[#4a6a8a] transition-colors"
+            >
+              New Game
+            </button>
           </div>
-        </div>
-
-        {/* Sudoku Board */}
-        <div className="flex justify-center px-3">
-          <div className="w-full max-w-[400px]">
-            <SudokuBoard
-              puzzle={game.puzzle}
-              userInput={game.userInput}
-              notes={game.notes}
-              selectedCell={game.selectedCell}
-              onCellClick={game.selectCell}
-              isPaused={timer.isPaused}
-            />
-          </div>
-        </div>
-
-        {/* Toolbar + Number Pad */}
-        <div className="pb-2">
-          <GameToolbar
-            onUndo={handleUndo}
-            onErase={handleClear}
-            onToggleNotes={game.toggleMode}
-            isNotesMode={game.mode === "note"}
-            canUndo={game.canUndo}
-            disabled={timer.isPaused}
-          />
-          <NumberPad
-            onNumberClick={handleNumberClick}
-            selectedNumber={selectedValue}
-            disabled={timer.isPaused}
-          />
-        </div>
-
-        {/* Mobile Footer */}
-        <div className="md:hidden text-center pb-2 text-xs text-gray-400">
-          🧩 Sudoku Game
         </div>
       </div>
 
+      {/* Mobile Layout (existing) */}
+      <div className="md:hidden">
+        <div className="sticky top-16 z-20 bg-white">
+          {/* Info Row */}
+          <div className="px-4 pt-4 pb-2">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex flex-col">
+                <span className="text-gray-500 text-xs">Difficulty</span>
+                <span className="text-[#1e3a5f] font-medium">{difficultyLabels[game.difficulty]}</span>
+              </div>
+              
+              <div className="flex flex-col items-center">
+                <span className="text-gray-500 text-xs">Mistakes</span>
+                <span className="text-[#1e3a5f] font-medium">{game.errors}/3</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <div className="flex flex-col items-end">
+                  <span className="text-gray-500 text-xs">Time</span>
+                  <span className="text-[#1e3a5f] font-medium">{formatTime(timer.seconds)}</span>
+                </div>
+                <button
+                  onClick={handlePauseToggle}
+                  className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
+                >
+                  {timer.isPaused ? (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Sudoku Board */}
+          <div className="flex justify-center px-3">
+            <div className="w-full max-w-[400px]">
+              <SudokuBoard
+                puzzle={game.puzzle}
+                userInput={game.userInput}
+                notes={game.notes}
+                selectedCell={game.selectedCell}
+                onCellClick={game.selectCell}
+                isPaused={timer.isPaused}
+              />
+            </div>
+          </div>
+
+          {/* Toolbar */}
+          <div className="flex items-center justify-center gap-6 py-2">
+            <button
+              onClick={handleUndo}
+              disabled={timer.isPaused || !game.canUndo}
+              className={`flex items-center justify-center w-12 h-10 text-gray-500 ${
+                timer.isPaused || !game.canUndo ? "opacity-30" : ""
+              }`}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M3 10h10a5 5 0 015 5v0a5 5 0 01-5 5H8M3 10l4-4m-4 4l4 4" />
+              </svg>
+            </button>
+            <button
+              onClick={handleClear}
+              disabled={timer.isPaused}
+              className={`flex items-center justify-center w-12 h-10 text-gray-500 ${
+                timer.isPaused ? "opacity-30" : ""
+              }`}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+            <button
+              onClick={game.toggleMode}
+              disabled={timer.isPaused}
+              className={`relative flex items-center justify-center w-12 h-10 ${
+                game.mode === "note" ? "text-primary-500" : "text-gray-500"
+              } ${timer.isPaused ? "opacity-30" : ""}`}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              {game.mode !== "note" && (
+                <span className="absolute -bottom-0.5 -right-1.5 bg-gray-400 text-white text-[7px] px-0.5 rounded">
+                  OFF
+                </span>
+              )}
+            </button>
+            <button
+              onClick={handleHint}
+              disabled={timer.isPaused || hintsRemaining === 0}
+              className={`relative flex items-center justify-center w-12 h-10 text-gray-500 ${
+                timer.isPaused || hintsRemaining === 0 ? "opacity-30" : ""
+              }`}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+              <span className="absolute -top-0.5 -right-1 bg-[#4a90d9] text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center">
+                {hintsRemaining}
+              </span>
+            </button>
+          </div>
+
+          {/* Number Pad */}
+          <div className="flex items-center justify-between px-4 pb-2">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+              <button
+                key={num}
+                onClick={() => handleNumberClick(num)}
+                disabled={timer.isPaused}
+                className={`w-8 h-10 sm:w-9 sm:h-11 flex items-center justify-center text-2xl sm:text-3xl font-medium ${
+                  timer.isPaused
+                    ? "opacity-30 cursor-not-allowed"
+                    : selectedValue === num
+                    ? "text-[#4a90d9]"
+                    : "text-[#1e3a5f]"
+                }`}
+              >
+                {num}
+              </button>
+            ))}
+          </div>
+
+          {/* Mobile Footer */}
+          <div className="text-center pb-2 text-xs text-gray-400">
+            🧩 Sudoku Game
+          </div>
+        </div>
+      </div>
+
+      {/* Victory Modal */}
       <Dialog open={showVictoryModal} onClose={() => {}}>
         <DialogHeader>
           <DialogTitle className="text-center">🎉 Chúc mừng!</DialogTitle>
@@ -275,19 +522,30 @@ function PracticeContent() {
         </DialogFooter>
       </Dialog>
 
+      {/* New Game Modal */}
       <Dialog open={showNewGameModal} onClose={() => setShowNewGameModal(false)}>
         <DialogHeader>
-          <DialogTitle>Ván mới</DialogTitle>
+          <DialogTitle>New Game</DialogTitle>
         </DialogHeader>
         <DialogContent>
           <p className="text-gray-600 mb-4">
             Chọn độ khó cho ván mới:
           </p>
-          <Select
-            options={difficultyOptions}
-            value={selectedDifficulty}
-            onChange={(e) => setSelectedDifficulty(e.target.value as Difficulty)}
-          />
+          <div className="grid grid-cols-2 gap-2">
+            {difficultyOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setSelectedDifficulty(opt.value)}
+                className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  selectedDifficulty === opt.value
+                    ? "bg-[#4a90d9] text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </DialogContent>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setShowNewGameModal(false)}>
