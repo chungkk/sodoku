@@ -3,8 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #ffffff;
+  --foreground: #1e3a5f;
+  --sudoku-border: #1e3a5f;
+  --sudoku-cell-bg: #ffffff;
+  --sudoku-given-color: #1e3a5f;
+  --sudoku-user-color: #3b82f6;
+  --sudoku-highlight-bg: #e8f0fe;
+  --sudoku-selected-bg: #c5d9f7;
+  --sudoku-same-number-bg: #d1e3fa;
 }
 
 @layer base {
@@ -20,51 +27,72 @@
 @layer components {
   .sudoku-cell {
     @apply flex items-center justify-center
-           text-lg sm:text-xl md:text-2xl font-semibold
+           text-xl sm:text-2xl md:text-3xl font-medium
            select-none cursor-pointer
            touch-manipulation
-           outline-none;
+           outline-none
+           border border-gray-300;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-tap-highlight-color: transparent;
     will-change: transform, background-color;
+    color: var(--sudoku-given-color);
+    background-color: var(--sudoku-cell-bg);
   }
 
   .sudoku-cell-given {
-    @apply text-gray-800 bg-gray-100;
+    color: var(--sudoku-given-color);
+    background-color: var(--sudoku-cell-bg);
+    font-weight: 500;
   }
 
   .sudoku-cell-user {
-    @apply text-primary-600 bg-white;
+    color: var(--sudoku-user-color);
+    background-color: var(--sudoku-cell-bg);
   }
 
   .sudoku-cell-selected {
-    @apply bg-primary-100 ring-2 ring-primary-500;
+    background-color: var(--sudoku-selected-bg) !important;
   }
 
   .sudoku-cell-highlighted {
-    @apply bg-primary-50;
+    background-color: var(--sudoku-highlight-bg);
+  }
+
+  .sudoku-cell-same-number {
+    background-color: var(--sudoku-same-number-bg);
   }
 
   .sudoku-cell-conflict {
-    @apply bg-error-500/20 text-error-600;
+    @apply text-red-500;
+    background-color: #fee2e2 !important;
   }
 
   .sudoku-cell-note {
-    @apply text-[10px] sm:text-xs text-gray-500;
+    @apply text-[8px] sm:text-[10px] text-gray-500;
   }
 
   .number-pad-btn {
     @apply flex items-center justify-center
-           w-10 h-10 sm:w-12 sm:h-12
-           text-lg sm:text-xl font-semibold
-           bg-white border border-gray-200 rounded-xl
-           hover:bg-primary-50 hover:border-primary-300
-           active:scale-95 transition-all duration-150
+           text-2xl sm:text-3xl font-medium
            touch-manipulation;
+    color: var(--sudoku-given-color);
+    -webkit-tap-highlight-color: transparent;
   }
 
   .number-pad-btn-active {
-    @apply bg-primary-500 text-white border-primary-500
-           hover:bg-primary-600;
+    @apply text-primary-500;
+  }
+
+  .game-toolbar-btn {
+    @apply flex flex-col items-center justify-center
+           w-14 h-14 sm:w-16 sm:h-16
+           text-gray-500 
+           touch-manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .game-toolbar-btn-active {
+    @apply text-primary-500;
   }
 }
 
@@ -72,21 +100,8 @@
   .grid-sudoku {
     display: grid;
     grid-template-columns: repeat(9, 1fr);
-    gap: 1px;
-    background: #cbd5e1;
-  }
-
-  .grid-sudoku > *:nth-child(3n) {
-    border-right: 2px solid #475569;
-  }
-
-  .grid-sudoku > *:nth-child(9n) {
-    border-right: none;
-  }
-
-  .grid-sudoku > *:nth-child(n+19):nth-child(-n+27),
-  .grid-sudoku > *:nth-child(n+46):nth-child(-n+54) {
-    border-bottom: 2px solid #475569;
+    background: var(--sudoku-cell-bg);
+    border: 2px solid var(--sudoku-border);
   }
 
   .touch-manipulation {

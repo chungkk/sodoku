@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { Cell } from "./Cell";
 import { findConflicts } from "@/lib/sudoku";
 
@@ -21,6 +21,19 @@ const SudokuBoard = memo(function SudokuBoard({
   onCellClick,
   isPaused = false,
 }: SudokuBoardProps) {
+  const getCellValue = useCallback(
+    (row: number, col: number): number | null => {
+      if (puzzle[row][col] !== 0) return puzzle[row][col];
+      return userInput[row][col];
+    },
+    [puzzle, userInput]
+  );
+
+  const selectedValue = useMemo(() => {
+    if (!selectedCell) return null;
+    return getCellValue(selectedCell[0], selectedCell[1]);
+  }, [selectedCell, getCellValue]);
+
   const isHighlighted = useCallback(
     (row: number, col: number): boolean => {
       if (!selectedCell) return false;
@@ -38,12 +51,13 @@ const SudokuBoard = memo(function SudokuBoard({
     [selectedCell]
   );
 
-  const getCellValue = useCallback(
-    (row: number, col: number): number | null => {
-      if (puzzle[row][col] !== 0) return puzzle[row][col];
-      return userInput[row][col];
+  const isSameNumber = useCallback(
+    (row: number, col: number): boolean => {
+      if (!selectedValue) return false;
+      const cellValue = getCellValue(row, col);
+      return cellValue === selectedValue;
     },
-    [puzzle, userInput]
+    [selectedValue, getCellValue]
   );
 
   const hasConflict = useCallback(
@@ -64,7 +78,7 @@ const SudokuBoard = memo(function SudokuBoard({
   if (isPaused) {
     return (
       <div className="relative">
-        <div className="grid-sudoku rounded-xl overflow-hidden border-2 border-gray-400 opacity-20 blur-sm">
+        <div className="grid-sudoku rounded-lg overflow-hidden opacity-20 blur-sm">
           {Array(81)
             .fill(null)
             .map((_, index) => (
@@ -76,7 +90,7 @@ const SudokuBoard = memo(function SudokuBoard({
         </div>
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="bg-white/90 backdrop-blur px-8 py-4 rounded-2xl shadow-lg">
-            <p className="text-xl font-semibold text-gray-800">⏸️ Đã tạm dừng</p>
+            <p className="text-xl font-semibold text-gray-800">Tạm dừng</p>
           </div>
         </div>
       </div>
@@ -84,7 +98,7 @@ const SudokuBoard = memo(function SudokuBoard({
   }
 
   return (
-    <div className="grid-sudoku rounded-xl overflow-hidden border-2 border-gray-400 shadow-lg">
+    <div className="grid-sudoku rounded-lg overflow-hidden">
       {Array(9)
         .fill(null)
         .map((_, row) =>
@@ -106,6 +120,7 @@ const SudokuBoard = memo(function SudokuBoard({
                   isGiven={isGiven}
                   isSelected={isSelected}
                   isHighlighted={isHighlighted(row, col)}
+                  isSameNumber={isSameNumber(row, col)}
                   hasConflict={hasConflict(row, col)}
                   onClick={() => onCellClick(row, col)}
                   row={row}

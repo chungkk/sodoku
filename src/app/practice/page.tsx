@@ -2,12 +2,12 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { SudokuBoard } from "@/components/SudokuBoard";
 import { NumberPad } from "@/components/NumberPad";
-import { Timer, formatTime } from "@/components/Timer";
+import { GameToolbar } from "@/components/GameToolbar";
+import { formatTime } from "@/components/Timer";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
 import { useGame } from "@/hooks/useGame";
@@ -15,9 +15,9 @@ import { useTimer } from "@/hooks/useTimer";
 import { Difficulty } from "@/lib/sudoku";
 
 const difficultyOptions = [
-  { value: "easy", label: "🟢 Dễ" },
-  { value: "medium", label: "🟡 Trung bình" },
-  { value: "hard", label: "🔴 Khó" },
+  { value: "easy", label: "Dễ" },
+  { value: "medium", label: "Trung bình" },
+  { value: "hard", label: "Khó" },
 ];
 
 const difficultyLabels: Record<Difficulty, string> = {
@@ -34,6 +34,7 @@ function PracticeContent() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(initialDifficulty);
   const [showVictoryModal, setShowVictoryModal] = useState(false);
   const [showNewGameModal, setShowNewGameModal] = useState(false);
+  const [hintsRemaining, setHintsRemaining] = useState(3);
 
   const game = useGame();
   const timer = useTimer();
@@ -82,10 +83,24 @@ function PracticeContent() {
     game.clearCell();
   };
 
+  const handleUndo = () => {
+    if (timer.isPaused) return;
+    game.undo();
+  };
+
+  const handleHint = () => {
+    if (timer.isPaused || hintsRemaining === 0) return;
+    const used = game.useHint();
+    if (used) {
+      setHintsRemaining((prev) => prev - 1);
+    }
+  };
+
   const handleNewGame = () => {
     game.startGame(selectedDifficulty);
     timer.reset(0);
     timer.start();
+    setHintsRemaining(3);
     setShowNewGameModal(false);
     setShowVictoryModal(false);
   };
@@ -112,6 +127,9 @@ function PracticeContent() {
         handlePauseToggle();
       } else if (e.key === "n" || e.key === "N") {
         game.toggleMode();
+      } else if (e.key === "z" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        handleUndo();
       } else if (e.key === "ArrowUp" && game.selectedCell) {
         const [row, col] = game.selectedCell;
         if (row > 0) game.selectCell(row - 1, col);
@@ -131,49 +149,59 @@ function PracticeContent() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [game.selectedCell, timer.isPaused, game.mode]);
 
+  const selectedValue = game.selectedCell
+    ? (game.puzzle[game.selectedCell[0]][game.selectedCell[1]] !== 0
+        ? game.puzzle[game.selectedCell[0]][game.selectedCell[1]]
+        : game.userInput[game.selectedCell[0]][game.selectedCell[1]])
+    : null;
+
   return (
-    <div className="max-w-4xl mx-auto px-2 sm:px-4 py-2 sm:py-6">
-      {/* Header - single row on mobile */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between gap-2 mb-3 sm:mb-6"
-      >
-        <div className="flex items-center gap-2">
-          <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Sudoku</h1>
-          <span className="px-2 py-0.5 sm:px-3 sm:py-1 bg-primary-100 text-primary-700 rounded-full text-xs sm:text-sm font-medium">
-            {difficultyLabels[game.difficulty]}
-          </span>
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Header */}
+      <div className="px-4 pt-4 pb-2">
+        {/* Score */}
+        <div className="text-center mb-3">
+          <span className="text-2xl font-bold text-[#1e3a5f]">0</span>
         </div>
 
-        {/* Timer, Progress, Errors - all in one row */}
-        <div className="flex items-center gap-3 text-sm">
-          <Timer
-            seconds={timer.seconds}
-            isPaused={timer.isPaused}
-            onPauseToggle={handlePauseToggle}
-          />
-          <div className="hidden sm:flex items-center gap-2">
-            <div className="w-16 bg-gray-200 rounded-full h-1.5">
-              <div
-                className="bg-primary-500 h-1.5 rounded-full transition-all"
-                style={{ width: `${game.progress}%` }}
-              />
-            </div>
-            <span className="text-xs text-gray-500">{game.progress}%</span>
+        {/* Info Row */}
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex flex-col">
+            <span className="text-gray-500 text-xs">Difficulty</span>
+            <span className="text-[#1e3a5f] font-medium">{difficultyLabels[game.difficulty]}</span>
           </div>
-          <span className="text-gray-600">Lỗi: <span className="font-bold text-error-600">{game.errors}</span></span>
+          
+          <div className="flex flex-col items-center">
+            <span className="text-gray-500 text-xs">Mistakes</span>
+            <span className="text-[#1e3a5f] font-medium">{game.errors}/3</span>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <div className="flex flex-col items-end">
+              <span className="text-gray-500 text-xs">Time</span>
+              <span className="text-[#1e3a5f] font-medium">{formatTime(timer.seconds)}</span>
+            </div>
+            <button
+              onClick={handlePauseToggle}
+              className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
+            >
+              {timer.isPaused ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
-      </motion.div>
+      </div>
 
-      <div className="flex flex-col lg:flex-row gap-3 sm:gap-6 items-start justify-center">
-        {/* Sudoku Board */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3 }}
-          className="w-full max-w-[360px] sm:max-w-[400px] mx-auto lg:mx-0"
-        >
+      {/* Sudoku Board */}
+      <div className="flex-1 flex items-center justify-center px-3 py-2">
+        <div className="w-full max-w-[400px]">
           <SudokuBoard
             puzzle={game.puzzle}
             userInput={game.userInput}
@@ -182,30 +210,28 @@ function PracticeContent() {
             onCellClick={game.selectCell}
             isPaused={timer.isPaused}
           />
-        </motion.div>
+        </div>
+      </div>
 
-        {/* Controls */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-          className="w-full max-w-[360px] sm:max-w-[400px] mx-auto lg:w-auto"
-        >
-          {/* Number Pad */}
-          <NumberPad
-            onNumberClick={handleNumberClick}
-            onClear={handleClear}
-            onToggleNoteMode={game.toggleMode}
-            isNoteMode={game.mode === "note"}
-            selectedNumber={null}
-            disabled={timer.isPaused}
-          />
+      {/* Toolbar */}
+      <GameToolbar
+        onUndo={handleUndo}
+        onErase={handleClear}
+        onToggleNotes={game.toggleMode}
+        onHint={handleHint}
+        isNotesMode={game.mode === "note"}
+        hintsRemaining={hintsRemaining}
+        canUndo={game.canUndo}
+        disabled={timer.isPaused}
+      />
 
-          {/* Keyboard shortcuts - hidden on mobile */}
-          <div className="hidden sm:block text-xs text-gray-500 text-center pt-3 mt-3 border-t border-gray-100">
-            <p>⌨️ Phím tắt: 1-9 nhập số, Space tạm dừng, N chế độ nháp</p>
-          </div>
-        </motion.div>
+      {/* Number Pad */}
+      <div className="pb-8 pt-2">
+        <NumberPad
+          onNumberClick={handleNumberClick}
+          selectedNumber={selectedValue}
+          disabled={timer.isPaused}
+        />
       </div>
 
       <Dialog open={showVictoryModal} onClose={() => {}}>

@@ -9,6 +9,7 @@ interface CellProps {
   isGiven: boolean;
   isSelected: boolean;
   isHighlighted: boolean;
+  isSameNumber: boolean;
   hasConflict: boolean;
   onClick: () => void;
   row: number;
@@ -21,6 +22,7 @@ const Cell = memo(function Cell({
   isGiven,
   isSelected,
   isHighlighted,
+  isSameNumber,
   hasConflict,
   onClick,
   row,
@@ -28,9 +30,11 @@ const Cell = memo(function Cell({
 }: CellProps) {
   const isBoxBorderRight = (col + 1) % 3 === 0 && col < 8;
   const isBoxBorderBottom = (row + 1) % 3 === 0 && row < 8;
+  const isBoxBorderLeft = col % 3 === 0;
+  const isBoxBorderTop = row % 3 === 0;
 
   const getCellClassName = () => {
-    const classes = ["sudoku-cell", "w-full", "aspect-square", "bg-white"];
+    const classes = ["sudoku-cell", "w-full", "aspect-square"];
 
     if (isGiven) {
       classes.push("sudoku-cell-given");
@@ -38,22 +42,27 @@ const Cell = memo(function Cell({
       classes.push("sudoku-cell-user");
     }
 
-    if (isSelected) {
+    if (hasConflict && !isGiven) {
+      classes.push("sudoku-cell-conflict");
+    } else if (isSelected) {
       classes.push("sudoku-cell-selected");
+    } else if (isSameNumber && value) {
+      classes.push("sudoku-cell-same-number");
     } else if (isHighlighted) {
       classes.push("sudoku-cell-highlighted");
     }
 
-    if (hasConflict && !isGiven) {
-      classes.push("sudoku-cell-conflict");
-    }
-
     if (isBoxBorderRight) {
-      classes.push("border-r-2 border-r-gray-400");
+      classes.push("!border-r-2 !border-r-[#1e3a5f]");
     }
-
     if (isBoxBorderBottom) {
-      classes.push("border-b-2 border-b-gray-400");
+      classes.push("!border-b-2 !border-b-[#1e3a5f]");
+    }
+    if (isBoxBorderLeft && col !== 0) {
+      classes.push("!border-l-2 !border-l-[#1e3a5f]");
+    }
+    if (isBoxBorderTop && row !== 0) {
+      classes.push("!border-t-2 !border-t-[#1e3a5f]");
     }
 
     return classes.join(" ");
@@ -71,7 +80,7 @@ const Cell = memo(function Cell({
               flex items-center justify-center
               text-[8px] sm:text-[10px] font-medium leading-none
               ${notes.has(num) 
-                ? "text-gray-700 bg-yellow-200 rounded-sm" 
+                ? "text-gray-600" 
                 : "text-transparent"
               }
             `}
@@ -84,40 +93,24 @@ const Cell = memo(function Cell({
   };
 
   return (
-    <motion.button
+    <button
       onClick={onClick}
       className={getCellClassName()}
-      whileHover={!isGiven ? { scale: 1.02, backgroundColor: "rgba(59, 130, 246, 0.08)" } : {}}
-      whileTap={!isGiven ? { scale: 0.96 } : {}}
-      animate={
-        hasConflict && !isGiven
-          ? {
-              backgroundColor: ["rgba(239, 68, 68, 0.2)", "rgba(239, 68, 68, 0.1)", "rgba(239, 68, 68, 0.2)"],
-            }
-          : {}
-      }
-      transition={{ 
-        type: "spring",
-        stiffness: 400,
-        damping: 25,
-        mass: 0.5
-      }}
-      disabled={isGiven}
       aria-label={`Cell ${row + 1}, ${col + 1}${value ? `, value ${value}` : ", empty"}`}
     >
       {value ? (
         <motion.span
           key={value}
-          initial={{ scale: 0.5, opacity: 0 }}
+          initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.15, ease: "easeOut" }}
+          transition={{ duration: 0.1, ease: "easeOut" }}
         >
           {value}
         </motion.span>
       ) : (
         renderNotes()
       )}
-    </motion.button>
+    </button>
   );
 });
 

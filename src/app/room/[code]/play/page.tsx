@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { SudokuBoard } from "@/components/SudokuBoard";
@@ -15,6 +15,8 @@ import { useSocket } from "@/hooks/useSocket";
 import { useGame } from "@/hooks/useGame";
 import { useTimer } from "@/hooks/useTimer";
 import { calculateProgress, findConflicts, isPuzzleComplete } from "@/lib/sudoku";
+
+const GAME_STATE_KEY = "sudoku_game_state_";
 
 interface PlayerProgress {
   visitorId: string;
@@ -48,6 +50,9 @@ export default function GamePlayPage() {
   const [gameEnded, setGameEnded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pausedBy, setPausedBy] = useState<{ visitorId: string; name: string } | null>(null);
+  const [stateLoaded, setStateLoaded] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSaveRef = useRef<number>(0);
 
   const game = useGame();
   const timer = useTimer();
@@ -58,12 +63,97 @@ export default function GamePlayPage() {
     autoConnect: !!player,
   });
 
+  const getLocalStorageKey = useCallback(() => {
+    return `${GAME_STATE_KEY}${code}_${player?.visitorId}`;
+  }, [code, player?.visitorId]);
+
+  const loadLocalState = useCallback(() => {
+    try {
+      const stored = localStorage.getItem(getLocalStorageKey());
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (error) {
+      console.error("Failed to load local state:", error);
+    }
+    return null;
+  }, [getLocalStorageKey]);
+
+  const saveLocalState = useCallback((state: {
+    currentGrid: (number | null)[][];
+    notes: number[][][];
+    elapsedTime: number;
+    errors: number;
+    progress: number;
+  }) => {
+    try {
+      localStorage.setItem(getLocalStorageKey(), JSON.stringify(state));
+    } catch (error) {
+      console.error("Failed to save local state:", error);
+    }
+  }, [getLocalStorageKey]);
+
+  const saveStateToServer = useCallback(async (state: {
+    currentGrid: (number | null)[][];
+    notes: number[][][];
+    elapsedTime: number;
+    errors: number;
+    progress: number;
+  }) => {
+    if (!player) return;
+
+    try {
+      await fetch(`/api/games/${code}/state`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          visitorId: player.visitorId,
+          ...state,
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to save state to server:", error);
+    }
+  }, [code, player]);
+
+  const saveGameState = useCallback(() => {
+    if (!stateLoaded || gameEnded || !player) return;
+
+    const now = Date.now();
+    if (now - lastSaveRef.current < 1000) {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      saveTimeoutRef.current = setTimeout(() => {
+        saveGameState();
+      }, 1000);
+      return;
+    }
+    lastSaveRef.current = now;
+
+    const notesArray = game.notes.map(row => 
+      row.map(cellNotes => Array.from(cellNotes))
+    );
+
+    const state = {
+      currentGrid: game.userInput,
+      notes: notesArray,
+      elapsedTime: timer.seconds,
+      errors: game.errors,
+      progress: game.progress,
+    };
+
+    saveLocalState(state);
+    saveStateToServer(state);
+  }, [stateLoaded, gameEnded, player, game.userInput, game.notes, game.errors, game.progress, timer.seconds, saveLocalState, saveStateToServer]);
+
   const fetchGameData = useCallback(async () => {
     try {
-      const [roomRes, progressRes, puzzleRes] = await Promise.all([
+      const [roomRes, progressRes, puzzleRes, stateRes] = await Promise.all([
         fetch(`/api/rooms/${code}`),
         fetch(`/api/games/${code}/progress`),
         fetch(`/api/games/${code}/puzzle`),
+        player ? fetch(`/api/games/${code}/state?visitorId=${player.visitorId}`) : Promise.resolve(null),
       ]);
 
       if (!roomRes.ok) {
@@ -80,12 +170,50 @@ export default function GamePlayPage() {
 
       if (puzzleRes.ok) {
         const puzzleData = await puzzleRes.json();
-        game.loadPuzzle(
-          puzzleData.puzzle,
-          puzzleData.solution,
-          puzzleData.difficulty
-        );
-        timer.start();
+        
+        let savedState = null;
+        
+        if (stateRes && stateRes.ok) {
+          const serverState = await stateRes.json();
+          if (serverState.hasState) {
+            savedState = serverState;
+          }
+        }
+        
+        if (!savedState) {
+          savedState = loadLocalState();
+        }
+
+        if (savedState && savedState.currentGrid && savedState.currentGrid.length > 0) {
+          const userInput = savedState.currentGrid.map((row: (number | null)[]) =>
+            row.map((cell: number | null) => (cell === 0 ? null : cell))
+          );
+          
+          const notes: Set<number>[][] = savedState.notes && savedState.notes.length > 0
+            ? savedState.notes.map((row: number[][]) =>
+                row.map((cellNotes: number[]) => new Set(cellNotes))
+              )
+            : Array(9).fill(null).map(() => Array(9).fill(null).map(() => new Set<number>()));
+
+          game.loadPuzzleWithState(
+            puzzleData.puzzle,
+            puzzleData.solution,
+            puzzleData.difficulty,
+            userInput,
+            notes
+          );
+          timer.reset(savedState.elapsedTime || 0);
+          timer.start();
+        } else {
+          game.loadPuzzle(
+            puzzleData.puzzle,
+            puzzleData.solution,
+            puzzleData.difficulty
+          );
+          timer.start();
+        }
+        
+        setStateLoaded(true);
       }
 
       if (progressRes.ok) {
@@ -109,13 +237,36 @@ export default function GamePlayPage() {
       router.push(`/room/${code}`);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, router]);
+  }, [code, router, player, loadLocalState]);
 
   useEffect(() => {
     if (player) {
       fetchGameData();
     }
   }, [player, fetchGameData]);
+
+  useEffect(() => {
+    if (stateLoaded && !gameEnded) {
+      saveGameState();
+    }
+  }, [game.userInput, game.notes, game.errors, stateLoaded, gameEnded, saveGameState]);
+
+  useEffect(() => {
+    if (stateLoaded && !gameEnded && !timer.isPaused) {
+      const interval = setInterval(() => {
+        saveGameState();
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [stateLoaded, gameEnded, timer.isPaused, saveGameState]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (isConnected && player) {
@@ -448,13 +599,21 @@ export default function GamePlayPage() {
           {/* Number Pad */}
           <NumberPad
             onNumberClick={handleNumberClick}
-            onClear={handleClear}
-            onToggleNoteMode={game.toggleMode}
-            isNoteMode={game.mode === "note"}
             selectedNumber={null}
             disabled={timer.isPaused || gameEnded}
-            hideNoteButton
           />
+
+          {/* Clear button */}
+          <div className="mt-3">
+            <Button
+              variant="ghost"
+              fullWidth
+              onClick={handleClear}
+              disabled={timer.isPaused || gameEnded}
+            >
+              ⌫ Xóa
+            </Button>
+          </div>
 
           {/* Note + Give up buttons - same row */}
           <div className="mt-3 grid grid-cols-2 gap-2">

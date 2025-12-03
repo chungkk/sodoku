@@ -13,6 +13,8 @@ export interface IPlayer {
   progress: number;
   errors: number;
   currentGrid: number[][];
+  notes: number[][][];
+  elapsedTime: number;
   finishedAt: Date | null;
   lastSeen: Date;
 }
@@ -55,6 +57,8 @@ const PlayerSchema = new Schema<IPlayer>(
     progress: { type: Number, default: 0, min: 0, max: 100 },
     errors: { type: Number, default: 0, min: 0 },
     currentGrid: { type: [[Number]], default: [] },
+    notes: { type: [[[Number]]], default: [] },
+    elapsedTime: { type: Number, default: 0 },
     finishedAt: { type: Date, default: null },
     lastSeen: { type: Date, default: Date.now },
   },
@@ -175,6 +179,8 @@ RoomSchema.methods.addPlayer = function (
     progress: 0,
     errors: 0,
     currentGrid: [],
+    notes: [],
+    elapsedTime: 0,
     finishedAt: null,
     lastSeen: new Date(),
   });
