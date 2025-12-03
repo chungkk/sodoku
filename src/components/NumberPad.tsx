@@ -10,6 +10,7 @@ interface NumberPadProps {
   isNoteMode: boolean;
   selectedNumber: number | null;
   disabled?: boolean;
+  hideNoteButton?: boolean;
 }
 
 const NumberPad = memo(function NumberPad({
@@ -19,6 +20,7 @@ const NumberPad = memo(function NumberPad({
   isNoteMode,
   selectedNumber,
   disabled = false,
+  hideNoteButton = false,
 }: NumberPadProps) {
   const row1 = [1, 2, 3, 4, 5];
   const row2 = [6, 7, 8, 9];
@@ -74,25 +76,27 @@ const NumberPad = memo(function NumberPad({
       </div>
 
       {/* Note mode toggle - compact on mobile */}
-      <motion.button
-        onClick={onToggleNoteMode}
-        disabled={disabled}
-        whileHover={{ scale: disabled ? 1 : 1.02 }}
-        whileTap={{ scale: disabled ? 1 : 0.98 }}
-        className={`
-          flex items-center justify-center gap-2
-          h-10 rounded-xl font-medium text-sm
-          transition-colors
-          ${isNoteMode
-            ? "bg-primary-500 text-white"
-            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }
-          ${disabled ? "opacity-50 cursor-not-allowed" : ""}
-        `}
-      >
-        <span>✏️</span>
-        <span>Nháp {isNoteMode ? "(Bật)" : "(Tắt)"}</span>
-      </motion.button>
+      {!hideNoteButton && (
+        <motion.button
+          onClick={onToggleNoteMode}
+          disabled={disabled}
+          whileHover={{ scale: disabled ? 1 : 1.02 }}
+          whileTap={{ scale: disabled ? 1 : 0.98 }}
+          className={`
+            flex items-center justify-center gap-2
+            h-10 rounded-xl font-medium text-sm
+            transition-colors
+            ${isNoteMode
+              ? "bg-primary-500 text-white"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }
+            ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+          `}
+        >
+          <span>✏️</span>
+          <span>Nháp {isNoteMode ? "(Bật)" : "(Tắt)"}</span>
+        </motion.button>
+      )}
     </div>
   );
 });

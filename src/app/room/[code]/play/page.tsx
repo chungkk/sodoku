@@ -348,53 +348,82 @@ export default function GamePlayPage() {
     );
   }
 
+  const difficultyLabels: Record<string, string> = {
+    easy: "Dễ",
+    medium: "Trung bình",
+    hard: "Khó",
+  };
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      <div className="flex flex-col lg:flex-row gap-6">
-        <div className="flex-1">
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between mb-4"
-          >
-            <h1 className="text-xl font-bold text-gray-900">Phòng {code}</h1>
-            <Timer
-              seconds={timer.seconds}
-              isPaused={gameEnded}
-              onPauseToggle={() => {}}
-            />
-          </motion.div>
+    <div className="max-w-4xl mx-auto px-2 sm:px-4 py-2 sm:py-6">
+      {/* Header - compact single row */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between mb-2 sm:mb-4"
+      >
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm sm:text-base font-semibold text-gray-900">{code}</span>
+          <span className="px-1.5 py-0.5 bg-primary-100 text-primary-700 rounded text-xs font-medium">
+            {difficultyLabels[game.difficulty] || game.difficulty}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs sm:text-sm">
+          <Timer
+            seconds={timer.seconds}
+            isPaused={gameEnded}
+            onPauseToggle={() => {}}
+          />
+          <span className="text-gray-500">Lỗi: <span className="font-bold text-error-600">{game.errors}</span></span>
+        </div>
+      </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-[400px] mx-auto mb-6"
-          >
-            <SudokuBoard
-              puzzle={game.puzzle}
-              userInput={game.userInput}
-              notes={game.notes}
-              selectedCell={game.selectedCell}
-              onCellClick={game.selectCell}
-              isPaused={gameEnded}
-            />
-          </motion.div>
+      <div className="flex flex-col lg:flex-row gap-3 sm:gap-6 items-start justify-center">
+        {/* Sudoku Board */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="w-full max-w-[360px] sm:max-w-[400px] mx-auto lg:mx-0"
+        >
+          <SudokuBoard
+            puzzle={game.puzzle}
+            userInput={game.userInput}
+            notes={game.notes}
+            selectedCell={game.selectedCell}
+            onCellClick={game.selectCell}
+            isPaused={gameEnded}
+          />
+        </motion.div>
 
-          <Card padding="md" className="space-y-4">
-            <div className="flex items-center justify-between text-sm text-gray-600">
-              <span>Tiến độ: {game.progress}%</span>
-              <span>Lỗi: {game.errors}</span>
-            </div>
+        {/* Controls */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+          className="w-full max-w-[360px] sm:max-w-[400px] mx-auto lg:w-auto"
+        >
+          {/* Number Pad */}
+          <NumberPad
+            onNumberClick={handleNumberClick}
+            onClear={handleClear}
+            onToggleNoteMode={game.toggleMode}
+            isNoteMode={game.mode === "note"}
+            selectedNumber={null}
+            disabled={gameEnded}
+            hideNoteButton
+          />
 
-            <NumberPad
-              onNumberClick={handleNumberClick}
-              onClear={handleClear}
-              onToggleNoteMode={game.toggleMode}
-              isNoteMode={game.mode === "note"}
-              selectedNumber={null}
+          {/* Note + Give up buttons - same row */}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <Button
+              variant={game.mode === "note" ? "primary" : "ghost"}
+              fullWidth
+              onClick={game.toggleMode}
               disabled={gameEnded}
-            />
-
+            >
+              ✏️ Nháp {game.mode === "note" ? "(Bật)" : "(Tắt)"}
+            </Button>
             <Button
               variant="ghost"
               fullWidth
@@ -403,18 +432,9 @@ export default function GamePlayPage() {
             >
               🏳️ Bỏ cuộc
             </Button>
-          </Card>
-        </div>
+          </div>
 
-        <div className="lg:w-80">
-          <Card padding="md">
-            <Leaderboard
-              players={playersProgress}
-              currentPlayerId={player.visitorId}
-              gameStatus={gameEnded ? "finished" : "playing"}
-            />
-          </Card>
-        </div>
+        </motion.div>
       </div>
 
       <Dialog open={showResultsModal} onClose={() => {}}>
