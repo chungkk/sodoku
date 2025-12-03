@@ -21,8 +21,11 @@
   .sudoku-cell {
     @apply flex items-center justify-center
            text-lg sm:text-xl md:text-2xl font-semibold
-           transition-all duration-150
-           select-none cursor-pointer;
+           select-none cursor-pointer
+           touch-manipulation
+           outline-none;
+    -webkit-tap-highlight-color: transparent;
+    will-change: transform, background-color;
   }
 
   .sudoku-cell-given {

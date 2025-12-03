@@ -87,7 +87,8 @@ const Cell = memo(function Cell({
     <motion.button
       onClick={onClick}
       className={getCellClassName()}
-      whileTap={{ scale: 0.95 }}
+      whileHover={!isGiven ? { scale: 1.02, backgroundColor: "rgba(59, 130, 246, 0.08)" } : {}}
+      whileTap={!isGiven ? { scale: 0.96 } : {}}
       animate={
         hasConflict && !isGiven
           ? {
@@ -95,7 +96,12 @@ const Cell = memo(function Cell({
             }
           : {}
       }
-      transition={{ duration: 0.3 }}
+      transition={{ 
+        type: "spring",
+        stiffness: 400,
+        damping: 25,
+        mass: 0.5
+      }}
       disabled={isGiven}
       aria-label={`Cell ${row + 1}, ${col + 1}${value ? `, value ${value}` : ", empty"}`}
     >
