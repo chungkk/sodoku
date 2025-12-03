@@ -195,7 +195,7 @@ function PracticeContent() {
       </div>
 
       {/* Sudoku Board */}
-      <div className="flex-1 flex items-center justify-center px-3 py-2">
+      <div className="flex justify-center px-3">
         <div className="w-full max-w-[400px]">
           <SudokuBoard
             puzzle={game.puzzle}
@@ -208,20 +208,18 @@ function PracticeContent() {
         </div>
       </div>
 
-      {/* Toolbar */}
-      <GameToolbar
-        onUndo={handleUndo}
-        onErase={handleClear}
-        onToggleNotes={game.toggleMode}
-        onHint={handleHint}
-        isNotesMode={game.mode === "note"}
-        hintsRemaining={hintsRemaining}
-        canUndo={game.canUndo}
-        disabled={timer.isPaused}
-      />
-
-      {/* Number Pad */}
-      <div className="pb-8 pt-2">
+      {/* Toolbar + Number Pad */}
+      <div className="pb-4">
+        <GameToolbar
+          onUndo={handleUndo}
+          onErase={handleClear}
+          onToggleNotes={game.toggleMode}
+          onHint={handleHint}
+          isNotesMode={game.mode === "note"}
+          hintsRemaining={hintsRemaining}
+          canUndo={game.canUndo}
+          disabled={timer.isPaused}
+        />
         <NumberPad
           onNumberClick={handleNumberClick}
           selectedNumber={selectedValue}

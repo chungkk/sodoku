@@ -608,7 +608,7 @@ export default function GamePlayPage() {
       )}
 
       {/* Sudoku Board */}
-      <div className="flex-1 flex items-center justify-center px-3 py-2">
+      <div className="flex justify-center px-3">
         <div className="w-full max-w-[400px]">
           <SudokuBoard
             puzzle={game.puzzle}
@@ -621,38 +621,35 @@ export default function GamePlayPage() {
         </div>
       </div>
 
-      {/* Toolbar */}
-      <GameToolbar
-        onUndo={handleUndo}
-        onErase={handleClear}
-        onToggleNotes={game.toggleMode}
-        onHint={handleHint}
-        isNotesMode={game.mode === "note"}
-        hintsRemaining={hintsRemaining}
-        canUndo={game.canUndo}
-        disabled={timer.isPaused || gameEnded}
-      />
-
-      {/* Number Pad */}
-      <div className="pb-4 pt-2">
+      {/* Toolbar + Number Pad */}
+      <div className="pb-4">
+        <GameToolbar
+          onUndo={handleUndo}
+          onErase={handleClear}
+          onToggleNotes={game.toggleMode}
+          onHint={handleHint}
+          isNotesMode={game.mode === "note"}
+          hintsRemaining={hintsRemaining}
+          canUndo={game.canUndo}
+          disabled={timer.isPaused || gameEnded}
+        />
         <NumberPad
           onNumberClick={handleNumberClick}
           selectedNumber={selectedValue}
           disabled={timer.isPaused || gameEnded}
         />
-      </div>
-
-      {/* Give up button */}
-      <div className="px-4 pb-6">
-        <Button
-          variant="ghost"
-          fullWidth
-          onClick={() => setShowGiveUpConfirm(true)}
-          disabled={timer.isPaused || gameEnded}
-          className="text-red-500"
-        >
-          Bỏ cuộc
-        </Button>
+        {/* Give up button */}
+        <div className="px-4 pt-3">
+          <Button
+            variant="ghost"
+            fullWidth
+            onClick={() => setShowGiveUpConfirm(true)}
+            disabled={timer.isPaused || gameEnded}
+            className="text-red-500 text-sm"
+          >
+            Bỏ cuộc
+          </Button>
+        </div>
       </div>
 
       <Dialog open={showResultsModal} onClose={() => {}}>
