@@ -171,8 +171,8 @@ function PracticeContent() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Desktop Layout */}
-      <div className="hidden md:block">
+      {/* Desktop Layout (1024px+) */}
+      <div className="hidden lg:block">
         {/* Top Bar - Difficulty tabs and Score */}
         <div className="flex items-center justify-between px-8 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
@@ -289,22 +289,6 @@ function PracticeContent() {
                 )}
               </button>
 
-              {/* Hint */}
-              <button
-                onClick={handleHint}
-                disabled={timer.isPaused || hintsRemaining === 0}
-                className={`relative flex flex-col items-center gap-1 w-14 h-14 rounded-full bg-[#f0f4f8] flex items-center justify-center ${
-                  timer.isPaused || hintsRemaining === 0 ? "opacity-40" : "hover:bg-[#e0e8f0]"
-                }`}
-              >
-                <svg className="w-6 h-6 text-[#5a7a9a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-                <span className="absolute -top-1 -right-1 bg-[#4a90d9] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-medium">
-                  {hintsRemaining}
-                </span>
-              </button>
             </div>
 
             {/* Number Pad - 3x3 Grid */}
@@ -334,6 +318,149 @@ function PracticeContent() {
             >
               New Game
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* iPad/Tablet Layout (768px-1023px) */}
+      <div className="hidden md:block lg:hidden">
+        <div className="flex flex-col items-center min-h-screen py-4 px-6">
+          {/* Top Bar - Info */}
+          <div className="w-full max-w-[600px] flex items-center justify-between mb-6">
+            <div className="flex flex-col">
+              <span className="text-gray-400 text-sm">Difficulty</span>
+              <span className="text-[#1e3a5f] text-lg font-medium">{difficultyLabels[game.difficulty]}</span>
+            </div>
+            
+            <div className="flex flex-col items-center">
+              <span className="text-gray-400 text-sm">Mistakes</span>
+              <span className="text-[#1e3a5f] text-lg font-medium">{game.errors}/3</span>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col items-end">
+                <span className="text-gray-400 text-sm">Time</span>
+                <span className="text-[#1e3a5f] text-lg font-medium">{formatTime(timer.seconds)}</span>
+              </div>
+              <button
+                onClick={handlePauseToggle}
+                className="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50"
+              >
+                {timer.isPaused ? (
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Sudoku Board - Larger for iPad */}
+          <div className="w-full max-w-[600px] mb-6">
+            <SudokuBoard
+              puzzle={game.puzzle}
+              userInput={game.userInput}
+              notes={game.notes}
+              selectedCell={game.selectedCell}
+              onCellClick={game.selectCell}
+              isPaused={timer.isPaused}
+            />
+          </div>
+
+          {/* Controls Section */}
+          <div className="w-full max-w-[600px]">
+            {/* Action Buttons */}
+            <div className="flex items-center justify-center gap-8 mb-6">
+              <button
+                onClick={handleUndo}
+                disabled={timer.isPaused || !game.canUndo}
+                className={`flex flex-col items-center gap-2 ${
+                  timer.isPaused || !game.canUndo ? "opacity-40" : ""
+                }`}
+              >
+                <div className="w-16 h-16 rounded-full bg-[#f0f4f8] flex items-center justify-center hover:bg-[#e0e8f0]">
+                  <svg className="w-7 h-7 text-[#5a7a9a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                      d="M3 10h10a5 5 0 015 5v0a5 5 0 01-5 5H8M3 10l4-4m-4 4l4 4" />
+                  </svg>
+                </div>
+                <span className="text-xs text-gray-500">Undo</span>
+              </button>
+
+              <button
+                onClick={handleClear}
+                disabled={timer.isPaused}
+                className={`flex flex-col items-center gap-2 ${
+                  timer.isPaused ? "opacity-40" : ""
+                }`}
+              >
+                <div className="w-16 h-16 rounded-full bg-[#f0f4f8] flex items-center justify-center hover:bg-[#e0e8f0]">
+                  <svg className="w-7 h-7 text-[#5a7a9a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </div>
+                <span className="text-xs text-gray-500">Erase</span>
+              </button>
+
+              <button
+                onClick={game.toggleMode}
+                disabled={timer.isPaused}
+                className={`flex flex-col items-center gap-2 ${
+                  timer.isPaused ? "opacity-40" : ""
+                }`}
+              >
+                <div className={`relative w-16 h-16 rounded-full bg-[#f0f4f8] flex items-center justify-center hover:bg-[#e0e8f0] ${
+                  game.mode === "note" ? "ring-2 ring-[#4a90d9]" : ""
+                }`}>
+                  <svg className={`w-7 h-7 ${game.mode === "note" ? "text-[#4a90d9]" : "text-[#5a7a9a]"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                  {game.mode !== "note" && (
+                    <span className="absolute -top-1 -right-1 bg-gray-400 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
+                      OFF
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs text-gray-500">Notes</span>
+              </button>
+
+            </div>
+
+            {/* Number Pad - 3x3 Grid for iPad */}
+            <div className="grid grid-cols-9 gap-2 mb-6">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                <button
+                  key={num}
+                  onClick={() => handleNumberClick(num)}
+                  disabled={timer.isPaused}
+                  className={`w-full aspect-square rounded-xl text-2xl font-medium transition-all ${
+                    timer.isPaused
+                      ? "bg-[#f0f4f8] text-gray-300 cursor-not-allowed"
+                      : selectedValue === num
+                      ? "bg-[#4a90d9] text-white"
+                      : "bg-[#f0f4f8] text-[#1e3a5f] hover:bg-[#e0e8f0]"
+                  }`}
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+
+            {/* Bottom Buttons */}
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowNewGameModal(true)}
+                className="flex-1 py-4 bg-[#5a7a9a] text-white text-lg font-medium rounded-xl hover:bg-[#4a6a8a] transition-colors"
+              >
+                New Game
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -433,21 +560,6 @@ function PracticeContent() {
                   OFF
                 </span>
               )}
-            </button>
-            <button
-              onClick={handleHint}
-              disabled={timer.isPaused || hintsRemaining === 0}
-              className={`relative flex items-center justify-center w-12 h-10 text-gray-500 ${
-                timer.isPaused || hintsRemaining === 0 ? "opacity-30" : ""
-              }`}
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-              <span className="absolute -top-0.5 -right-1 bg-[#4a90d9] text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center">
-                {hintsRemaining}
-              </span>
             </button>
           </div>
 
