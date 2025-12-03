@@ -47,6 +47,7 @@ export default function GamePlayPage() {
   const [winnerId, setWinnerId] = useState<string | null>(null);
   const [gameEnded, setGameEnded] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [pausedBy, setPausedBy] = useState<{ visitorId: string; name: string } | null>(null);
 
   const game = useGame();
   const timer = useTimer();
@@ -185,6 +186,16 @@ export default function GamePlayPage() {
       );
     });
 
+    on<{ visitorId: string; name: string; paused: boolean }>("game_paused", (data) => {
+      if (data.paused) {
+        setPausedBy({ visitorId: data.visitorId, name: data.name });
+        timer.pause();
+      } else {
+        setPausedBy(null);
+        timer.resume();
+      }
+    });
+
     return () => {
       off("progress_update");
       off("player_completed");
@@ -192,6 +203,7 @@ export default function GamePlayPage() {
       off("game_ended");
       off("player_disconnected");
       off("player_reconnected");
+      off("game_paused");
     };
   }, [isConnected, on, off, timer]);
 
@@ -325,6 +337,19 @@ export default function GamePlayPage() {
     }
   }, [player, code, emit, router]);
 
+  const handlePauseToggle = useCallback(() => {
+    if (gameEnded) return;
+    const newPaused = !timer.isPaused;
+    if (newPaused) {
+      timer.pause();
+      setPausedBy({ visitorId: player?.visitorId || "", name: player?.name || "" });
+    } else {
+      timer.resume();
+      setPausedBy(null);
+    }
+    emit("pause_game", { roomCode: code, paused: newPaused });
+  }, [gameEnded, timer, player, emit, code]);
+
   const handleBackToRoom = useCallback(() => {
     router.push(`/room/${code}`);
   }, [router, code]);
@@ -371,12 +396,24 @@ export default function GamePlayPage() {
         <div className="flex items-center gap-2 text-xs sm:text-sm">
           <Timer
             seconds={timer.seconds}
-            isPaused={gameEnded}
-            onPauseToggle={() => {}}
+            isPaused={timer.isPaused || gameEnded}
+            onPauseToggle={handlePauseToggle}
           />
           <span className="text-gray-500">Lỗi: <span className="font-bold text-error-600">{game.errors}</span></span>
         </div>
       </motion.div>
+
+      {pausedBy && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-3 p-3 bg-amber-100 border border-amber-300 rounded-lg text-center"
+        >
+          <span className="text-amber-800 font-medium">
+            ⏸️ {pausedBy.visitorId === player?.visitorId ? "Bạn" : pausedBy.name} đã tạm dừng trò chơi
+          </span>
+        </motion.div>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-3 sm:gap-6 items-start justify-center">
         {/* Sudoku Board */}
@@ -392,7 +429,7 @@ export default function GamePlayPage() {
             notes={game.notes}
             selectedCell={game.selectedCell}
             onCellClick={game.selectCell}
-            isPaused={gameEnded}
+            isPaused={timer.isPaused || gameEnded}
           />
         </motion.div>
 
@@ -410,7 +447,7 @@ export default function GamePlayPage() {
             onToggleNoteMode={game.toggleMode}
             isNoteMode={game.mode === "note"}
             selectedNumber={null}
-            disabled={gameEnded}
+            disabled={timer.isPaused || gameEnded}
             hideNoteButton
           />
 
@@ -420,7 +457,7 @@ export default function GamePlayPage() {
               variant={game.mode === "note" ? "primary" : "ghost"}
               fullWidth
               onClick={game.toggleMode}
-              disabled={gameEnded}
+              disabled={timer.isPaused || gameEnded}
             >
               ✏️ Nháp {game.mode === "note" ? "(Bật)" : "(Tắt)"}
             </Button>
@@ -428,7 +465,7 @@ export default function GamePlayPage() {
               variant="ghost"
               fullWidth
               onClick={() => setShowGiveUpConfirm(true)}
-              disabled={gameEnded}
+              disabled={timer.isPaused || gameEnded}
             >
               🏳️ Bỏ cuộc
             </Button>

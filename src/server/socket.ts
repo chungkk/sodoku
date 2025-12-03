@@ -197,6 +197,15 @@ export function setupSocketHandlers(io: Server): void {
       }
     });
 
+    playerSocket.on("pause_game", (data: { roomCode: string; paused: boolean }) => {
+      io.to(data.roomCode).emit("game_paused", {
+        visitorId,
+        name,
+        paused: data.paused,
+      });
+      console.log(`${name} ${data.paused ? "paused" : "resumed"} game in room ${data.roomCode}`);
+    });
+
     playerSocket.on("ping", () => {
       playerSocket.emit("pong");
     });
