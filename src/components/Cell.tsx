@@ -34,7 +34,7 @@ const Cell = memo(function Cell({
   const isBoxBorderTop = row % 3 === 0;
 
   const getCellClassName = () => {
-    const classes = ["sudoku-cell", "w-full", "aspect-square"];
+    const classes = ["sudoku-cell", "w-full", "aspect-square", "relative", "overflow-hidden"];
 
     if (isGiven) {
       classes.push("sudoku-cell-given");
@@ -72,13 +72,13 @@ const Cell = memo(function Cell({
     if (value || notes.size === 0) return null;
 
     return (
-      <div className="grid grid-cols-3 gap-0 w-full h-full p-0.5">
+      <div className="absolute inset-0 grid grid-cols-3 gap-0 p-0.5">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
           <span
             key={num}
             className={`
               flex items-center justify-center
-              text-[8px] sm:text-[10px] font-medium leading-none
+              text-[7px] sm:text-[9px] md:text-[10px] font-medium leading-none
               ${notes.has(num) 
                 ? "text-gray-600" 
                 : "text-transparent"
