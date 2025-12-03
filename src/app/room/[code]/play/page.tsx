@@ -627,9 +627,7 @@ export default function GamePlayPage() {
           onUndo={handleUndo}
           onErase={handleClear}
           onToggleNotes={game.toggleMode}
-          onHint={handleHint}
           isNotesMode={game.mode === "note"}
-          hintsRemaining={hintsRemaining}
           canUndo={game.canUndo}
           disabled={timer.isPaused || gameEnded}
         />
