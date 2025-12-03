@@ -159,11 +159,6 @@ function PracticeContent() {
     <div className="min-h-screen bg-white flex flex-col">
       {/* Header */}
       <div className="px-4 pt-4 pb-2">
-        {/* Score */}
-        <div className="text-center mb-3">
-          <span className="text-2xl font-bold text-[#1e3a5f]">0</span>
-        </div>
-
         {/* Info Row */}
         <div className="flex items-center justify-between text-sm">
           <div className="flex flex-col">

@@ -5,7 +5,8 @@ import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { SudokuBoard } from "@/components/SudokuBoard";
 import { NumberPad } from "@/components/NumberPad";
-import { Timer, formatTime } from "@/components/Timer";
+import { GameToolbar } from "@/components/GameToolbar";
+import { formatTime } from "@/components/Timer";
 import { Leaderboard } from "@/components/Leaderboard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -51,6 +52,7 @@ export default function GamePlayPage() {
   const [loading, setLoading] = useState(true);
   const [pausedBy, setPausedBy] = useState<{ visitorId: string; name: string } | null>(null);
   const [stateLoaded, setStateLoaded] = useState(false);
+  const [hintsRemaining, setHintsRemaining] = useState(3);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSaveRef = useRef<number>(0);
 
@@ -402,9 +404,22 @@ export default function GamePlayPage() {
   );
 
   const handleClear = useCallback(() => {
-    if (gameEnded) return;
+    if (gameEnded || timer.isPaused) return;
     game.clearCell();
-  }, [game, gameEnded]);
+  }, [game, gameEnded, timer.isPaused]);
+
+  const handleUndo = useCallback(() => {
+    if (gameEnded || timer.isPaused) return;
+    game.undo();
+  }, [game, gameEnded, timer.isPaused]);
+
+  const handleHint = useCallback(() => {
+    if (gameEnded || timer.isPaused || hintsRemaining === 0) return;
+    const used = game.useHint();
+    if (used) {
+      setHintsRemaining((prev) => prev - 1);
+    }
+  }, [game, gameEnded, timer.isPaused, hintsRemaining]);
 
   const handleComplete = useCallback(async () => {
     if (!player || gameEnded) return;
@@ -533,52 +548,68 @@ export default function GamePlayPage() {
     hard: "Khó",
   };
 
-  return (
-    <div className="max-w-4xl mx-auto px-2 sm:px-4 py-2 sm:py-6">
-      {/* Header - compact single row */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between mb-2 sm:mb-4"
-      >
-        <div className="flex items-center gap-1.5">
-          <span className="text-sm sm:text-base font-semibold text-gray-900">{code}</span>
-          <span className="px-1.5 py-0.5 bg-primary-100 text-primary-700 rounded text-xs font-medium">
-            {difficultyLabels[game.difficulty] || game.difficulty}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 text-xs sm:text-sm">
-          <Timer
-            seconds={timer.seconds}
-            isPaused={timer.isPaused || gameEnded}
-            onPauseToggle={handlePauseToggle}
-          />
-          <span className="text-gray-500">Lỗi: <span className="font-bold text-error-600">{game.errors}</span></span>
-        </div>
-      </motion.div>
+  const selectedValue = game.selectedCell
+    ? (game.puzzle[game.selectedCell[0]][game.selectedCell[1]] !== 0
+        ? game.puzzle[game.selectedCell[0]][game.selectedCell[1]]
+        : game.userInput[game.selectedCell[0]][game.selectedCell[1]])
+    : null;
 
+  return (
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Header */}
+      <div className="px-4 pt-4 pb-2">
+        {/* Info Row */}
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex flex-col">
+            <span className="text-gray-500 text-xs">Room</span>
+            <span className="text-[#1e3a5f] font-medium">{code}</span>
+          </div>
+          
+          <div className="flex flex-col items-center">
+            <span className="text-gray-500 text-xs">Mistakes</span>
+            <span className="text-[#1e3a5f] font-medium">{game.errors}/3</span>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <div className="flex flex-col items-end">
+              <span className="text-gray-500 text-xs">Time</span>
+              <span className="text-[#1e3a5f] font-medium">{formatTime(timer.seconds)}</span>
+            </div>
+            <button
+              onClick={handlePauseToggle}
+              disabled={!!(pausedBy && pausedBy.visitorId !== player?.visitorId)}
+              className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 disabled:opacity-50"
+            >
+              {timer.isPaused ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                </svg>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Pause overlay message */}
       {pausedBy && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-3 p-3 bg-amber-100 border border-amber-300 rounded-lg text-center"
-        >
-          <span className="text-amber-800 font-medium">
-            ⏸️ {pausedBy.visitorId === player?.visitorId 
-              ? "Bạn đã tạm dừng trò chơi" 
-              : `${pausedBy.name} đã tạm dừng trò chơi. Chờ họ tiếp tục...`}
-          </span>
-        </motion.div>
+        <div className="px-4 pb-2">
+          <div className="p-3 bg-amber-100 border border-amber-300 rounded-lg text-center">
+            <span className="text-amber-800 font-medium text-sm">
+              {pausedBy.visitorId === player?.visitorId 
+                ? "Bạn đã tạm dừng trò chơi" 
+                : `${pausedBy.name} đã tạm dừng trò chơi`}
+            </span>
+          </div>
+        </div>
       )}
 
-      <div className="flex flex-col lg:flex-row gap-3 sm:gap-6 items-start justify-center">
-        {/* Sudoku Board */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3 }}
-          className="w-full max-w-[360px] sm:max-w-[400px] mx-auto lg:mx-0"
-        >
+      {/* Sudoku Board */}
+      <div className="flex-1 flex items-center justify-center px-3 py-2">
+        <div className="w-full max-w-[400px]">
           <SudokuBoard
             puzzle={game.puzzle}
             userInput={game.userInput}
@@ -587,55 +618,41 @@ export default function GamePlayPage() {
             onCellClick={game.selectCell}
             isPaused={timer.isPaused || gameEnded}
           />
-        </motion.div>
+        </div>
+      </div>
 
-        {/* Controls */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-          className="w-full max-w-[360px] sm:max-w-[400px] mx-auto lg:w-auto"
+      {/* Toolbar */}
+      <GameToolbar
+        onUndo={handleUndo}
+        onErase={handleClear}
+        onToggleNotes={game.toggleMode}
+        onHint={handleHint}
+        isNotesMode={game.mode === "note"}
+        hintsRemaining={hintsRemaining}
+        canUndo={game.canUndo}
+        disabled={timer.isPaused || gameEnded}
+      />
+
+      {/* Number Pad */}
+      <div className="pb-4 pt-2">
+        <NumberPad
+          onNumberClick={handleNumberClick}
+          selectedNumber={selectedValue}
+          disabled={timer.isPaused || gameEnded}
+        />
+      </div>
+
+      {/* Give up button */}
+      <div className="px-4 pb-6">
+        <Button
+          variant="ghost"
+          fullWidth
+          onClick={() => setShowGiveUpConfirm(true)}
+          disabled={timer.isPaused || gameEnded}
+          className="text-red-500"
         >
-          {/* Number Pad */}
-          <NumberPad
-            onNumberClick={handleNumberClick}
-            selectedNumber={null}
-            disabled={timer.isPaused || gameEnded}
-          />
-
-          {/* Clear button */}
-          <div className="mt-3">
-            <Button
-              variant="ghost"
-              fullWidth
-              onClick={handleClear}
-              disabled={timer.isPaused || gameEnded}
-            >
-              ⌫ Xóa
-            </Button>
-          </div>
-
-          {/* Note + Give up buttons - same row */}
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <Button
-              variant={game.mode === "note" ? "primary" : "ghost"}
-              fullWidth
-              onClick={game.toggleMode}
-              disabled={timer.isPaused || gameEnded}
-            >
-              ✏️ Nháp {game.mode === "note" ? "(Bật)" : "(Tắt)"}
-            </Button>
-            <Button
-              variant="ghost"
-              fullWidth
-              onClick={() => setShowGiveUpConfirm(true)}
-              disabled={timer.isPaused || gameEnded}
-            >
-              🏳️ Bỏ cuộc
-            </Button>
-          </div>
-
-        </motion.div>
+          Bỏ cuộc
+        </Button>
       </div>
 
       <Dialog open={showResultsModal} onClose={() => {}}>
