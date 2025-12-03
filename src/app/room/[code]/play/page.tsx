@@ -339,6 +339,9 @@ export default function GamePlayPage() {
 
   const handlePauseToggle = useCallback(() => {
     if (gameEnded) return;
+    // Chỉ người đã pause mới được resume
+    if (pausedBy && pausedBy.visitorId !== player?.visitorId) return;
+    
     const newPaused = !timer.isPaused;
     if (newPaused) {
       timer.pause();
@@ -348,7 +351,7 @@ export default function GamePlayPage() {
       setPausedBy(null);
     }
     emit("pause_game", { roomCode: code, paused: newPaused });
-  }, [gameEnded, timer, player, emit, code]);
+  }, [gameEnded, timer, player, emit, code, pausedBy]);
 
   const handleBackToRoom = useCallback(() => {
     router.push(`/room/${code}`);
@@ -410,7 +413,9 @@ export default function GamePlayPage() {
           className="mb-3 p-3 bg-amber-100 border border-amber-300 rounded-lg text-center"
         >
           <span className="text-amber-800 font-medium">
-            ⏸️ {pausedBy.visitorId === player?.visitorId ? "Bạn" : pausedBy.name} đã tạm dừng trò chơi
+            ⏸️ {pausedBy.visitorId === player?.visitorId 
+              ? "Bạn đã tạm dừng trò chơi" 
+              : `${pausedBy.name} đã tạm dừng trò chơi. Chờ họ tiếp tục...`}
           </span>
         </motion.div>
       )}
