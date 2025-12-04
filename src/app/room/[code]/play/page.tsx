@@ -657,43 +657,29 @@ export default function GamePlayPage() {
 
       {/* Desktop Layout */}
       <div className="hidden md:block">
-        {/* Header */}
-        <div className="px-4 py-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">Room: <span className="text-[#1e3a5f] font-medium">{code}</span></span>
-            <span className="text-gray-500">Mistakes: <span className="text-[#1e3a5f] font-medium">{game.errors}/3</span></span>
-            <div className="flex items-center gap-1">
-              <span className="text-gray-500">Time: <span className="text-[#1e3a5f] font-medium">{formatTime(timer.seconds)}</span></span>
-              <button
-                onClick={handlePauseToggle}
-                disabled={!!(pausedBy && pausedBy.visitorId !== player?.visitorId)}
-                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 disabled:opacity-50"
-              >
-                {timer.isPaused ? (
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                  </svg>
-                )}
-              </button>
+        {/* Top Bar */}
+        <div className="flex items-center justify-between px-8 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-4">
+            <span className="text-gray-400">Room:</span>
+            <span className="text-[#1e3a5f] text-xl font-bold">{code}</span>
+          </div>
+          {/* Versus Progress Bar */}
+          {playersProgress.length >= 2 && (
+            <div className="flex-1 max-w-md mx-8">
+              <VersusProgressBar
+                players={playersProgress}
+                currentPlayerId={player.visitorId}
+              />
             </div>
+          )}
+          <div className="text-[#4a90d9] text-xl font-medium">
+            {game.difficulty}
           </div>
         </div>
 
-        {/* Versus Progress Bar */}
-        {playersProgress.length >= 2 && (
-          <VersusProgressBar
-            players={playersProgress}
-            currentPlayerId={player.visitorId}
-          />
-        )}
-
         {/* Pause overlay message */}
         {pausedBy && (
-          <div className="px-4 pb-2">
+          <div className="px-8 py-2">
             <div className="p-3 bg-amber-100 border border-amber-300 rounded-lg text-center">
               <span className="text-amber-800 font-medium text-sm">
                 {pausedBy.visitorId === player?.visitorId 
@@ -704,35 +690,131 @@ export default function GamePlayPage() {
           </div>
         )}
 
-        {/* Sudoku Board */}
-        <div className="flex justify-center px-3">
-          <div className="w-full max-w-[400px]">
-            <SudokuBoard
-              puzzle={game.puzzle}
-              userInput={game.userInput}
-              notes={game.notes}
-              selectedCell={game.selectedCell}
-              onCellClick={game.selectCell}
-              isPaused={timer.isPaused || gameEnded}
-            />
+        {/* Main Content - Grid + Controls */}
+        <div className="flex justify-center items-start gap-12 px-8 py-8">
+          {/* Sudoku Board */}
+          <div className="flex-shrink-0">
+            <div className="w-[450px]">
+              <SudokuBoard
+                puzzle={game.puzzle}
+                userInput={game.userInput}
+                notes={game.notes}
+                selectedCell={game.selectedCell}
+                onCellClick={game.selectCell}
+                isPaused={timer.isPaused || gameEnded}
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Toolbar + Number Pad */}
-        <div className="pb-4">
-          <GameToolbar
-            onUndo={handleUndo}
-            onErase={handleClear}
-            onToggleNotes={game.toggleMode}
-            isNotesMode={game.mode === "note"}
-            canUndo={game.canUndo}
-            disabled={timer.isPaused || gameEnded}
-          />
-          <NumberPad
-            onNumberClick={handleNumberClick}
-            selectedNumber={selectedValue}
-            disabled={timer.isPaused || gameEnded}
-          />
+          {/* Right Panel */}
+          <div className="w-[280px] flex flex-col gap-6">
+            {/* Mistakes & Time */}
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Mistakes</p>
+                <p className="text-[#1e3a5f] text-xl font-medium">{game.errors}/3</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-gray-400 text-sm">Time</p>
+                  <p className="text-[#1e3a5f] text-xl font-medium">{formatTime(timer.seconds)}</p>
+                </div>
+                <button
+                  onClick={handlePauseToggle}
+                  disabled={!!(pausedBy && pausedBy.visitorId !== player?.visitorId)}
+                  className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  {timer.isPaused ? (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between px-2">
+              <button
+                onClick={handleUndo}
+                disabled={timer.isPaused || gameEnded || !game.canUndo}
+                className={`w-14 h-14 rounded-full bg-[#f0f4f8] flex items-center justify-center ${
+                  timer.isPaused || gameEnded || !game.canUndo ? "opacity-40" : "hover:bg-[#e0e8f0]"
+                }`}
+              >
+                <svg className="w-6 h-6 text-[#5a7a9a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M3 10h10a5 5 0 015 5v0a5 5 0 01-5 5H8M3 10l4-4m-4 4l4 4" />
+                </svg>
+              </button>
+
+              <button
+                onClick={handleClear}
+                disabled={timer.isPaused || gameEnded}
+                className={`w-14 h-14 rounded-full bg-[#f0f4f8] flex items-center justify-center ${
+                  timer.isPaused || gameEnded ? "opacity-40" : "hover:bg-[#e0e8f0]"
+                }`}
+              >
+                <svg className="w-6 h-6 text-[#5a7a9a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+
+              <button
+                onClick={game.toggleMode}
+                disabled={timer.isPaused || gameEnded}
+                className={`relative w-14 h-14 rounded-full bg-[#f0f4f8] flex items-center justify-center ${
+                  timer.isPaused || gameEnded ? "opacity-40" : "hover:bg-[#e0e8f0]"
+                } ${game.mode === "note" ? "ring-2 ring-[#4a90d9]" : ""}`}
+              >
+                <svg className={`w-6 h-6 ${game.mode === "note" ? "text-[#4a90d9]" : "text-[#5a7a9a]"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                {game.mode !== "note" && (
+                  <span className="absolute -top-1 -right-1 bg-gray-400 text-white text-[9px] px-1.5 py-0.5 rounded-full font-medium">
+                    OFF
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Number Pad - 3x3 Grid */}
+            <div className="grid grid-cols-3 gap-3">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                <button
+                  key={num}
+                  onClick={() => handleNumberClick(num)}
+                  disabled={timer.isPaused || gameEnded}
+                  className={`w-full aspect-square rounded-xl text-3xl font-medium transition-all ${
+                    timer.isPaused || gameEnded
+                      ? "bg-[#f0f4f8] text-gray-300 cursor-not-allowed"
+                      : selectedValue === num
+                      ? "bg-[#4a90d9] text-white"
+                      : "bg-[#f0f4f8] text-[#1e3a5f] hover:bg-[#e0e8f0]"
+                  }`}
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+
+            {/* Give Up Button */}
+            <button
+              onClick={() => setShowGiveUpConfirm(true)}
+              disabled={timer.isPaused || gameEnded}
+              className={`w-full py-4 bg-[#5a7a9a] text-white text-lg font-medium rounded-xl hover:bg-[#4a6a8a] transition-colors ${
+                timer.isPaused || gameEnded ? "opacity-40 cursor-not-allowed" : ""
+              }`}
+            >
+              Bỏ cuộc
+            </button>
+          </div>
         </div>
       </div>
 
