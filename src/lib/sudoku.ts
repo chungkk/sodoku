@@ -229,21 +229,33 @@ export function isPuzzleComplete(grid: number[][], solution: number[][]): boolea
   return true;
 }
 
-export function calculateProgress(grid: number[][], solution: number[][]): number {
+export function calculateProgress(grid: number[][], solution: number[][], puzzle?: number[][]): number {
   let correct = 0;
   let total = 0;
 
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
-      if (solution[r][c] !== 0) {
-        total++;
-        if (grid[r][c] === solution[r][c]) {
-          correct++;
+      if (puzzle) {
+        // Chỉ đếm các ô trống ban đầu (ô cần điền)
+        if (puzzle[r][c] === 0) {
+          total++;
+          if (grid[r][c] === solution[r][c]) {
+            correct++;
+          }
+        }
+      } else {
+        // Fallback: đếm tất cả các ô
+        if (solution[r][c] !== 0) {
+          total++;
+          if (grid[r][c] === solution[r][c]) {
+            correct++;
+          }
         }
       }
     }
   }
 
+  if (total === 0) return 100;
   return Math.round((correct / total) * 100);
 }
 

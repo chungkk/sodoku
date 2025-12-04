@@ -378,7 +378,7 @@ export default function GamePlayPage() {
           )
         );
 
-        const progress = calculateProgress(currentGrid, game.solution);
+        const progress = calculateProgress(currentGrid, game.solution, game.puzzle);
 
         emit("progress_update", {
           roomCode: code,

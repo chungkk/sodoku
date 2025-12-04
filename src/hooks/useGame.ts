@@ -387,7 +387,7 @@ export function useGame() {
     const currentGrid = state.puzzle.map((row, r) =>
       row.map((cell, c) => (cell !== 0 ? cell : state.userInput[r][c] || 0))
     );
-    return calculateProgress(currentGrid, state.solution);
+    return calculateProgress(currentGrid, state.solution, state.puzzle);
   }, [state.puzzle, state.userInput, state.solution, state.isStarted]);
 
   return {
