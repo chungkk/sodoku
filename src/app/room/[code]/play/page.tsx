@@ -11,6 +11,7 @@ import { Leaderboard } from "@/components/Leaderboard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from "@/components/ui/dialog";
+import { VersusProgressBar } from "@/components/VersusProgressBar";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useSocket } from "@/hooks/useSocket";
 import { useGame } from "@/hooks/useGame";
@@ -594,6 +595,14 @@ export default function GamePlayPage() {
         </div>
       </div>
 
+      {/* Versus Progress Bar */}
+      {playersProgress.length >= 2 && (
+        <VersusProgressBar
+          players={playersProgress}
+          currentPlayerId={player.visitorId}
+        />
+      )}
+
       {/* Pause overlay message */}
       {pausedBy && (
         <div className="px-4 pb-2">
@@ -712,6 +721,11 @@ export default function GamePlayPage() {
           </Button>
         </DialogFooter>
       </Dialog>
+
+      {/* Mobile Footer - Fixed to bottom */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 text-center py-2 text-xs text-gray-400 z-30">
+        🧩 Sudoku Game
+      </div>
     </div>
   );
 }
