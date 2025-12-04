@@ -557,105 +557,182 @@ export default function GamePlayPage() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {/* Header */}
-      <div className="px-4 pt-4 pb-2">
-        {/* Info Row */}
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex flex-col">
-            <span className="text-gray-500 text-xs">Room</span>
-            <span className="text-[#1e3a5f] font-medium">{code}</span>
-          </div>
-          
-          <div className="flex flex-col items-center">
-            <span className="text-gray-500 text-xs">Mistakes</span>
-            <span className="text-[#1e3a5f] font-medium">{game.errors}/3</span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <div className="flex flex-col items-end">
-              <span className="text-gray-500 text-xs">Time</span>
-              <span className="text-[#1e3a5f] font-medium">{formatTime(timer.seconds)}</span>
+      {/* Mobile: Fixed Full Layout */}
+      <div className="md:hidden fixed inset-0 top-16 flex flex-col bg-white z-30">
+        {/* Top Section: Header + Versus + Pause */}
+        <div className="flex-shrink-0 border-b border-gray-100">
+          {/* Header */}
+          <div className="px-4 py-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-500">Room: <span className="text-[#1e3a5f] font-medium">{code}</span></span>
+              <span className="text-gray-500">Mistakes: <span className="text-[#1e3a5f] font-medium">{game.errors}/3</span></span>
+              <div className="flex items-center gap-1">
+                <span className="text-gray-500">Time: <span className="text-[#1e3a5f] font-medium">{formatTime(timer.seconds)}</span></span>
+                <button
+                  onClick={handlePauseToggle}
+                  disabled={!!(pausedBy && pausedBy.visitorId !== player?.visitorId)}
+                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 disabled:opacity-50"
+                >
+                  {timer.isPaused ? (
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
-            <button
-              onClick={handlePauseToggle}
-              disabled={!!(pausedBy && pausedBy.visitorId !== player?.visitorId)}
-              className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 disabled:opacity-50"
-            >
-              {timer.isPaused ? (
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                </svg>
-              )}
-            </button>
+          </div>
+
+          {/* Versus Progress Bar */}
+          {playersProgress.length >= 2 && (
+            <VersusProgressBar
+              players={playersProgress}
+              currentPlayerId={player.visitorId}
+            />
+          )}
+
+          {/* Pause overlay message */}
+          {pausedBy && (
+            <div className="px-4 pb-2">
+              <div className="p-2 bg-amber-100 border border-amber-300 rounded-lg text-center">
+                <span className="text-amber-800 font-medium text-xs">
+                  {pausedBy.visitorId === player?.visitorId 
+                    ? "Bạn đã tạm dừng trò chơi" 
+                    : `${pausedBy.name} đã tạm dừng trò chơi`}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Middle: Sudoku Board */}
+        <div className="flex-1 flex items-center justify-center px-3 overflow-hidden">
+          <div className="w-full max-w-[400px]">
+            <SudokuBoard
+              puzzle={game.puzzle}
+              userInput={game.userInput}
+              notes={game.notes}
+              selectedCell={game.selectedCell}
+              onCellClick={game.selectCell}
+              isPaused={timer.isPaused || gameEnded}
+            />
           </div>
         </div>
-      </div>
 
-      {/* Versus Progress Bar */}
-      {playersProgress.length >= 2 && (
-        <VersusProgressBar
-          players={playersProgress}
-          currentPlayerId={player.visitorId}
-        />
-      )}
-
-      {/* Pause overlay message */}
-      {pausedBy && (
-        <div className="px-4 pb-2">
-          <div className="p-3 bg-amber-100 border border-amber-300 rounded-lg text-center">
-            <span className="text-amber-800 font-medium text-sm">
-              {pausedBy.visitorId === player?.visitorId 
-                ? "Bạn đã tạm dừng trò chơi" 
-                : `${pausedBy.name} đã tạm dừng trò chơi`}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Sudoku Board */}
-      <div className="flex justify-center px-3">
-        <div className="w-full max-w-[400px]">
-          <SudokuBoard
-            puzzle={game.puzzle}
-            userInput={game.userInput}
-            notes={game.notes}
-            selectedCell={game.selectedCell}
-            onCellClick={game.selectCell}
-            isPaused={timer.isPaused || gameEnded}
-          />
-        </div>
-      </div>
-
-      {/* Toolbar + Number Pad */}
-      <div className="pb-4">
-        <GameToolbar
-          onUndo={handleUndo}
-          onErase={handleClear}
-          onToggleNotes={game.toggleMode}
-          isNotesMode={game.mode === "note"}
-          canUndo={game.canUndo}
-          disabled={timer.isPaused || gameEnded}
-        />
-        <NumberPad
-          onNumberClick={handleNumberClick}
-          selectedNumber={selectedValue}
-          disabled={timer.isPaused || gameEnded}
-        />
-        {/* Give up button */}
-        <div className="px-4 pt-3">
-          <Button
-            variant="ghost"
-            fullWidth
-            onClick={() => setShowGiveUpConfirm(true)}
+        {/* Bottom Section: Toolbar + NumberPad + Give up + Footer */}
+        <div className="flex-shrink-0 border-t border-gray-100">
+          <GameToolbar
+            onUndo={handleUndo}
+            onErase={handleClear}
+            onToggleNotes={game.toggleMode}
+            isNotesMode={game.mode === "note"}
+            canUndo={game.canUndo}
             disabled={timer.isPaused || gameEnded}
-            className="text-red-500 text-sm"
-          >
-            Bỏ cuộc
-          </Button>
+          />
+          <NumberPad
+            onNumberClick={handleNumberClick}
+            selectedNumber={selectedValue}
+            disabled={timer.isPaused || gameEnded}
+          />
+          <div className="px-4 py-1">
+            <Button
+              variant="ghost"
+              fullWidth
+              onClick={() => setShowGiveUpConfirm(true)}
+              disabled={timer.isPaused || gameEnded}
+              className="text-red-500 text-sm"
+            >
+              Bỏ cuộc
+            </Button>
+          </div>
+          <div className="text-center pb-2 text-xs text-gray-400">
+            🧩 Sudoku Game
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Layout */}
+      <div className="hidden md:block">
+        {/* Header */}
+        <div className="px-4 py-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-500">Room: <span className="text-[#1e3a5f] font-medium">{code}</span></span>
+            <span className="text-gray-500">Mistakes: <span className="text-[#1e3a5f] font-medium">{game.errors}/3</span></span>
+            <div className="flex items-center gap-1">
+              <span className="text-gray-500">Time: <span className="text-[#1e3a5f] font-medium">{formatTime(timer.seconds)}</span></span>
+              <button
+                onClick={handlePauseToggle}
+                disabled={!!(pausedBy && pausedBy.visitorId !== player?.visitorId)}
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 disabled:opacity-50"
+              >
+                {timer.isPaused ? (
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Versus Progress Bar */}
+        {playersProgress.length >= 2 && (
+          <VersusProgressBar
+            players={playersProgress}
+            currentPlayerId={player.visitorId}
+          />
+        )}
+
+        {/* Pause overlay message */}
+        {pausedBy && (
+          <div className="px-4 pb-2">
+            <div className="p-3 bg-amber-100 border border-amber-300 rounded-lg text-center">
+              <span className="text-amber-800 font-medium text-sm">
+                {pausedBy.visitorId === player?.visitorId 
+                  ? "Bạn đã tạm dừng trò chơi" 
+                  : `${pausedBy.name} đã tạm dừng trò chơi`}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Sudoku Board */}
+        <div className="flex justify-center px-3">
+          <div className="w-full max-w-[400px]">
+            <SudokuBoard
+              puzzle={game.puzzle}
+              userInput={game.userInput}
+              notes={game.notes}
+              selectedCell={game.selectedCell}
+              onCellClick={game.selectCell}
+              isPaused={timer.isPaused || gameEnded}
+            />
+          </div>
+        </div>
+
+        {/* Toolbar + Number Pad */}
+        <div className="pb-4">
+          <GameToolbar
+            onUndo={handleUndo}
+            onErase={handleClear}
+            onToggleNotes={game.toggleMode}
+            isNotesMode={game.mode === "note"}
+            canUndo={game.canUndo}
+            disabled={timer.isPaused || gameEnded}
+          />
+          <NumberPad
+            onNumberClick={handleNumberClick}
+            selectedNumber={selectedValue}
+            disabled={timer.isPaused || gameEnded}
+          />
         </div>
       </div>
 
@@ -721,11 +798,6 @@ export default function GamePlayPage() {
           </Button>
         </DialogFooter>
       </Dialog>
-
-      {/* Mobile Footer - Fixed to bottom */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 text-center py-2 text-xs text-gray-400 z-30">
-        🧩 Sudoku Game
-      </div>
     </div>
   );
 }
