@@ -4,6 +4,8 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { SudokuBoard } from "@/components/SudokuBoard";
+import { GameToolbar } from "@/components/GameToolbar";
+import { NumberPad } from "@/components/NumberPad";
 import { formatTime } from "@/components/Timer";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from "@/components/ui/dialog";
@@ -465,37 +467,26 @@ function PracticeContent() {
         </div>
       </div>
 
-      {/* Mobile Layout (existing) */}
-      <div className="md:hidden">
-        <div className="sticky top-16 z-20 bg-white">
-          {/* Info Row */}
-          <div className="px-4 pt-4 pb-2">
+      {/* Mobile: Fixed Full Layout */}
+      <div className="md:hidden fixed inset-0 top-16 flex flex-col bg-white z-30">
+        {/* Top Section: Header */}
+        <div className="flex-shrink-0 border-b border-gray-100">
+          <div className="px-4 py-2">
             <div className="flex items-center justify-between text-sm">
-              <div className="flex flex-col">
-                <span className="text-gray-500 text-xs">Difficulty</span>
-                <span className="text-[#1e3a5f] font-medium">{difficultyLabels[game.difficulty]}</span>
-              </div>
-              
-              <div className="flex flex-col items-center">
-                <span className="text-gray-500 text-xs">Mistakes</span>
-                <span className="text-[#1e3a5f] font-medium">{game.errors}/3</span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <div className="flex flex-col items-end">
-                  <span className="text-gray-500 text-xs">Time</span>
-                  <span className="text-[#1e3a5f] font-medium">{formatTime(timer.seconds)}</span>
-                </div>
+              <span className="text-gray-500">{difficultyLabels[game.difficulty]}</span>
+              <span className="text-gray-500">Mistakes: <span className="text-[#1e3a5f] font-medium">{game.errors}/3</span></span>
+              <div className="flex items-center gap-1">
+                <span className="text-gray-500">Time: <span className="text-[#1e3a5f] font-medium">{formatTime(timer.seconds)}</span></span>
                 <button
                   onClick={handlePauseToggle}
-                  className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
+                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
                 >
                   {timer.isPaused ? (
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   ) : (
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
                     </svg>
                   )}
@@ -503,91 +494,50 @@ function PracticeContent() {
               </div>
             </div>
           </div>
-
-          {/* Sudoku Board */}
-          <div className="flex justify-center px-3">
-            <div className="w-full max-w-[400px]">
-              <SudokuBoard
-                puzzle={game.puzzle}
-                userInput={game.userInput}
-                notes={game.notes}
-                selectedCell={game.selectedCell}
-                onCellClick={game.selectCell}
-                isPaused={timer.isPaused}
-              />
-            </div>
-          </div>
-
-          {/* Toolbar */}
-          <div className="flex items-center justify-center gap-6 py-2">
-            <button
-              onClick={handleUndo}
-              disabled={timer.isPaused || !game.canUndo}
-              className={`flex items-center justify-center w-12 h-10 text-gray-500 ${
-                timer.isPaused || !game.canUndo ? "opacity-30" : ""
-              }`}
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                  d="M3 10h10a5 5 0 015 5v0a5 5 0 01-5 5H8M3 10l4-4m-4 4l4 4" />
-              </svg>
-            </button>
-            <button
-              onClick={handleClear}
-              disabled={timer.isPaused}
-              className={`flex items-center justify-center w-12 h-10 text-gray-500 ${
-                timer.isPaused ? "opacity-30" : ""
-              }`}
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
-            <button
-              onClick={game.toggleMode}
-              disabled={timer.isPaused}
-              className={`relative flex items-center justify-center w-12 h-10 ${
-                game.mode === "note" ? "text-primary-500" : "text-gray-500"
-              } ${timer.isPaused ? "opacity-30" : ""}`}
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-              {game.mode !== "note" && (
-                <span className="absolute -bottom-0.5 -right-1.5 bg-gray-400 text-white text-[7px] px-0.5 rounded">
-                  OFF
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* Number Pad */}
-          <div className="flex items-center justify-between px-4 pb-2">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-              <button
-                key={num}
-                onClick={() => handleNumberClick(num)}
-                disabled={timer.isPaused}
-                className={`w-8 h-10 sm:w-9 sm:h-11 flex items-center justify-center text-2xl sm:text-3xl font-medium ${
-                  timer.isPaused
-                    ? "opacity-30 cursor-not-allowed"
-                    : selectedValue === num
-                    ? "text-[#4a90d9]"
-                    : "text-[#1e3a5f]"
-                }`}
-              >
-                {num}
-              </button>
-            ))}
-          </div>
-
         </div>
 
-        {/* Mobile Footer - Fixed to bottom */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 text-center py-2 text-xs text-gray-400 z-30">
-          🧩 Sudoku Game
+        {/* Middle: Sudoku Board */}
+        <div className="flex-1 flex items-center justify-center px-3 overflow-hidden">
+          <div className="w-full max-w-[400px]">
+            <SudokuBoard
+              puzzle={game.puzzle}
+              userInput={game.userInput}
+              notes={game.notes}
+              selectedCell={game.selectedCell}
+              onCellClick={game.selectCell}
+              isPaused={timer.isPaused}
+            />
+          </div>
+        </div>
+
+        {/* Bottom Section: Toolbar + NumberPad + New Game + Footer */}
+        <div className="flex-shrink-0 border-t border-gray-100">
+          <GameToolbar
+            onUndo={handleUndo}
+            onErase={handleClear}
+            onToggleNotes={game.toggleMode}
+            isNotesMode={game.mode === "note"}
+            canUndo={game.canUndo}
+            disabled={timer.isPaused}
+          />
+          <NumberPad
+            onNumberClick={handleNumberClick}
+            selectedNumber={selectedValue}
+            disabled={timer.isPaused}
+          />
+          <div className="px-4 py-1">
+            <Button
+              variant="ghost"
+              fullWidth
+              onClick={() => setShowNewGameModal(true)}
+              className="text-[#4a90d9] text-sm"
+            >
+              New Game
+            </Button>
+          </div>
+          <div className="text-center pb-2 text-xs text-gray-400">
+            🧩 Sudoku Game
+          </div>
         </div>
       </div>
 
