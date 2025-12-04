@@ -468,8 +468,17 @@ function PracticeContent() {
       </div>
 
       {/* Mobile: Fixed Full Layout */}
-      <div className="md:hidden fixed inset-0 top-16 flex flex-col bg-white z-30">
-        {/* Top Section: Header */}
+      <div className="md:hidden fixed inset-0 flex flex-col bg-white z-40">
+        {/* Fixed Header */}
+        <div className="flex-shrink-0 bg-white border-b border-gray-100">
+          <div className="h-14 px-4 flex items-center justify-between">
+            <span className="text-2xl">🧩</span>
+            <span className="text-lg font-bold text-gray-900">Sudoku</span>
+            <div className="w-8"></div>
+          </div>
+        </div>
+
+        {/* Top Section: Info */}
         <div className="flex-shrink-0 border-b border-gray-100">
           <div className="px-4 py-2">
             <div className="flex items-center justify-between text-sm">
@@ -497,8 +506,8 @@ function PracticeContent() {
         </div>
 
         {/* Middle: Sudoku Board */}
-        <div className="flex-1 flex items-center justify-center px-3 overflow-hidden">
-          <div className="w-full max-w-[400px]">
+        <div className="flex-1 flex items-center justify-center px-3 py-2 min-h-0">
+          <div className="w-full max-w-[min(100%,calc(100vh-320px))] aspect-square">
             <SudokuBoard
               puzzle={game.puzzle}
               userInput={game.userInput}
@@ -511,7 +520,7 @@ function PracticeContent() {
         </div>
 
         {/* Bottom Section: Toolbar + NumberPad + New Game + Footer */}
-        <div className="flex-shrink-0 border-t border-gray-100">
+        <div className="flex-shrink-0 border-t border-gray-100 pb-safe">
           <GameToolbar
             onUndo={handleUndo}
             onErase={handleClear}
