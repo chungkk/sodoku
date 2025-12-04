@@ -583,10 +583,11 @@ function PracticeContent() {
             ))}
           </div>
 
-          {/* Mobile Footer */}
-          <div className="text-center pb-2 text-xs text-gray-400">
-            🧩 Sudoku Game
-          </div>
+        </div>
+
+        {/* Mobile Footer - Fixed to bottom */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 text-center py-2 text-xs text-gray-400 z-30">
+          🧩 Sudoku Game
         </div>
       </div>
 
