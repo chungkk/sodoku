@@ -569,24 +569,33 @@ export default function GamePlayPage() {
         </div>
 
         {/* Top Section: Info + Versus + Pause */}
-        <div className="flex-shrink-0 border-b border-gray-100">
-          <div className="px-4 py-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">Room: <span className="text-[#1e3a5f] font-medium">{code}</span></span>
-              <span className="text-gray-500">Mistakes: <span className="text-[#1e3a5f] font-medium">{game.errors}/3</span></span>
-              <div className="flex items-center gap-1">
-                <span className="text-gray-500">Time: <span className="text-[#1e3a5f] font-medium">{formatTime(timer.seconds)}</span></span>
+        <div className="flex-shrink-0 bg-gradient-to-b from-slate-50 to-white">
+          <div className="px-3 py-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-100">
+                <span className="text-xs text-slate-400">Room</span>
+                <span className="text-sm font-semibold text-[#1e3a5f]">{code}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-100">
+                <span className="text-xs text-slate-400">Lỗi</span>
+                <span className="text-sm font-semibold text-[#1e3a5f]">{game.errors}</span>
+              </div>
+              <div className="flex items-center gap-2 px-2.5 py-1 bg-white rounded-lg shadow-sm border border-slate-100">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-400">Time</span>
+                  <span className="text-sm font-semibold text-[#1e3a5f] tabular-nums">{formatTime(timer.seconds)}</span>
+                </div>
                 <button
                   onClick={handlePauseToggle}
                   disabled={!!(pausedBy && pausedBy.visitorId !== player?.visitorId)}
-                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 disabled:opacity-50"
+                  className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors disabled:opacity-50"
                 >
                   {timer.isPaused ? (
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   ) : (
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
                     </svg>
                   )}

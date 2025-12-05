@@ -71,16 +71,61 @@
     @apply text-[8px] sm:text-[10px] text-gray-500;
   }
 
+  /* Number Pad Container */
+  .number-pad-container {
+    @apply flex items-center justify-between gap-1 px-3 py-3;
+    background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+  }
+
+  /* Number Pad Button */
   .number-pad-btn {
     @apply flex items-center justify-center
-           text-2xl sm:text-3xl font-medium
-           touch-manipulation;
-    color: var(--sudoku-given-color);
+           flex-1 aspect-square max-w-[40px]
+           rounded-xl
+           touch-manipulation
+           transition-all duration-150 ease-out;
+    background: linear-gradient(145deg, #ffffff, #f0f4f8);
+    box-shadow: 
+      0 2px 4px rgba(0, 0, 0, 0.06),
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     -webkit-tap-highlight-color: transparent;
   }
 
+  .number-pad-btn:active:not(.number-pad-btn-disabled) {
+    transform: scale(0.92);
+    box-shadow: 
+      0 1px 2px rgba(0, 0, 0, 0.08),
+      inset 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+
+  .number-pad-btn-text {
+    @apply text-lg font-semibold;
+    color: #1e3a5f;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+
   .number-pad-btn-active {
-    @apply text-primary-500;
+    background: linear-gradient(145deg, #4a90d9, #3b7fc8);
+    border-color: #3b7fc8;
+    box-shadow: 
+      0 3px 8px rgba(74, 144, 217, 0.35),
+      0 1px 3px rgba(74, 144, 217, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .number-pad-btn-active .number-pad-btn-text {
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  .number-pad-btn-disabled {
+    @apply opacity-40 cursor-not-allowed;
+  }
+
+  .number-pad-btn-disabled:active {
+    transform: none;
   }
 
   .game-toolbar-btn {
