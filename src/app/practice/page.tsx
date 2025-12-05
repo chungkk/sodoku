@@ -175,25 +175,29 @@ function PracticeContent() {
     <div className="min-h-screen bg-white">
       {/* Desktop Layout (1024px+) */}
       <div className="hidden lg:block">
-        {/* Top Bar - Difficulty tabs and Score */}
-        <div className="flex items-center justify-between px-8 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400 mr-2">Difficulty:</span>
+        {/* Top Bar - Difficulty tabs + New Game */}
+        <div className="flex items-center justify-center gap-4 px-8 py-5 border-b border-gray-100 bg-gradient-to-b from-slate-50 to-white">
+          <div className="flex items-center gap-1.5 p-1.5 bg-white rounded-2xl shadow-sm border border-slate-200">
             {difficultyOptions.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => handleDifficultyChange(opt.value)}
-                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
                   game.difficulty === opt.value
-                    ? "text-[#4a90d9]"
-                    : "text-gray-600 hover:text-gray-900"
+                    ? "bg-[#4a90d9] text-white shadow-md"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                 }`}
               >
                 {opt.label}
               </button>
             ))}
           </div>
-          <div className="text-[#4a90d9] text-3xl font-bold">{score}</div>
+          <button
+            onClick={() => setShowNewGameModal(true)}
+            className="px-5 py-2.5 text-sm font-medium rounded-2xl transition-all duration-200 bg-[#5a7a9a] text-white hover:bg-[#4a6a8a] shadow-sm"
+          >
+            New Game
+          </button>
         </div>
 
         {/* Main Content - Grid + Controls */}
@@ -214,27 +218,25 @@ function PracticeContent() {
 
           {/* Right Panel */}
           <div className="w-[280px] flex flex-col gap-6">
-            {/* Mistakes & Time */}
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Mistakes</p>
-                <p className="text-[#1e3a5f] text-xl font-medium">{game.errors}/3</p>
+            {/* Lỗi & Time */}
+            <div className="flex items-center gap-3">
+              <div className="flex-1 flex items-center gap-2 px-4 py-3 bg-white rounded-xl shadow-sm border border-slate-100">
+                <span className="text-sm text-slate-400">Lỗi</span>
+                <span className="text-xl font-bold text-[#1e3a5f]">{game.errors}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-gray-400 text-sm">Time</p>
-                  <p className="text-[#1e3a5f] text-xl font-medium">{formatTime(timer.seconds)}</p>
-                </div>
+              <div className="flex-1 flex items-center gap-2 px-4 py-3 bg-white rounded-xl shadow-sm border border-slate-100">
+                <span className="text-sm text-slate-400">Time</span>
+                <span className="text-xl font-bold text-[#1e3a5f] tabular-nums">{formatTime(timer.seconds)}</span>
                 <button
                   onClick={handlePauseToggle}
-                  className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50"
+                  className="ml-auto w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"
                 >
                   {timer.isPaused ? (
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   ) : (
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
                     </svg>
                   )}
@@ -313,13 +315,6 @@ function PracticeContent() {
               ))}
             </div>
 
-            {/* New Game Button */}
-            <button
-              onClick={() => setShowNewGameModal(true)}
-              className="w-full py-4 bg-[#5a7a9a] text-white text-lg font-medium rounded-xl hover:bg-[#4a6a8a] transition-colors"
-            >
-              New Game
-            </button>
           </div>
         </div>
       </div>
@@ -335,8 +330,8 @@ function PracticeContent() {
             </div>
             
             <div className="flex flex-col items-center">
-              <span className="text-gray-400 text-sm">Mistakes</span>
-              <span className="text-[#1e3a5f] text-lg font-medium">{game.errors}/3</span>
+              <span className="text-gray-400 text-sm">Lỗi</span>
+              <span className="text-[#1e3a5f] text-lg font-medium">{game.errors}</span>
             </div>
             
             <div className="flex items-center gap-3">

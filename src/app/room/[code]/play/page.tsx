@@ -725,28 +725,26 @@ export default function GamePlayPage() {
 
           {/* Right Panel */}
           <div className="w-[280px] flex flex-col gap-6">
-            {/* Mistakes & Time */}
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Mistakes</p>
-                <p className="text-[#1e3a5f] text-xl font-medium">{game.errors}/3</p>
+            {/* Lỗi & Time */}
+            <div className="flex items-center gap-3">
+              <div className="flex-1 flex items-center gap-2 px-4 py-3 bg-white rounded-xl shadow-sm border border-slate-100">
+                <span className="text-sm text-slate-400">Lỗi</span>
+                <span className="text-xl font-bold text-[#1e3a5f]">{game.errors}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-gray-400 text-sm">Time</p>
-                  <p className="text-[#1e3a5f] text-xl font-medium">{formatTime(timer.seconds)}</p>
-                </div>
+              <div className="flex-1 flex items-center gap-2 px-4 py-3 bg-white rounded-xl shadow-sm border border-slate-100">
+                <span className="text-sm text-slate-400">Time</span>
+                <span className="text-xl font-bold text-[#1e3a5f] tabular-nums">{formatTime(timer.seconds)}</span>
                 <button
                   onClick={handlePauseToggle}
                   disabled={!!(pausedBy && pausedBy.visitorId !== player?.visitorId)}
-                  className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  className="ml-auto w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors disabled:opacity-50"
                 >
                   {timer.isPaused ? (
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   ) : (
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
                     </svg>
                   )}
