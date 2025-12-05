@@ -188,14 +188,32 @@ export default function RoomPage() {
 
   // Poll room data every 3s while waiting (backup for socket issues)
   useEffect(() => {
+    if (room?.status === "playing") {
+      // If room status is already playing, redirect immediately
+      router.push(`/room/${code}/play`);
+      return;
+    }
+    
     if (room?.status !== "waiting") return;
     
-    const interval = setInterval(() => {
-      fetchRoom();
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/rooms/${code}`);
+        if (response.ok) {
+          const data = await response.json();
+          setRoom(data);
+          // Check if game started (backup for missed socket event)
+          if (data.status === "playing") {
+            router.push(`/room/${code}/play`);
+          }
+        }
+      } catch (err) {
+        console.error("Polling error:", err);
+      }
     }, 3000);
     
     return () => clearInterval(interval);
-  }, [room?.status, fetchRoom]);
+  }, [room?.status, code, router]);
 
   const handleNameSubmit = async (name: string) => {
     try {
@@ -241,10 +259,15 @@ export default function RoomPage() {
       }
 
       emit("start_game", { roomCode: code });
+      
+      // Backup: if socket event doesn't work, redirect after countdown + buffer
+      setTimeout(() => {
+        router.push(`/room/${code}/play`);
+      }, 4000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start game");
     }
-  }, [player, room, code, emit]);
+  }, [player, room, code, emit, router]);
 
   const handleLeaveRoom = useCallback(() => {
     emit("leave_room", { roomCode: code });
