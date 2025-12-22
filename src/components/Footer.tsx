@@ -7,7 +7,7 @@ export function Footer() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-gray-600">
             <span className="text-xl">🧩</span>
-            <span className="font-medium">Sudoku Game</span>
+            <span className="font-medium">Solo Online</span>
           </div>
 
           <div className="flex items-center gap-6 text-sm text-gray-500">
@@ -15,7 +15,7 @@ export function Footer() {
           </div>
 
           <p className="text-sm text-gray-400">
-            &copy; {currentYear} Sudoku. All rights reserved.
+            &copy; {currentYear} Solo Online. All rights reserved.
           </p>
         </div>
       </div>

@@ -13,7 +13,7 @@ export function Header() {
         <Link href="/" className="flex items-center gap-2 group">
           <span className="text-3xl">🧩</span>
           <span className="text-xl font-bold text-gray-900 group-hover:text-primary-500 transition-colors">
-            Sudoku
+            Solo Online
           </span>
         </Link>
 

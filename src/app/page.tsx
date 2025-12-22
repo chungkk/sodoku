@@ -51,7 +51,7 @@ export default function HomePage() {
         className="text-center mb-12"
       >
         <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
-          🧩 Sudoku Online
+          🧩 Solo Online
         </h1>
         <p className="text-lg text-gray-600 max-w-xl mx-auto">
           Rèn luyện tư duy logic với trò chơi Sudoku kinh điển.
@@ -59,7 +59,7 @@ export default function HomePage() {
         </p>
       </motion.div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-3 gap-6">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -126,7 +126,7 @@ export default function HomePage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <span className="text-2xl">🏆</span>
-                Thi đấu Solo
+                Thi đấu Sudoku
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -150,6 +150,37 @@ export default function HomePage() {
                   onClick={() => setShowJoinRoom(true)}
                 >
                   🔗 Tham gia phòng
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <Card variant="elevated" className="h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-2xl">❌⭕</span>
+                Cờ Caro
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-6">
+                Chơi cờ caro online với bạn bè. Đánh 5 ô liên tiếp để chiến thắng!
+              </p>
+
+              <div className="space-y-3">
+                <Button 
+                  variant="primary" 
+                  fullWidth 
+                  size="lg"
+                  onClick={() => window.location.href = '/caro'}
+                >
+                  🎮 Chơi Caro
                 </Button>
               </div>
             </CardContent>

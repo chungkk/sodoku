@@ -16,6 +16,10 @@ const roomPlayers = new Map<string, Set<string>>();
 const disconnectTimeouts = new Map<string, NodeJS.Timeout>();
 const DISCONNECT_TIMEOUT = 30000;
 
+// Room name prefixes to prevent conflicts
+const SUDOKU_PREFIX = "sudoku:";
+const CARO_PREFIX = "caro:";
+
 export function setupSocketHandlers(io: Server): void {
   io.use((socket: Socket, next) => {
     const auth = socket.handshake.auth as SocketAuth;
@@ -35,6 +39,7 @@ export function setupSocketHandlers(io: Server): void {
 
     playerSocket.on("join_room", async (data: { roomCode: string }) => {
       const { roomCode } = data;
+      const socketRoom = SUDOKU_PREFIX + roomCode;
       
       if (playerSocket.roomCode) {
         playerSocket.leave(playerSocket.roomCode);
@@ -42,31 +47,33 @@ export function setupSocketHandlers(io: Server): void {
         oldRoom?.delete(visitorId);
       }
 
-      playerSocket.join(roomCode);
-      playerSocket.roomCode = roomCode;
+      playerSocket.join(socketRoom);
+      playerSocket.roomCode = socketRoom;
 
-      if (!roomPlayers.has(roomCode)) {
-        roomPlayers.set(roomCode, new Set());
+      if (!roomPlayers.has(socketRoom)) {
+        roomPlayers.set(socketRoom, new Set());
       }
-      roomPlayers.get(roomCode)!.add(visitorId);
+      roomPlayers.get(socketRoom)!.add(visitorId);
 
-      io.to(roomCode).emit("player_joined", { visitorId, name });
-      io.to(roomCode).emit("room_updated", { 
+      io.to(socketRoom).emit("player_joined", { visitorId, name });
+      io.to(socketRoom).emit("room_updated", { 
         roomCode,
         action: "player_joined",
         playerId: visitorId,
         playerName: name,
       });
-      console.log(`${name} joined room ${roomCode}`);
+      console.log(`${name} joined sudoku room ${roomCode}`);
     });
 
     playerSocket.on("leave_room", (data: { roomCode: string }) => {
       const { roomCode } = data;
-      handleLeaveRoom(io, playerSocket, roomCode);
+      const socketRoom = SUDOKU_PREFIX + roomCode;
+      handleLeaveRoom(io, playerSocket, socketRoom);
     });
 
     playerSocket.on("set_ready", async (data: { roomCode: string; ready: boolean }) => {
       const { roomCode, ready } = data;
+      const socketRoom = SUDOKU_PREFIX + roomCode;
       
       try {
         await connectDB();
@@ -75,19 +82,20 @@ export function setupSocketHandlers(io: Server): void {
           { code: roomCode, "players.visitorId": visitorId },
           { $set: { "players.$.isReady": ready } }
         );
-        console.log(`${name} set ready=${ready} in room ${roomCode}`);
+        console.log(`${name} set ready=${ready} in sudoku room ${roomCode}`);
       } catch (error) {
         console.error("Failed to update ready status:", error);
       }
       
-      io.to(roomCode).emit("player_ready", { visitorId, ready });
+      io.to(socketRoom).emit("player_ready", { visitorId, ready });
     });
 
     playerSocket.on("start_game", async (data: { roomCode: string }) => {
       const { roomCode } = data;
+      const socketRoom = SUDOKU_PREFIX + roomCode;
       
       // Emit countdown
-      io.to(roomCode).emit("game_starting", { countdown: 3 });
+      io.to(socketRoom).emit("game_starting", { countdown: 3 });
       
       // Wait for countdown then emit game_started
       setTimeout(async () => {
@@ -108,13 +116,13 @@ export function setupSocketHandlers(io: Server): void {
             return;
           }
           
-          io.to(roomCode).emit("game_started", {
+          io.to(socketRoom).emit("game_started", {
             puzzle: puzzle.grid,
             solution: puzzle.solution,
             startedAt: room.startedAt,
           });
           
-          console.log(`Game started in room ${roomCode}`);
+          console.log(`Sudoku game started in room ${roomCode}`);
         } catch (error) {
           console.error("Error starting game:", error);
         }
@@ -129,7 +137,8 @@ export function setupSocketHandlers(io: Server): void {
       valid?: boolean;
       conflicts?: { row: number; col: number }[];
     }) => {
-      playerSocket.to(data.roomCode).emit("cell_update", {
+      const socketRoom = SUDOKU_PREFIX + data.roomCode;
+      playerSocket.to(socketRoom).emit("cell_update", {
         visitorId,
         row: data.row,
         col: data.col,
@@ -151,7 +160,8 @@ export function setupSocketHandlers(io: Server): void {
       progress: number;
       errors: number;
     }) => {
-      io.to(data.roomCode).emit("progress_update", {
+      const socketRoom = SUDOKU_PREFIX + data.roomCode;
+      io.to(socketRoom).emit("progress_update", {
         visitorId,
         name,
         progress: data.progress,
@@ -167,7 +177,8 @@ export function setupSocketHandlers(io: Server): void {
       gameEnded?: boolean;
       winnerId?: string;
     }) => {
-      io.to(data.roomCode).emit("player_completed", {
+      const socketRoom = SUDOKU_PREFIX + data.roomCode;
+      io.to(socketRoom).emit("player_completed", {
         visitorId,
         name,
         time: data.time,
@@ -175,7 +186,7 @@ export function setupSocketHandlers(io: Server): void {
       });
 
       if (data.gameEnded) {
-        io.to(data.roomCode).emit("game_ended", {
+        io.to(socketRoom).emit("game_ended", {
           winnerId: data.winnerId,
           reason: "completed",
         });
@@ -187,10 +198,11 @@ export function setupSocketHandlers(io: Server): void {
       gameEnded?: boolean;
       winnerId?: string;
     }) => {
-      io.to(data.roomCode).emit("player_gave_up", { visitorId, name });
+      const socketRoom = SUDOKU_PREFIX + data.roomCode;
+      io.to(socketRoom).emit("player_gave_up", { visitorId, name });
 
       if (data.gameEnded) {
-        io.to(data.roomCode).emit("game_ended", {
+        io.to(socketRoom).emit("game_ended", {
           winnerId: data.winnerId,
           reason: "all_gave_up",
         });
@@ -198,12 +210,13 @@ export function setupSocketHandlers(io: Server): void {
     });
 
     playerSocket.on("pause_game", (data: { roomCode: string; paused: boolean }) => {
-      io.to(data.roomCode).emit("game_paused", {
+      const socketRoom = SUDOKU_PREFIX + data.roomCode;
+      io.to(socketRoom).emit("game_paused", {
         visitorId,
         name,
         paused: data.paused,
       });
-      console.log(`${name} ${data.paused ? "paused" : "resumed"} game in room ${data.roomCode}`);
+      console.log(`${name} ${data.paused ? "paused" : "resumed"} sudoku game in room ${data.roomCode}`);
     });
 
     playerSocket.on("ping", () => {
@@ -212,22 +225,143 @@ export function setupSocketHandlers(io: Server): void {
 
     playerSocket.on("reconnect_game", (data: { roomCode: string }) => {
       const { roomCode } = data;
-      const existingTimeout = disconnectTimeouts.get(`${roomCode}_${visitorId}`);
+      const socketRoom = SUDOKU_PREFIX + roomCode;
+      const existingTimeout = disconnectTimeouts.get(`${socketRoom}_${visitorId}`);
       if (existingTimeout) {
         clearTimeout(existingTimeout);
-        disconnectTimeouts.delete(`${roomCode}_${visitorId}`);
+        disconnectTimeouts.delete(`${socketRoom}_${visitorId}`);
       }
 
-      playerSocket.join(roomCode);
-      playerSocket.roomCode = roomCode;
+      playerSocket.join(socketRoom);
+      playerSocket.roomCode = socketRoom;
 
-      if (!roomPlayers.has(roomCode)) {
-        roomPlayers.set(roomCode, new Set());
+      if (!roomPlayers.has(socketRoom)) {
+        roomPlayers.set(socketRoom, new Set());
       }
-      roomPlayers.get(roomCode)!.add(visitorId);
+      roomPlayers.get(socketRoom)!.add(visitorId);
 
-      io.to(roomCode).emit("player_reconnected", { visitorId, name });
-      console.log(`${name} reconnected to room ${roomCode}`);
+      io.to(socketRoom).emit("player_reconnected", { visitorId, name });
+      console.log(`${name} reconnected to sudoku room ${roomCode}`);
+    });
+
+    // Caro game events
+    playerSocket.on("caro_join_room", async (data: { roomCode: string }) => {
+      const { roomCode } = data;
+      const socketRoom = CARO_PREFIX + roomCode;
+      
+      if (playerSocket.roomCode) {
+        playerSocket.leave(playerSocket.roomCode);
+        const oldRoom = roomPlayers.get(playerSocket.roomCode);
+        oldRoom?.delete(visitorId);
+      }
+
+      playerSocket.join(socketRoom);
+      playerSocket.roomCode = socketRoom;
+
+      if (!roomPlayers.has(socketRoom)) {
+        roomPlayers.set(socketRoom, new Set());
+      }
+      roomPlayers.get(socketRoom)!.add(visitorId);
+
+      io.to(socketRoom).emit("caro_player_joined", { visitorId, name });
+      io.to(socketRoom).emit("caro_room_updated", { 
+        roomCode,
+        action: "player_joined",
+        playerId: visitorId,
+        playerName: name,
+      });
+      console.log(`${name} joined caro room ${roomCode}`);
+    });
+
+    playerSocket.on("caro_set_ready", async (data: { roomCode: string; ready: boolean }) => {
+      const { roomCode, ready } = data;
+      const socketRoom = CARO_PREFIX + roomCode;
+      
+      try {
+        await connectDB();
+        const CaroRoom = (await import("../models/CaroRoom")).default;
+        await CaroRoom.findOneAndUpdate(
+          { code: roomCode, "players.visitorId": visitorId },
+          { $set: { "players.$.isReady": ready } }
+        );
+        console.log(`${name} set ready=${ready} in caro room ${roomCode}`);
+      } catch (error) {
+        console.error("Failed to update caro ready status:", error);
+      }
+      
+      io.to(socketRoom).emit("caro_player_ready", { visitorId, ready });
+    });
+
+    playerSocket.on("caro_start_game", async (data: { roomCode: string }) => {
+      const { roomCode } = data;
+      const socketRoom = CARO_PREFIX + roomCode;
+      
+      io.to(socketRoom).emit("caro_game_starting", { countdown: 3 });
+      
+      setTimeout(async () => {
+        try {
+          await connectDB();
+          const CaroRoom = (await import("../models/CaroRoom")).default;
+          
+          const room = await CaroRoom.findOne({ code: roomCode });
+          if (!room) {
+            console.error("Caro room not found for game start");
+            return;
+          }
+          
+          io.to(socketRoom).emit("caro_game_started", {
+            board: room.board,
+            currentTurn: room.currentTurn,
+            startedAt: room.startedAt,
+          });
+          
+          console.log(`Caro game started in room ${roomCode}`);
+        } catch (error) {
+          console.error("Error starting caro game:", error);
+        }
+      }, 3000);
+    });
+
+    playerSocket.on("caro_make_move", async (data: {
+      roomCode: string;
+      row: number;
+      col: number;
+      symbol: "X" | "O";
+    }) => {
+      const socketRoom = CARO_PREFIX + data.roomCode;
+      io.to(socketRoom).emit("caro_move_made", {
+        visitorId,
+        row: data.row,
+        col: data.col,
+        symbol: data.symbol,
+      });
+    });
+
+    playerSocket.on("caro_game_ended", (data: {
+      roomCode: string;
+      winnerId: string | null;
+      isDraw: boolean;
+    }) => {
+      const socketRoom = CARO_PREFIX + data.roomCode;
+      io.to(socketRoom).emit("caro_game_ended", {
+        winnerId: data.winnerId,
+        isDraw: data.isDraw,
+      });
+    });
+
+    playerSocket.on("caro_give_up", (data: { 
+      roomCode: string;
+      winnerId?: string;
+    }) => {
+      const socketRoom = CARO_PREFIX + data.roomCode;
+      io.to(socketRoom).emit("caro_player_gave_up", { visitorId, name });
+
+      if (data.winnerId) {
+        io.to(socketRoom).emit("caro_game_ended", {
+          winnerId: data.winnerId,
+          isDraw: false,
+        });
+      }
     });
 
     playerSocket.on("disconnect", (reason) => {
