@@ -104,8 +104,8 @@ export function checkWinner(
       }
     }
 
-    // Win only if: count >= 5 AND at least one end is open (not blocked)
-    if (count >= WIN_CONDITION && (posEnd === 1 || negEnd === 1)) {
+    // Win if count >= 5 AND not both ends are blocked
+    if (count >= WIN_CONDITION && !(posEnd === -1 && negEnd === -1)) {
       return true;
     }
   }

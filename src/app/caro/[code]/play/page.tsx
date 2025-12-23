@@ -420,13 +420,13 @@ export default function CaroPlayPage() {
       </div>
 
       {/* Result Modal */}
-      <Dialog open={showResultModal} onClose={() => {}}>
+      <Dialog open={showResultModal} onClose={() => setShowResultModal(false)}>
         <DialogHeader>
           <DialogTitle className="text-center">
             {winner
               ? winner.visitorId === player.visitorId
                 ? "🎉 Bạn thắng!"
-                : `${winner.name} thắng!`
+                : `😢 ${winner.name} thắng!`
               : "🤝 Hòa!"}
           </DialogTitle>
         </DialogHeader>
@@ -442,11 +442,19 @@ export default function CaroPlayPage() {
             </motion.div>
           )}
           {winner && winner.visitorId !== player.visitorId && (
-            <div className="text-4xl mb-4">😢</div>
+            <div className="space-y-3">
+              <div className="text-4xl">😢</div>
+              <p className="text-gray-600">
+                Đóng thông báo này để xem lại ván đấu và phân tích lý do thua.
+              </p>
+            </div>
           )}
           {!winner && <div className="text-4xl mb-4">🤝</div>}
         </DialogContent>
         <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button variant="outline" onClick={() => setShowResultModal(false)} fullWidth>
+            {winner && winner.visitorId !== player.visitorId ? "Xem lại ván đấu" : "Đóng"}
+          </Button>
           <Button variant="outline" onClick={handleBackToRoom} fullWidth>
             Về phòng chờ
           </Button>
