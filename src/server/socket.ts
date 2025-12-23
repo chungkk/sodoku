@@ -14,7 +14,9 @@ interface PlayerSocket extends Socket {
 const playerSockets = new Map<string, PlayerSocket>();
 const roomPlayers = new Map<string, Set<string>>();
 const disconnectTimeouts = new Map<string, NodeJS.Timeout>();
+const caroTurnTimeouts = new Map<string, NodeJS.Timeout>();
 const DISCONNECT_TIMEOUT = 30000;
+const CARO_TURN_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
 // Room name prefixes to prevent conflicts
 const SUDOKU_PREFIX = "sudoku:";
@@ -313,7 +315,11 @@ export function setupSocketHandlers(io: Server): void {
             board: room.board,
             currentTurn: room.currentTurn,
             startedAt: room.startedAt,
+            turnStartedAt: room.turnStartedAt,
           });
+          
+          // Start turn timeout
+          startCaroTurnTimeout(io, roomCode);
           
           console.log(`Caro game started in room ${roomCode}`);
         } catch (error) {
@@ -329,12 +335,29 @@ export function setupSocketHandlers(io: Server): void {
       symbol: "X" | "O";
     }) => {
       const socketRoom = CARO_PREFIX + data.roomCode;
+      
+      // Clear existing timeout and start new one
+      clearCaroTurnTimeout(data.roomCode);
+      
       io.to(socketRoom).emit("caro_move_made", {
         visitorId,
         row: data.row,
         col: data.col,
         symbol: data.symbol,
       });
+      
+      // Check if game is still playing
+      try {
+        await connectDB();
+        const CaroRoom = (await import("../models/CaroRoom")).default;
+        const room = await CaroRoom.findOne({ code: data.roomCode });
+        
+        if (room && room.status === "playing") {
+          startCaroTurnTimeout(io, data.roomCode);
+        }
+      } catch (error) {
+        console.error("Error checking room status:", error);
+      }
     });
 
     playerSocket.on("caro_game_ended", (data: {
@@ -343,6 +366,7 @@ export function setupSocketHandlers(io: Server): void {
       isDraw: boolean;
     }) => {
       const socketRoom = CARO_PREFIX + data.roomCode;
+      clearCaroTurnTimeout(data.roomCode);
       io.to(socketRoom).emit("caro_game_ended", {
         winnerId: data.winnerId,
         isDraw: data.isDraw,
@@ -354,6 +378,7 @@ export function setupSocketHandlers(io: Server): void {
       winnerId?: string;
     }) => {
       const socketRoom = CARO_PREFIX + data.roomCode;
+      clearCaroTurnTimeout(data.roomCode);
       io.to(socketRoom).emit("caro_player_gave_up", { visitorId, name });
 
       if (data.winnerId) {
@@ -428,4 +453,58 @@ export function getConnectedPlayers(): number {
 
 export function getRoomCount(): number {
   return roomPlayers.size;
+}
+
+function startCaroTurnTimeout(io: Server, roomCode: string): void {
+  clearCaroTurnTimeout(roomCode);
+  
+  const timeoutId = setTimeout(async () => {
+    try {
+      await connectDB();
+      const CaroRoom = (await import("../models/CaroRoom")).default;
+      
+      const room = await CaroRoom.findOne({ code: roomCode });
+      if (!room || room.status !== "playing") {
+        return;
+      }
+      
+      // Find current player and opponent
+      const currentPlayer = room.players.find((p: { symbol: string }) => p.symbol === room.currentTurn);
+      const opponent = room.players.find((p: { symbol: string }) => p.symbol !== room.currentTurn);
+      
+      // Current player loses due to timeout
+      room.status = "finished";
+      room.winnerId = opponent?.visitorId || null;
+      room.finishedAt = new Date();
+      await room.save();
+      
+      const socketRoom = CARO_PREFIX + roomCode;
+      io.to(socketRoom).emit("caro_turn_timeout", {
+        timedOutPlayer: currentPlayer?.visitorId,
+        winnerId: room.winnerId,
+      });
+      
+      io.to(socketRoom).emit("caro_game_ended", {
+        winnerId: room.winnerId,
+        isDraw: false,
+        reason: "timeout",
+      });
+      
+      console.log(`Caro turn timeout in room ${roomCode}, winner: ${room.winnerId}`);
+    } catch (error) {
+      console.error("Error handling caro turn timeout:", error);
+    } finally {
+      caroTurnTimeouts.delete(roomCode);
+    }
+  }, CARO_TURN_TIMEOUT);
+  
+  caroTurnTimeouts.set(roomCode, timeoutId);
+}
+
+function clearCaroTurnTimeout(roomCode: string): void {
+  const timeoutId = caroTurnTimeouts.get(roomCode);
+  if (timeoutId) {
+    clearTimeout(timeoutId);
+    caroTurnTimeouts.delete(roomCode);
+  }
 }

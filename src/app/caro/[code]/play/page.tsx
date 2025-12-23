@@ -33,6 +33,8 @@ export default function CaroPlayPage() {
   const [mySymbol, setMySymbol] = useState<CellValue>(null);
   const [loading, setLoading] = useState(true);
   const [showGiveUpConfirm, setShowGiveUpConfirm] = useState(false);
+  const [turnStartedAt, setTurnStartedAt] = useState<Date | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<number>(300); // 5 minutes in seconds
 
   const game = useCaroGame();
 
@@ -57,6 +59,9 @@ export default function CaroPlayPage() {
 
         if (data.status === "playing" && data.board) {
           game.loadBoard(data.board, data.currentTurn);
+          if (data.turnStartedAt) {
+            setTurnStartedAt(new Date(data.turnStartedAt));
+          }
         }
 
         if (data.status === "finished") {
@@ -95,10 +100,11 @@ export default function CaroPlayPage() {
         if (data.visitorId !== player?.visitorId) {
           game.makeMove(data.row, data.col, data.symbol);
         }
+        setTurnStartedAt(new Date());
       }
     );
 
-    on<{ winnerId: string | null; isDraw: boolean }>("caro_game_ended", (data) => {
+    on<{ winnerId: string | null; isDraw: boolean; reason?: string }>("caro_game_ended", (data) => {
       setGameStatus("finished");
       if (data.winnerId) {
         const winningPlayer = roomPlayers.find((p) => p.visitorId === data.winnerId);
@@ -109,16 +115,46 @@ export default function CaroPlayPage() {
       setShowResultModal(true);
     });
 
+    on<{ timedOutPlayer: string; winnerId: string }>("caro_turn_timeout", () => {
+      fetchRoomData();
+    });
+
     on<{ visitorId: string; name: string }>("caro_player_gave_up", () => {
       fetchRoomData();
     });
 
+    on<{ board: unknown; currentTurn: "X" | "O"; startedAt: string; turnStartedAt: string }>(
+      "caro_game_started",
+      (data) => {
+        setTurnStartedAt(new Date(data.turnStartedAt));
+      }
+    );
+
     return () => {
       off("caro_move_made");
       off("caro_game_ended");
+      off("caro_turn_timeout");
       off("caro_player_gave_up");
+      off("caro_game_started");
     };
   }, [isConnected, on, off, player, game, roomPlayers, fetchRoomData]);
+
+  // Timer countdown effect
+  useEffect(() => {
+    if (!turnStartedAt || gameStatus !== "playing") return;
+
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - turnStartedAt.getTime()) / 1000);
+      const remaining = Math.max(0, 300 - elapsed);
+      setTimeRemaining(remaining);
+
+      if (remaining === 0) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [turnStartedAt, gameStatus]);
 
   const handleCellClick = async (row: number, col: number) => {
     if (!player || gameStatus !== "playing" || !mySymbol) return;
@@ -126,6 +162,9 @@ export default function CaroPlayPage() {
 
     const success = game.makeMove(row, col, mySymbol);
     if (!success) return;
+
+    // Reset timer for next turn
+    setTurnStartedAt(new Date());
 
     emit("caro_make_move", {
       roomCode: code,
@@ -147,7 +186,14 @@ export default function CaroPlayPage() {
 
       if (res.ok) {
         const data = await res.json();
-        if (data.status === "finished") {
+        if (data.timeout) {
+          // Handle timeout case
+          emit("caro_game_ended", {
+            roomCode: code,
+            winnerId: data.winnerId,
+            isDraw: false,
+          });
+        } else if (data.status === "finished") {
           emit("caro_game_ended", {
             roomCode: code,
             winnerId: data.winnerId,
@@ -207,6 +253,18 @@ export default function CaroPlayPage() {
   const opponent = roomPlayers.find((p) => p.visitorId !== player.visitorId);
   const isMyTurn = game.currentTurn === mySymbol;
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const getTimerColor = () => {
+    if (timeRemaining > 60) return "text-gray-700";
+    if (timeRemaining > 30) return "text-orange-600";
+    return "text-red-600";
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
       {/* Mobile Layout */}
@@ -229,10 +287,15 @@ export default function CaroPlayPage() {
               <span className="text-xs text-gray-500">Room:</span>
               <span className="text-sm font-mono font-bold">{code}</span>
             </div>
-            <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-              isMyTurn ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
-            }`}>
-              {isMyTurn ? "Lượt của bạn" : `Lượt ${opponent?.name}`}
+            <div className="flex items-center gap-2">
+              <div className={`px-2 py-1 rounded-lg text-lg font-bold ${getTimerColor()}`}>
+                {formatTime(timeRemaining)}
+              </div>
+              <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                isMyTurn ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+              }`}>
+                {isMyTurn ? "Lượt của bạn" : `Lượt ${opponent?.name}`}
+              </div>
             </div>
           </div>
         </div>
@@ -283,7 +346,7 @@ export default function CaroPlayPage() {
             <div>
               <Card padding="md">
                 <div className="mb-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-3">
                     <div>
                       <span className="text-sm text-gray-600">Lượt của: </span>
                       <span className="font-bold text-lg">
@@ -296,6 +359,12 @@ export default function CaroPlayPage() {
                     <Button variant="ghost" onClick={() => setShowGiveUpConfirm(true)} className="text-red-500">
                       Đầu hàng
                     </Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">⏱️ Thời gian còn lại:</span>
+                    <span className={`text-2xl font-bold ${getTimerColor()}`}>
+                      {formatTime(timeRemaining)}
+                    </span>
                   </div>
                 </div>
 

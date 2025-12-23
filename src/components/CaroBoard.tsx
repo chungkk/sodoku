@@ -29,9 +29,9 @@ export const CaroBoard = memo(function CaroBoard({
   };
 
   return (
-    <div className="relative bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl shadow-lg p-2 md:p-4">
+    <div className="relative bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl shadow-lg p-2 md:p-4 w-full">
       {/* Grid container với background lines */}
-      <div className="relative" style={{ aspectRatio: "1" }}>
+      <div className="relative w-full aspect-square">
         {/* Horizontal lines */}
         <div className="absolute inset-0 pointer-events-none">
           {Array.from({ length: BOARD_SIZE + 1 }).map((_, i) => (
@@ -62,10 +62,10 @@ export const CaroBoard = memo(function CaroBoard({
 
         {/* Game board */}
         <div
-          className="relative grid gap-0"
+          className="absolute inset-0 grid gap-0"
           style={{
-            gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`,
-            height: "100%",
+            gridTemplateColumns: `repeat(${BOARD_SIZE}, 1fr)`,
+            gridTemplateRows: `repeat(${BOARD_SIZE}, 1fr)`,
           }}
         >
           {board.map((row, rowIndex) =>
@@ -79,7 +79,7 @@ export const CaroBoard = memo(function CaroBoard({
                   onClick={() => onCellClick(rowIndex, colIndex)}
                   disabled={disabled || cell !== null}
                   className={`
-                    relative aspect-square
+                    relative w-full h-full
                     flex items-center justify-center
                     transition-colors
                     ${!disabled && cell === null ? "hover:bg-amber-100/50 cursor-pointer" : ""}
@@ -87,12 +87,9 @@ export const CaroBoard = memo(function CaroBoard({
                     ${isWinning ? "bg-green-200/70" : ""}
                     ${isLast ? "bg-blue-100/50" : ""}
                   `}
-                  style={{
-                    fontSize: "clamp(12px, 2.5vw, 20px)",
-                  }}
                 >
                   {cell && (
-                    <motion.div
+                    <motion.span
                       initial={{ scale: 0, rotate: -180 }}
                       animate={{ scale: 1, rotate: 0 }}
                       transition={{
@@ -101,18 +98,23 @@ export const CaroBoard = memo(function CaroBoard({
                         damping: 20,
                       }}
                       className={`
-                        font-bold select-none
+                        absolute inset-0
+                        flex items-center justify-center
+                        font-bold select-none pointer-events-none
                         ${cell === "X" ? "text-blue-600" : "text-red-600"}
                         ${isWinning ? "text-green-700" : ""}
                       `}
-                      style={{ fontSize: "1.5em" }}
+                      style={{ 
+                        fontSize: "clamp(16px, 3vw, 28px)",
+                        lineHeight: 1,
+                      }}
                     >
                       {cell}
-                    </motion.div>
+                    </motion.span>
                   )}
 
                   {!cell && !disabled && (
-                    <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                       <div className="w-1.5 h-1.5 bg-amber-400 rounded-full" />
                     </div>
                   )}

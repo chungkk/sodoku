@@ -50,6 +50,7 @@ export async function POST(
 
     room.status = "playing";
     room.startedAt = new Date();
+    room.turnStartedAt = new Date();
     room.board = createEmptyBoard();
     room.currentTurn = "X";
     room.moves = [];

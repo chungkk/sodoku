@@ -52,6 +52,28 @@ export async function POST(
       );
     }
 
+    // Check if turn timeout (5 minutes = 300000ms)
+    const TURN_TIMEOUT = 5 * 60 * 1000;
+    if (room.turnStartedAt) {
+      const elapsed = Date.now() - room.turnStartedAt.getTime();
+      if (elapsed > TURN_TIMEOUT) {
+        // Current player loses due to timeout
+        const opponent = room.players.find((p: { visitorId: string }) => p.visitorId !== visitorId);
+        room.status = "finished";
+        room.winnerId = opponent?.visitorId || null;
+        room.finishedAt = new Date();
+        await room.save();
+
+        return NextResponse.json({
+          success: false,
+          error: "Turn timeout",
+          timeout: true,
+          status: room.status,
+          winnerId: room.winnerId,
+        }, { status: 400 });
+      }
+    }
+
     room.board[row][col] = player.symbol;
     room.moves.push({
       row,
@@ -73,6 +95,7 @@ export async function POST(
       room.finishedAt = new Date();
     } else {
       room.currentTurn = room.currentTurn === "X" ? "O" : "X";
+      room.turnStartedAt = new Date();
     }
 
     await room.save();
