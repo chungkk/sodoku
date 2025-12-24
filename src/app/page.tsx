@@ -27,6 +27,14 @@ interface CaroRoom {
   createdAt: string;
 }
 
+interface SudokuRoom {
+  code: string;
+  status: string;
+  difficulty: string;
+  playerCount: number;
+  createdAt: string;
+}
+
 export default function HomePage() {
   const router = useRouter();
   const { player, setGuestName } = usePlayer();
@@ -47,6 +55,30 @@ export default function HomePage() {
   const [caroAction, setCaroAction] = useState<"create" | "join" | null>(null);
   const caroInputRef = useRef<HTMLInputElement>(null);
   const caroSuggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Sudoku states
+  const [sudokuRoomCode, setSudokuRoomCode] = useState("");
+  const [sudokuRooms, setSudokuRooms] = useState<SudokuRoom[]>([]);
+  const [showSudokuSuggestions, setShowSudokuSuggestions] = useState(false);
+  const [loadingSudokuRooms, setLoadingSudokuRooms] = useState(false);
+  const [sudokuError, setSudokuError] = useState<string | null>(null);
+  const sudokuInputRef = useRef<HTMLInputElement>(null);
+  const sudokuSuggestionsRef = useRef<HTMLDivElement>(null);
+
+  const fetchSudokuRooms = async () => {
+    setLoadingSudokuRooms(true);
+    try {
+      const res = await fetch("/api/rooms");
+      if (res.ok) {
+        const data = await res.json();
+        setSudokuRooms(data.rooms || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch sudoku rooms:", err);
+    } finally {
+      setLoadingSudokuRooms(false);
+    }
+  };
 
   const fetchCaroRooms = async () => {
     setLoadingCaroRooms(true);
@@ -73,10 +105,34 @@ export default function HomePage() {
       ) {
         setShowCaroSuggestions(false);
       }
+      if (
+        sudokuSuggestionsRef.current &&
+        !sudokuSuggestionsRef.current.contains(e.target as Node) &&
+        sudokuInputRef.current &&
+        !sudokuInputRef.current.contains(e.target as Node)
+      ) {
+        setShowSudokuSuggestions(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const filteredSudokuRooms = sudokuRooms.filter((room) =>
+    room.code.toLowerCase().includes(sudokuRoomCode.toLowerCase())
+  );
+
+  const handleJoinSudokuRoom = () => {
+    if (!player) {
+      setShowJoinRoom(true);
+      return;
+    }
+    if (!sudokuRoomCode.trim()) {
+      setSudokuError("Vui lòng nhập mã phòng");
+      return;
+    }
+    router.push(`/room/${sudokuRoomCode.trim().toUpperCase()}`);
+  };
 
   const filteredCaroRooms = caroRooms.filter((room) =>
     room.code.toLowerCase().includes(caroRoomCode.toLowerCase())
@@ -237,10 +293,16 @@ export default function HomePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 mb-4">
                 Tạo phòng và mời bạn bè cùng thi đấu. Ai hoàn thành nhanh nhất sẽ
                 là người chiến thắng!
               </p>
+
+              {sudokuError && (
+                <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                  {sudokuError}
+                </div>
+              )}
 
               <div className="space-y-3">
                 <Button 
@@ -251,10 +313,79 @@ export default function HomePage() {
                 >
                   🚀 Tạo phòng
                 </Button>
+                
+                <div className="relative">
+                  <Input
+                    ref={sudokuInputRef}
+                    placeholder="Nhập mã phòng..."
+                    value={sudokuRoomCode}
+                    onChange={(e) => {
+                      setSudokuRoomCode(e.target.value.toUpperCase());
+                      setSudokuError(null);
+                      setShowSudokuSuggestions(true);
+                    }}
+                    onFocus={() => {
+                      fetchSudokuRooms();
+                      setShowSudokuSuggestions(true);
+                    }}
+                    onKeyPress={(e) => e.key === "Enter" && handleJoinSudokuRoom()}
+                    autoComplete="off"
+                  />
+                  {showSudokuSuggestions && (
+                    <div
+                      ref={sudokuSuggestionsRef}
+                      className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto"
+                    >
+                      {loadingSudokuRooms ? (
+                        <div className="p-3 text-gray-500 text-sm text-center">
+                          Đang tải...
+                        </div>
+                      ) : filteredSudokuRooms.length > 0 ? (
+                        filteredSudokuRooms.map((room) => (
+                          <button
+                            key={room.code}
+                            type="button"
+                            className="w-full px-3 py-2 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                            onClick={() => {
+                              setSudokuRoomCode(room.code);
+                              setShowSudokuSuggestions(false);
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-gray-900 text-sm">
+                                {room.code}
+                              </span>
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded-full ${
+                                  room.status === "waiting"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-orange-100 text-orange-700"
+                                }`}
+                              >
+                                {room.status === "waiting"
+                                  ? `Chờ (${room.playerCount}/2)`
+                                  : "Đang chơi"}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {room.difficulty === "easy" ? "🟢 Dễ" : room.difficulty === "medium" ? "🟡 TB" : "🔴 Khó"}
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="p-3 text-gray-500 text-sm text-center">
+                          {sudokuRoomCode ? "Không tìm thấy" : "Chưa có phòng"}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <Button 
                   variant="outline" 
                   fullWidth
-                  onClick={() => setShowJoinRoom(true)}
+                  onClick={handleJoinSudokuRoom}
+                  disabled={!sudokuRoomCode.trim()}
                 >
                   🔗 Tham gia phòng
                 </Button>
