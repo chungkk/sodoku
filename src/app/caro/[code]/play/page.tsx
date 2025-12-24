@@ -598,11 +598,8 @@ export default function CaroPlayPage() {
           <Button variant="outline" onClick={handleViewReplay} fullWidth>
             Xem lại ván đấu
           </Button>
-          <Button variant="outline" onClick={handleBackToRoom} fullWidth>
+          <Button onClick={handleBackToRoom} fullWidth>
             Về phòng chờ
-          </Button>
-          <Button onClick={handleBackToLobby} fullWidth>
-            Về lobby
           </Button>
         </DialogFooter>
       </Dialog>
