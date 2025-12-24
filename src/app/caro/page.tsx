@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,13 @@ import { Dialog, DialogHeader, DialogTitle, DialogContent } from "@/components/u
 import { NameInput } from "@/components/NameInput";
 import { usePlayer } from "@/contexts/PlayerContext";
 
+interface RoomSuggestion {
+  code: string;
+  status: string;
+  playerCount: number;
+  createdAt: string;
+}
+
 export default function CaroLobbyPage() {
   const router = useRouter();
   const { player, setGuestName } = usePlayer();
@@ -18,6 +25,50 @@ export default function CaroLobbyPage() {
   const [guestNameInput, setGuestNameInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rooms, setRooms] = useState<RoomSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [loadingRooms, setLoadingRooms] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  const fetchRooms = async () => {
+    setLoadingRooms(true);
+    try {
+      const res = await fetch("/api/caro");
+      if (res.ok) {
+        const data = await res.json();
+        setRooms(data.rooms || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch rooms:", err);
+    } finally {
+      setLoadingRooms(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(e.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredRooms = rooms.filter((room) =>
+    room.code.toLowerCase().includes(roomCode.toLowerCase())
+  );
+
+  const handleSelectRoom = (code: string) => {
+    setRoomCode(code);
+    setShowSuggestions(false);
+  };
 
   const handleCreateRoom = async () => {
     if (!player) {
@@ -149,17 +200,73 @@ export default function CaroLobbyPage() {
               </p>
 
               <div className="space-y-3">
-                <Input
-                  label="Mã phòng"
-                  placeholder="Nhập mã phòng (VD: ABC123)"
-                  value={roomCode}
-                  onChange={(e) => {
-                    setRoomCode(e.target.value.toUpperCase());
-                    setError(null);
-                  }}
-                  onKeyPress={(e) => e.key === "Enter" && handleJoinRoom()}
-                  disabled={loading}
-                />
+                <div className="relative">
+                  <Input
+                    ref={inputRef}
+                    label="Mã phòng"
+                    placeholder="Nhập mã phòng (VD: ABC123)"
+                    value={roomCode}
+                    onChange={(e) => {
+                      setRoomCode(e.target.value.toUpperCase());
+                      setError(null);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => {
+                      fetchRooms();
+                      setShowSuggestions(true);
+                    }}
+                    onKeyPress={(e) => e.key === "Enter" && handleJoinRoom()}
+                    disabled={loading}
+                    autoComplete="off"
+                  />
+                  {showSuggestions && (
+                    <div
+                      ref={suggestionsRef}
+                      className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto"
+                    >
+                      {loadingRooms ? (
+                        <div className="p-3 text-gray-500 text-sm text-center">
+                          Đang tải...
+                        </div>
+                      ) : filteredRooms.length > 0 ? (
+                        filteredRooms.map((room) => (
+                          <button
+                            key={room.code}
+                            type="button"
+                            className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                            onClick={() => handleSelectRoom(room.code)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-gray-900">
+                                {room.code}
+                              </span>
+                              <span
+                                className={`text-xs px-2 py-1 rounded-full ${
+                                  room.status === "waiting"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-orange-100 text-orange-700"
+                                }`}
+                              >
+                                {room.status === "waiting"
+                                  ? `Chờ (${room.playerCount}/2)`
+                                  : "Đang chơi"}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {new Date(room.createdAt).toLocaleString("vi-VN")}
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="p-3 text-gray-500 text-sm text-center">
+                          {roomCode
+                            ? "Không tìm thấy phòng"
+                            : "Chưa có phòng nào"}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <Button 
                   onClick={handleJoinRoom}
                   disabled={loading || !roomCode.trim()}
