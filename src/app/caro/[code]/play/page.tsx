@@ -595,15 +595,9 @@ export default function CaroPlayPage() {
           {!winner && <div className="text-4xl mb-4">🤝</div>}
         </DialogContent>
         <DialogFooter className="flex-col sm:flex-row gap-2">
-          {winner && winner.visitorId !== player.visitorId ? (
-            <Button variant="outline" onClick={handleViewReplay} fullWidth>
-              Xem lại ván đấu
-            </Button>
-          ) : (
-            <Button variant="outline" onClick={() => setShowResultModal(false)} fullWidth>
-              Đóng
-            </Button>
-          )}
+          <Button variant="outline" onClick={handleViewReplay} fullWidth>
+            Xem lại ván đấu
+          </Button>
           <Button variant="outline" onClick={handleBackToRoom} fullWidth>
             Về phòng chờ
           </Button>
