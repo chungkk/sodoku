@@ -150,7 +150,36 @@ export default function CaroLobbyPage() {
         </motion.div>
       )}
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-3 gap-6">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.05 }}
+        >
+          <Card variant="elevated" className="h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-2xl">🤖</span>
+                Tập luyện
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-6">
+                Luyện tập với máy để cải thiện kỹ năng. Không cần đợi đối thủ, chơi ngay!
+              </p>
+
+              <Button 
+                onClick={() => router.push("/caro/bot")} 
+                fullWidth 
+                size="lg"
+                variant="outline"
+              >
+                🎯 Chơi với máy
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
