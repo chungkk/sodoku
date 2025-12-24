@@ -28,9 +28,18 @@ export const CaroBoard = memo(function CaroBoard({
   const lastTouchDistance = useRef<number | null>(null);
   const lastTap = useRef<number>(0);
   const dragStart = useRef({ x: 0, y: 0 });
+  const baseDimensions = useRef<{ width: number; height: number } | null>(null);
 
   const MIN_SCALE = 1;
   const MAX_SCALE = 3;
+
+  // Lưu kích thước gốc của board khi render lần đầu
+  useEffect(() => {
+    if (boardRef.current && !baseDimensions.current) {
+      const rect = boardRef.current.getBoundingClientRect();
+      baseDimensions.current = { width: rect.width, height: rect.height };
+    }
+  }, []);
 
   const isWinningCell = (row: number, col: number) => {
     return winningCells.some((cell) => cell.row === row && cell.col === col);
@@ -41,13 +50,13 @@ export const CaroBoard = memo(function CaroBoard({
   };
 
   const constrainPosition = useCallback((x: number, y: number, currentScale: number) => {
-    if (!containerRef.current || !boardRef.current) return { x, y };
+    if (!containerRef.current || !baseDimensions.current) return { x, y };
     
     const container = containerRef.current.getBoundingClientRect();
-    const board = boardRef.current.getBoundingClientRect();
     
-    const scaledWidth = (board.width / scale) * currentScale;
-    const scaledHeight = (board.height / scale) * currentScale;
+    // Sử dụng kích thước gốc đã lưu để tính toán chính xác
+    const scaledWidth = baseDimensions.current.width * currentScale;
+    const scaledHeight = baseDimensions.current.height * currentScale;
     
     const maxX = Math.max(0, (scaledWidth - container.width) / 2);
     const maxY = Math.max(0, (scaledHeight - container.height) / 2);
@@ -56,7 +65,7 @@ export const CaroBoard = memo(function CaroBoard({
       x: Math.max(-maxX, Math.min(maxX, x)),
       y: Math.max(-maxY, Math.min(maxY, y))
     };
-  }, [scale]);
+  }, []);
 
   const handleZoom = useCallback((newScale: number, centerX?: number, centerY?: number) => {
     const constrainedScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
@@ -111,14 +120,16 @@ export const CaroBoard = memo(function CaroBoard({
   }, [scale, position, handleZoom]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 2 && lastTouchDistance.current) {
+    if (e.touches.length === 2 && lastTouchDistance.current !== null) {
       e.preventDefault();
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const distance = Math.sqrt(dx * dx + dy * dy);
       
-      const scaleChange = distance / lastTouchDistance.current;
-      handleZoom(scale * scaleChange);
+      // Tránh scale quá nhanh bằng cách giới hạn scaleChange
+      const scaleChange = Math.max(0.5, Math.min(2, distance / lastTouchDistance.current));
+      const newScale = scale * scaleChange;
+      handleZoom(newScale);
       
       lastTouchDistance.current = distance;
     } else if (e.touches.length === 1 && isDragging && scale > MIN_SCALE) {

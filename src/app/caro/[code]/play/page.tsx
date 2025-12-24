@@ -35,6 +35,7 @@ export default function CaroPlayPage() {
   const [showGiveUpConfirm, setShowGiveUpConfirm] = useState(false);
   const [turnStartedAt, setTurnStartedAt] = useState<Date | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(300); // 5 minutes in seconds
+  const [isReplayMode, setIsReplayMode] = useState(false);
 
   const game = useCaroGame();
 
@@ -238,6 +239,11 @@ export default function CaroPlayPage() {
     router.push("/caro");
   };
 
+  const handleViewReplay = () => {
+    setShowResultModal(false);
+    setIsReplayMode(true);
+  };
+
   if (loading || !player) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -287,16 +293,22 @@ export default function CaroPlayPage() {
               <span className="text-xs text-gray-500">Room:</span>
               <span className="text-sm font-mono font-bold">{code}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className={`px-2 py-1 rounded-lg text-lg font-bold ${getTimerColor()}`}>
-                {formatTime(timeRemaining)}
+            {isReplayMode ? (
+              <div className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
+                Chế độ xem lại
               </div>
-              <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                isMyTurn ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
-              }`}>
-                {isMyTurn ? "Lượt của bạn" : `Lượt ${opponent?.name}`}
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className={`px-2 py-1 rounded-lg text-lg font-bold ${getTimerColor()}`}>
+                  {formatTime(timeRemaining)}
+                </div>
+                <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  isMyTurn ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                }`}>
+                  {isMyTurn ? "Lượt của bạn" : `Lượt ${opponent?.name}`}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -306,7 +318,7 @@ export default function CaroPlayPage() {
             <CaroBoard
               board={game.board}
               onCellClick={handleCellClick}
-              disabled={!isMyTurn || gameStatus !== "playing"}
+              disabled={!isMyTurn || gameStatus !== "playing" || isReplayMode}
               lastMove={game.lastMove}
               winningCells={game.winningCells}
             />
@@ -315,15 +327,26 @@ export default function CaroPlayPage() {
 
         {/* Footer */}
         <div className="flex-shrink-0 bg-white border-t border-gray-100 p-4 pb-safe">
-          <Button
-            variant="ghost"
-            fullWidth
-            onClick={() => setShowGiveUpConfirm(true)}
-            disabled={gameStatus !== "playing"}
-            className="text-red-500"
-          >
-            Đầu hàng
-          </Button>
+          {isReplayMode ? (
+            <div className="space-y-2">
+              <Button variant="outline" fullWidth onClick={handleBackToRoom}>
+                Về phòng chờ
+              </Button>
+              <Button fullWidth onClick={handleBackToLobby}>
+                Về lobby
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              fullWidth
+              onClick={() => setShowGiveUpConfirm(true)}
+              disabled={gameStatus !== "playing"}
+              className="text-red-500"
+            >
+              Đầu hàng
+            </Button>
+          )}
         </div>
       </div>
 
@@ -346,32 +369,42 @@ export default function CaroPlayPage() {
             <div>
               <Card padding="md">
                 <div className="mb-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <span className="text-sm text-gray-600">Lượt của: </span>
-                      <span className="font-bold text-lg">
-                        {isMyTurn ? "Bạn" : opponent?.name}
-                      </span>
-                      <span className="ml-2 text-xl">
-                        {game.currentTurn === "X" ? "❌" : "⭕"}
+                  {isReplayMode ? (
+                    <div className="mb-3">
+                      <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
+                        Chế độ xem lại
                       </span>
                     </div>
-                    <Button variant="ghost" onClick={() => setShowGiveUpConfirm(true)} className="text-red-500">
-                      Đầu hàng
-                    </Button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">⏱️ Thời gian còn lại:</span>
-                    <span className={`text-2xl font-bold ${getTimerColor()}`}>
-                      {formatTime(timeRemaining)}
-                    </span>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <span className="text-sm text-gray-600">Lượt của: </span>
+                          <span className="font-bold text-lg">
+                            {isMyTurn ? "Bạn" : opponent?.name}
+                          </span>
+                          <span className="ml-2 text-xl">
+                            {game.currentTurn === "X" ? "❌" : "⭕"}
+                          </span>
+                        </div>
+                        <Button variant="ghost" onClick={() => setShowGiveUpConfirm(true)} className="text-red-500">
+                          Đầu hàng
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">⏱️ Thời gian còn lại:</span>
+                        <span className={`text-2xl font-bold ${getTimerColor()}`}>
+                          {formatTime(timeRemaining)}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <CaroBoard
                   board={game.board}
                   onCellClick={handleCellClick}
-                  disabled={!isMyTurn || gameStatus !== "playing"}
+                  disabled={!isMyTurn || gameStatus !== "playing" || isReplayMode}
                   lastMove={game.lastMove}
                   winningCells={game.winningCells}
                 />
@@ -452,9 +485,15 @@ export default function CaroPlayPage() {
           {!winner && <div className="text-4xl mb-4">🤝</div>}
         </DialogContent>
         <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={() => setShowResultModal(false)} fullWidth>
-            {winner && winner.visitorId !== player.visitorId ? "Xem lại ván đấu" : "Đóng"}
-          </Button>
+          {winner && winner.visitorId !== player.visitorId ? (
+            <Button variant="outline" onClick={handleViewReplay} fullWidth>
+              Xem lại ván đấu
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => setShowResultModal(false)} fullWidth>
+              Đóng
+            </Button>
+          )}
           <Button variant="outline" onClick={handleBackToRoom} fullWidth>
             Về phòng chờ
           </Button>
