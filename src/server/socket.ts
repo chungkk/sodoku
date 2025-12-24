@@ -389,6 +389,21 @@ export function setupSocketHandlers(io: Server): void {
       }
     });
 
+    playerSocket.on("caro_pause_game", (data: { roomCode: string; paused: boolean }) => {
+      const socketRoom = CARO_PREFIX + data.roomCode;
+      if (data.paused) {
+        clearCaroTurnTimeout(data.roomCode);
+      } else {
+        startCaroTurnTimeout(io, data.roomCode);
+      }
+      io.to(socketRoom).emit("caro_game_paused", {
+        visitorId,
+        name,
+        paused: data.paused,
+      });
+      console.log(`${name} ${data.paused ? "paused" : "resumed"} caro game in room ${data.roomCode}`);
+    });
+
     playerSocket.on("disconnect", (reason) => {
       console.log(`Player disconnected: ${name} (${visitorId}) - ${reason}`);
       playerSockets.delete(visitorId);

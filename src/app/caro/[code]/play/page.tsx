@@ -35,6 +35,8 @@ export default function CaroPlayPage() {
   const [showGiveUpConfirm, setShowGiveUpConfirm] = useState(false);
   const [turnStartedAt, setTurnStartedAt] = useState<Date | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(300); // 5 minutes in seconds
+  const [isPaused, setIsPaused] = useState(false);
+  const [pausedBy, setPausedBy] = useState<{ visitorId: string; name: string } | null>(null);
 
   const game = useCaroGame();
 
@@ -130,18 +132,29 @@ export default function CaroPlayPage() {
       }
     );
 
+    on<{ visitorId: string; name: string; paused: boolean }>("caro_game_paused", (data) => {
+      setIsPaused(data.paused);
+      if (data.paused) {
+        setPausedBy({ visitorId: data.visitorId, name: data.name });
+      } else {
+        setPausedBy(null);
+        setTurnStartedAt(new Date());
+      }
+    });
+
     return () => {
       off("caro_move_made");
       off("caro_game_ended");
       off("caro_turn_timeout");
       off("caro_player_gave_up");
       off("caro_game_started");
+      off("caro_game_paused");
     };
   }, [isConnected, on, off, player, game, roomPlayers, fetchRoomData]);
 
   // Timer countdown effect
   useEffect(() => {
-    if (!turnStartedAt || gameStatus !== "playing") return;
+    if (!turnStartedAt || gameStatus !== "playing" || isPaused) return;
 
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - turnStartedAt.getTime()) / 1000);
@@ -154,10 +167,18 @@ export default function CaroPlayPage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [turnStartedAt, gameStatus]);
+  }, [turnStartedAt, gameStatus, isPaused]);
+
+  const handlePauseToggle = () => {
+    if (gameStatus !== "playing" || !player) return;
+    if (pausedBy && pausedBy.visitorId !== player.visitorId) return;
+    
+    const newPaused = !isPaused;
+    emit("caro_pause_game", { roomCode: code, paused: newPaused });
+  };
 
   const handleCellClick = async (row: number, col: number) => {
-    if (!player || gameStatus !== "playing" || !mySymbol) return;
+    if (!player || gameStatus !== "playing" || !mySymbol || isPaused) return;
     if (game.currentTurn !== mySymbol) return;
 
     const success = game.makeMove(row, col, mySymbol);
@@ -288,9 +309,18 @@ export default function CaroPlayPage() {
               <span className="text-sm font-mono font-bold">{code}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className={`px-2 py-1 rounded-lg text-lg font-bold ${getTimerColor()}`}>
+              <div className={`px-2 py-1 rounded-lg text-lg font-bold ${getTimerColor()} ${isPaused ? "opacity-50" : ""}`}>
                 {formatTime(timeRemaining)}
               </div>
+              <button
+                onClick={handlePauseToggle}
+                disabled={!!(pausedBy && pausedBy.visitorId !== player.visitorId)}
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  isPaused ? "bg-green-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                } disabled:opacity-50`}
+              >
+                {isPaused ? "▶" : "⏸"}
+              </button>
               <div className={`px-3 py-1 rounded-full text-sm font-medium ${
                 isMyTurn ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
               }`}>
@@ -298,6 +328,15 @@ export default function CaroPlayPage() {
               </div>
             </div>
           </div>
+          {pausedBy && (
+            <div className="mt-2 p-2 bg-amber-100 border border-amber-300 rounded-lg text-center">
+              <span className="text-amber-800 font-medium text-xs">
+                {pausedBy.visitorId === player.visitorId 
+                  ? "Bạn đã tạm dừng" 
+                  : `${pausedBy.name} đã tạm dừng`}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Board */}
@@ -306,7 +345,7 @@ export default function CaroPlayPage() {
             <CaroBoard
               board={game.board}
               onCellClick={handleCellClick}
-              disabled={!isMyTurn || gameStatus !== "playing"}
+              disabled={!isMyTurn || gameStatus !== "playing" || isPaused}
               lastMove={game.lastMove}
               winningCells={game.winningCells}
             />
@@ -360,18 +399,36 @@ export default function CaroPlayPage() {
                       Đầu hàng
                     </Button>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <span className="text-sm text-gray-600">⏱️ Thời gian còn lại:</span>
-                    <span className={`text-2xl font-bold ${getTimerColor()}`}>
+                    <span className={`text-2xl font-bold ${getTimerColor()} ${isPaused ? "opacity-50" : ""}`}>
                       {formatTime(timeRemaining)}
                     </span>
+                    <button
+                      onClick={handlePauseToggle}
+                      disabled={!!(pausedBy && pausedBy.visitorId !== player.visitorId)}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        isPaused ? "bg-green-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      } disabled:opacity-50`}
+                    >
+                      {isPaused ? "▶" : "⏸"}
+                    </button>
                   </div>
+                  {pausedBy && (
+                    <div className="mt-2 p-2 bg-amber-100 border border-amber-300 rounded-lg text-center">
+                      <span className="text-amber-800 font-medium text-sm">
+                        {pausedBy.visitorId === player.visitorId 
+                          ? "Bạn đã tạm dừng" 
+                          : `${pausedBy.name} đã tạm dừng`}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <CaroBoard
                   board={game.board}
                   onCellClick={handleCellClick}
-                  disabled={!isMyTurn || gameStatus !== "playing"}
+                  disabled={!isMyTurn || gameStatus !== "playing" || isPaused}
                   lastMove={game.lastMove}
                   winningCells={game.winningCells}
                 />
