@@ -52,6 +52,7 @@ export async function POST(
       });
     }
 
+    room.lastActivityAt = new Date();
     await room.save();
 
     return NextResponse.json({

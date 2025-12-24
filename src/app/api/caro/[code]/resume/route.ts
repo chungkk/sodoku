@@ -53,6 +53,7 @@ export async function POST(
     room.pausedBy = null;
     room.pausedAt = undefined;
     room.remainingTime = undefined;
+    room.lastActivityAt = new Date();
 
     await room.save();
 

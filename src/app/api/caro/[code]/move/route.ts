@@ -98,6 +98,7 @@ export async function POST(
       room.turnStartedAt = new Date();
     }
 
+    room.lastActivityAt = new Date();
     await room.save();
 
     return NextResponse.json({

@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       board: createEmptyBoard(),
       currentTurn: "X",
       status: "waiting",
+      lastActivityAt: new Date(),
     });
 
     return NextResponse.json({

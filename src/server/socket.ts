@@ -284,7 +284,7 @@ export function setupSocketHandlers(io: Server): void {
         const CaroRoom = (await import("../models/CaroRoom")).default;
         await CaroRoom.findOneAndUpdate(
           { code: roomCode, "players.visitorId": visitorId },
-          { $set: { "players.$.isReady": ready } }
+          { $set: { "players.$.isReady": ready, lastActivityAt: new Date() } }
         );
         console.log(`${name} set ready=${ready} in caro room ${roomCode}`);
       } catch (error) {
@@ -521,6 +521,7 @@ function startCaroTurnTimeout(io: Server, roomCode: string): void {
       room.status = "finished";
       room.winnerId = opponent?.visitorId || null;
       room.finishedAt = new Date();
+      room.lastActivityAt = new Date();
       await room.save();
       
       const socketRoom = CARO_PREFIX + roomCode;

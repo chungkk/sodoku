@@ -54,6 +54,7 @@ export async function POST(
     room.board = createEmptyBoard();
     room.currentTurn = "X";
     room.moves = [];
+    room.lastActivityAt = new Date();
 
     await room.save();
 

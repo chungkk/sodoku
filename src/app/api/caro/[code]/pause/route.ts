@@ -48,6 +48,7 @@ export async function POST(
     room.pausedBy = visitorId;
     room.pausedAt = now;
     room.remainingTime = remainingTime;
+    room.lastActivityAt = now;
 
     await room.save();
 

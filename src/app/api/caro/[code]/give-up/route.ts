@@ -40,6 +40,7 @@ export async function POST(
 
     room.status = "finished";
     room.finishedAt = new Date();
+    room.lastActivityAt = new Date();
 
     await room.save();
 
