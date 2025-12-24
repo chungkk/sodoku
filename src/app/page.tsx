@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import { Dialog, DialogHeader, DialogTitle, DialogContent } from "@/components/u
 import { usePlayer } from "@/contexts/PlayerContext";
 import { CreateRoomForm } from "@/components/CreateRoomForm";
 import { JoinRoomForm } from "@/components/JoinRoomForm";
+import { NameInput } from "@/components/NameInput";
 import { Difficulty } from "@/lib/sudoku";
 
 const difficultyOptions = [
@@ -18,13 +20,118 @@ const difficultyOptions = [
   { value: "hard", label: "🔴 Khó" },
 ];
 
+interface CaroRoom {
+  code: string;
+  status: string;
+  playerCount: number;
+  createdAt: string;
+}
+
 export default function HomePage() {
+  const router = useRouter();
   const { player, setGuestName } = usePlayer();
   const [guestNameInput, setGuestNameInput] = useState("");
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [showNameInput, setShowNameInput] = useState(false);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [showJoinRoom, setShowJoinRoom] = useState(false);
+
+  // Caro states
+  const [caroRoomCode, setCaroRoomCode] = useState("");
+  const [caroRooms, setCaroRooms] = useState<CaroRoom[]>([]);
+  const [showCaroSuggestions, setShowCaroSuggestions] = useState(false);
+  const [loadingCaroRooms, setLoadingCaroRooms] = useState(false);
+  const [caroLoading, setCaroLoading] = useState(false);
+  const [caroError, setCaroError] = useState<string | null>(null);
+  const [showCaroNameInput, setShowCaroNameInput] = useState(false);
+  const [caroAction, setCaroAction] = useState<"create" | "join" | null>(null);
+  const caroInputRef = useRef<HTMLInputElement>(null);
+  const caroSuggestionsRef = useRef<HTMLDivElement>(null);
+
+  const fetchCaroRooms = async () => {
+    setLoadingCaroRooms(true);
+    try {
+      const res = await fetch("/api/caro");
+      if (res.ok) {
+        const data = await res.json();
+        setCaroRooms(data.rooms || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch caro rooms:", err);
+    } finally {
+      setLoadingCaroRooms(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        caroSuggestionsRef.current &&
+        !caroSuggestionsRef.current.contains(e.target as Node) &&
+        caroInputRef.current &&
+        !caroInputRef.current.contains(e.target as Node)
+      ) {
+        setShowCaroSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredCaroRooms = caroRooms.filter((room) =>
+    room.code.toLowerCase().includes(caroRoomCode.toLowerCase())
+  );
+
+  const handleCreateCaroRoom = async () => {
+    if (!player) {
+      setCaroAction("create");
+      setShowCaroNameInput(true);
+      return;
+    }
+    setCaroLoading(true);
+    setCaroError(null);
+    try {
+      const res = await fetch("/api/caro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visitorId: player.visitorId, name: player.name }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        router.push(`/caro/${data.room.code}`);
+      } else {
+        const data = await res.json();
+        setCaroError(data.error || "Không thể tạo phòng");
+      }
+    } catch {
+      setCaroError("Lỗi khi tạo phòng");
+    } finally {
+      setCaroLoading(false);
+    }
+  };
+
+  const handleJoinCaroRoom = () => {
+    if (!player) {
+      setCaroAction("join");
+      setShowCaroNameInput(true);
+      return;
+    }
+    if (!caroRoomCode.trim()) {
+      setCaroError("Vui lòng nhập mã phòng");
+      return;
+    }
+    router.push(`/caro/${caroRoomCode.trim().toUpperCase()}`);
+  };
+
+  const handleCaroNameSubmit = (name: string) => {
+    setGuestName(name);
+    setShowCaroNameInput(false);
+    if (caroAction === "create") {
+      setTimeout(() => handleCreateCaroRoom(), 100);
+    } else if (caroAction === "join" && caroRoomCode.trim()) {
+      router.push(`/caro/${caroRoomCode.trim().toUpperCase()}`);
+    }
+  };
 
   const handleStartPractice = () => {
     if (!player) {
@@ -169,18 +276,98 @@ export default function HomePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 mb-4">
                 Chơi cờ caro online với bạn bè. Đánh 5 ô liên tiếp để chiến thắng!
               </p>
+
+              {caroError && (
+                <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                  {caroError}
+                </div>
+              )}
 
               <div className="space-y-3">
                 <Button 
                   variant="primary" 
                   fullWidth 
                   size="lg"
-                  onClick={() => window.location.href = '/caro'}
+                  onClick={handleCreateCaroRoom}
+                  disabled={caroLoading}
                 >
-                  🎮 Chơi Caro
+                  {caroLoading ? "Đang tạo..." : "🚀 Tạo phòng"}
+                </Button>
+                
+                <div className="relative">
+                  <Input
+                    ref={caroInputRef}
+                    placeholder="Nhập mã phòng..."
+                    value={caroRoomCode}
+                    onChange={(e) => {
+                      setCaroRoomCode(e.target.value.toUpperCase());
+                      setCaroError(null);
+                      setShowCaroSuggestions(true);
+                    }}
+                    onFocus={() => {
+                      fetchCaroRooms();
+                      setShowCaroSuggestions(true);
+                    }}
+                    onKeyPress={(e) => e.key === "Enter" && handleJoinCaroRoom()}
+                    autoComplete="off"
+                  />
+                  {showCaroSuggestions && (
+                    <div
+                      ref={caroSuggestionsRef}
+                      className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto"
+                    >
+                      {loadingCaroRooms ? (
+                        <div className="p-3 text-gray-500 text-sm text-center">
+                          Đang tải...
+                        </div>
+                      ) : filteredCaroRooms.length > 0 ? (
+                        filteredCaroRooms.map((room) => (
+                          <button
+                            key={room.code}
+                            type="button"
+                            className="w-full px-3 py-2 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                            onClick={() => {
+                              setCaroRoomCode(room.code);
+                              setShowCaroSuggestions(false);
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-gray-900 text-sm">
+                                {room.code}
+                              </span>
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded-full ${
+                                  room.status === "waiting"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-orange-100 text-orange-700"
+                                }`}
+                              >
+                                {room.status === "waiting"
+                                  ? `Chờ (${room.playerCount}/2)`
+                                  : "Đang chơi"}
+                              </span>
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="p-3 text-gray-500 text-sm text-center">
+                          {caroRoomCode ? "Không tìm thấy" : "Chưa có phòng"}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <Button 
+                  variant="outline" 
+                  fullWidth
+                  onClick={handleJoinCaroRoom}
+                  disabled={!caroRoomCode.trim()}
+                >
+                  🔗 Tham gia phòng
                 </Button>
               </div>
             </CardContent>
@@ -220,6 +407,15 @@ export default function HomePage() {
         </DialogHeader>
         <DialogContent>
           <JoinRoomForm onCancel={() => setShowJoinRoom(false)} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCaroNameInput} onClose={() => setShowCaroNameInput(false)}>
+        <DialogHeader>
+          <DialogTitle>Nhập tên của bạn</DialogTitle>
+        </DialogHeader>
+        <DialogContent>
+          <NameInput onSubmit={handleCaroNameSubmit} />
         </DialogContent>
       </Dialog>
     </div>
