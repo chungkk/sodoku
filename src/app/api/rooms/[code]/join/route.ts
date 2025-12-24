@@ -55,6 +55,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (existingPlayer) {
       existingPlayer.isConnected = true;
       existingPlayer.lastSeen = new Date();
+      room.lastActivityAt = new Date();
       await room.save();
 
       return NextResponse.json({
@@ -78,6 +79,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    room.lastActivityAt = new Date();
     await room.save();
 
     return NextResponse.json({

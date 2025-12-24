@@ -56,6 +56,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       });
     }
 
+    room.lastActivityAt = new Date();
     await room.save();
 
     return NextResponse.json({

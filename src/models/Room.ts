@@ -30,6 +30,7 @@ export interface IRoom extends Document {
   finishedAt: Date | null;
   winnerId: string | null;
   createdAt: Date;
+  lastActivityAt: Date;
   addPlayer(visitorId: string, name: string, userId?: Types.ObjectId | null): boolean;
   removePlayer(visitorId: string): boolean;
   setPlayerReady(visitorId: string, ready: boolean): boolean;
@@ -99,6 +100,7 @@ const RoomSchema = new Schema<IRoom>(
     startedAt: { type: Date, default: null },
     finishedAt: { type: Date, default: null },
     winnerId: { type: String, default: null },
+    lastActivityAt: { type: Date, default: Date.now, index: { expires: "1d" } },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
@@ -106,7 +108,6 @@ const RoomSchema = new Schema<IRoom>(
 );
 
 RoomSchema.index({ status: 1 });
-RoomSchema.index({ createdAt: 1 }, { expireAfterSeconds: 86400 });
 
 RoomSchema.statics.generateRoomCode = function (): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -155,6 +156,7 @@ RoomSchema.statics.createRoom = async function (
         isConnected: true,
       },
     ],
+    lastActivityAt: new Date(),
   });
 
   return room.save();

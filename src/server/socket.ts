@@ -82,7 +82,7 @@ export function setupSocketHandlers(io: Server): void {
         const Room = (await import("../models/Room")).default;
         await Room.findOneAndUpdate(
           { code: roomCode, "players.visitorId": visitorId },
-          { $set: { "players.$.isReady": ready } }
+          { $set: { "players.$.isReady": ready, lastActivityAt: new Date() } }
         );
         console.log(`${name} set ready=${ready} in sudoku room ${roomCode}`);
       } catch (error) {

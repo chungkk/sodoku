@@ -79,6 +79,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     room.puzzleId = puzzle._id;
     room.status = "playing";
     room.startedAt = new Date();
+    room.lastActivityAt = new Date();
 
     room.players.forEach((player) => {
       player.progress = 0;
