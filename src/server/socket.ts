@@ -389,6 +389,51 @@ export function setupSocketHandlers(io: Server): void {
       }
     });
 
+    playerSocket.on("caro_pause_game", (data: {
+      roomCode: string;
+      pausedBy: string;
+      pausedByName: string;
+      remainingTime: number;
+    }) => {
+      const socketRoom = CARO_PREFIX + data.roomCode;
+      // Dừng turn timeout khi pause
+      clearCaroTurnTimeout(data.roomCode);
+      
+      io.to(socketRoom).emit("caro_game_paused", {
+        pausedBy: data.pausedBy,
+        pausedByName: data.pausedByName,
+        remainingTime: data.remainingTime,
+      });
+      
+      console.log(`Caro game paused in room ${data.roomCode} by ${data.pausedByName}`);
+    });
+
+    playerSocket.on("caro_resume_game", async (data: {
+      roomCode: string;
+      turnStartedAt: string;
+    }) => {
+      const socketRoom = CARO_PREFIX + data.roomCode;
+      
+      io.to(socketRoom).emit("caro_game_resumed", {
+        turnStartedAt: data.turnStartedAt,
+      });
+      
+      // Khởi động lại turn timeout
+      try {
+        await connectDB();
+        const CaroRoom = (await import("../models/CaroRoom")).default;
+        const room = await CaroRoom.findOne({ code: data.roomCode });
+        
+        if (room && room.status === "playing") {
+          startCaroTurnTimeout(io, data.roomCode);
+        }
+      } catch (error) {
+        console.error("Error restarting turn timeout:", error);
+      }
+      
+      console.log(`Caro game resumed in room ${data.roomCode}`);
+    });
+
     playerSocket.on("disconnect", (reason) => {
       console.log(`Player disconnected: ${name} (${visitorId}) - ${reason}`);
       playerSockets.delete(visitorId);

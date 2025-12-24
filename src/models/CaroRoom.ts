@@ -27,6 +27,10 @@ export interface ICaroRoom extends Document {
   startedAt?: Date;
   finishedAt?: Date;
   turnStartedAt?: Date;
+  isPaused?: boolean;
+  pausedBy?: string | null;
+  pausedAt?: Date;
+  remainingTime?: number;
 }
 
 const CaroPlayerSchema = new Schema({
@@ -60,6 +64,10 @@ const CaroRoomSchema = new Schema({
   startedAt: { type: Date },
   finishedAt: { type: Date },
   turnStartedAt: { type: Date },
+  isPaused: { type: Boolean, default: false },
+  pausedBy: { type: String, default: null },
+  pausedAt: { type: Date },
+  remainingTime: { type: Number },
 });
 
 export default mongoose.models.CaroRoom ||

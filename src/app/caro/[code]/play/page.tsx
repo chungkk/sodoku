@@ -36,6 +36,9 @@ export default function CaroPlayPage() {
   const [turnStartedAt, setTurnStartedAt] = useState<Date | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(300); // 5 minutes in seconds
   const [isReplayMode, setIsReplayMode] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [pausedBy, setPausedBy] = useState<string | null>(null);
+  const [showPauseConfirm, setShowPauseConfirm] = useState(false);
 
   const game = useCaroGame();
 
@@ -63,6 +66,8 @@ export default function CaroPlayPage() {
           if (data.turnStartedAt) {
             setTurnStartedAt(new Date(data.turnStartedAt));
           }
+          setIsPaused(data.isPaused || false);
+          setPausedBy(data.pausedBy || null);
         }
 
         if (data.status === "finished") {
@@ -131,18 +136,37 @@ export default function CaroPlayPage() {
       }
     );
 
+    on<{ pausedBy: string; pausedByName: string; remainingTime: number }>(
+      "caro_game_paused",
+      (data) => {
+        setIsPaused(true);
+        setPausedBy(data.pausedBy);
+      }
+    );
+
+    on<{ turnStartedAt: string }>(
+      "caro_game_resumed",
+      (data) => {
+        setIsPaused(false);
+        setPausedBy(null);
+        setTurnStartedAt(new Date(data.turnStartedAt));
+      }
+    );
+
     return () => {
       off("caro_move_made");
       off("caro_game_ended");
       off("caro_turn_timeout");
       off("caro_player_gave_up");
       off("caro_game_started");
+      off("caro_game_paused");
+      off("caro_game_resumed");
     };
   }, [isConnected, on, off, player, game, roomPlayers, fetchRoomData]);
 
   // Timer countdown effect
   useEffect(() => {
-    if (!turnStartedAt || gameStatus !== "playing") return;
+    if (!turnStartedAt || gameStatus !== "playing" || isPaused) return;
 
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - turnStartedAt.getTime()) / 1000);
@@ -155,7 +179,7 @@ export default function CaroPlayPage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [turnStartedAt, gameStatus]);
+  }, [turnStartedAt, gameStatus, isPaused]);
 
   const handleCellClick = async (row: number, col: number) => {
     if (!player || gameStatus !== "playing" || !mySymbol) return;
@@ -244,6 +268,54 @@ export default function CaroPlayPage() {
     setIsReplayMode(true);
   };
 
+  const handlePauseGame = async () => {
+    if (!player || isPaused) return;
+
+    try {
+      const res = await fetch(`/api/caro/${code}/pause`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visitorId: player.visitorId }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        emit("caro_pause_game", {
+          roomCode: code,
+          pausedBy: player.visitorId,
+          pausedByName: player.name,
+          remainingTime: data.remainingTime,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to pause game:", error);
+    }
+
+    setShowPauseConfirm(false);
+  };
+
+  const handleResumeGame = async () => {
+    if (!player || !isPaused) return;
+
+    try {
+      const res = await fetch(`/api/caro/${code}/resume`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visitorId: player.visitorId }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        emit("caro_resume_game", {
+          roomCode: code,
+          turnStartedAt: data.turnStartedAt,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to resume game:", error);
+    }
+  };
+
   if (loading || !player) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -297,6 +369,10 @@ export default function CaroPlayPage() {
               <div className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
                 Chế độ xem lại
               </div>
+            ) : isPaused ? (
+              <div className="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700">
+                ⏸️ Đã tạm dừng
+              </div>
             ) : (
               <div className="flex items-center gap-2">
                 <div className={`px-2 py-1 rounded-lg text-lg font-bold ${getTimerColor()}`}>
@@ -318,7 +394,7 @@ export default function CaroPlayPage() {
             <CaroBoard
               board={game.board}
               onCellClick={handleCellClick}
-              disabled={!isMyTurn || gameStatus !== "playing" || isReplayMode}
+              disabled={!isMyTurn || gameStatus !== "playing" || isReplayMode || isPaused}
               lastMove={game.lastMove}
               winningCells={game.winningCells}
             />
@@ -336,16 +412,34 @@ export default function CaroPlayPage() {
                 Về lobby
               </Button>
             </div>
-          ) : (
+          ) : isPaused ? (
             <Button
-              variant="ghost"
               fullWidth
-              onClick={() => setShowGiveUpConfirm(true)}
-              disabled={gameStatus !== "playing"}
-              className="text-red-500"
+              onClick={handleResumeGame}
+              className="bg-green-600 hover:bg-green-700"
             >
-              Đầu hàng
+              ▶️ Tiếp tục
             </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                fullWidth
+                onClick={() => setShowPauseConfirm(true)}
+                disabled={gameStatus !== "playing"}
+              >
+                ⏸️ Tạm dừng
+              </Button>
+              <Button
+                variant="ghost"
+                fullWidth
+                onClick={() => setShowGiveUpConfirm(true)}
+                disabled={gameStatus !== "playing"}
+                className="text-red-500"
+              >
+                Đầu hàng
+              </Button>
+            </div>
           )}
         </div>
       </div>
@@ -375,6 +469,17 @@ export default function CaroPlayPage() {
                         Chế độ xem lại
                       </span>
                     </div>
+                  ) : isPaused ? (
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between">
+                        <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700">
+                          ⏸️ Trò chơi đã tạm dừng
+                        </span>
+                        <Button onClick={handleResumeGame} className="bg-green-600 hover:bg-green-700">
+                          ▶️ Tiếp tục
+                        </Button>
+                      </div>
+                    </div>
                   ) : (
                     <>
                       <div className="flex items-center justify-between mb-3">
@@ -387,9 +492,14 @@ export default function CaroPlayPage() {
                             {game.currentTurn === "X" ? "❌" : "⭕"}
                           </span>
                         </div>
-                        <Button variant="ghost" onClick={() => setShowGiveUpConfirm(true)} className="text-red-500">
-                          Đầu hàng
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button variant="outline" onClick={() => setShowPauseConfirm(true)}>
+                            ⏸️ Tạm dừng
+                          </Button>
+                          <Button variant="ghost" onClick={() => setShowGiveUpConfirm(true)} className="text-red-500">
+                            Đầu hàng
+                          </Button>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">⏱️ Thời gian còn lại:</span>
@@ -404,7 +514,7 @@ export default function CaroPlayPage() {
                 <CaroBoard
                   board={game.board}
                   onCellClick={handleCellClick}
-                  disabled={!isMyTurn || gameStatus !== "playing" || isReplayMode}
+                  disabled={!isMyTurn || gameStatus !== "playing" || isReplayMode || isPaused}
                   lastMove={game.lastMove}
                   winningCells={game.winningCells}
                 />
@@ -519,6 +629,26 @@ export default function CaroPlayPage() {
           </Button>
           <Button variant="danger" onClick={handleGiveUp}>
             Đầu hàng
+          </Button>
+        </DialogFooter>
+      </Dialog>
+
+      {/* Pause Confirmation */}
+      <Dialog open={showPauseConfirm} onClose={() => setShowPauseConfirm(false)}>
+        <DialogHeader>
+          <DialogTitle>Tạm dừng trò chơi?</DialogTitle>
+        </DialogHeader>
+        <DialogContent>
+          <p className="text-gray-600">
+            Bạn muốn tạm dừng trò chơi? Đồng hồ sẽ dừng lại và đối thủ sẽ được thông báo.
+          </p>
+        </DialogContent>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setShowPauseConfirm(false)}>
+            Hủy
+          </Button>
+          <Button onClick={handlePauseGame}>
+            ⏸️ Tạm dừng
           </Button>
         </DialogFooter>
       </Dialog>

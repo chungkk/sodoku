@@ -28,6 +28,11 @@ export async function GET(
       createdAt: room.createdAt,
       startedAt: room.startedAt,
       finishedAt: room.finishedAt,
+      turnStartedAt: room.turnStartedAt,
+      isPaused: room.isPaused,
+      pausedBy: room.pausedBy,
+      pausedAt: room.pausedAt,
+      remainingTime: room.remainingTime,
     });
   } catch (error) {
     console.error("Failed to fetch caro room:", error);
