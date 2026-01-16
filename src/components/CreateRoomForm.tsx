@@ -3,23 +3,22 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
 import { NameInput } from "@/components/NameInput";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { Difficulty } from "@/lib/sudoku";
 
 const difficultyOptions = [
-  { value: "easy", label: "🟢 Dễ" },
-  { value: "medium", label: "🟡 Trung bình" },
-  { value: "hard", label: "🔴 Khó" },
+  { value: "easy", label: "🟢 DỄ", color: "text-green-400" },
+  { value: "medium", label: "🟡 TRUNG BÌNH", color: "text-yellow-400" },
+  { value: "hard", label: "🔴 KHÓ", color: "text-red-400" },
 ];
 
 interface CreateRoomFormProps {
   onCancel?: () => void;
+  gameType?: "sudoku" | "caro";
 }
 
-export function CreateRoomForm({ onCancel }: CreateRoomFormProps) {
+export function CreateRoomForm({ onCancel, gameType = "sudoku" }: CreateRoomFormProps) {
   const router = useRouter();
   const { player, setGuestName } = usePlayer();
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
@@ -71,50 +70,71 @@ export function CreateRoomForm({ onCancel }: CreateRoomFormProps) {
     setError(null);
 
     try {
-      console.log("Creating room with:", { visitorId: player.visitorId, hostName: player.name, difficulty });
-      
-      const response = await fetch("/api/rooms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          visitorId: player.visitorId,
-          hostName: player.name,
-          difficulty,
-          userId: player.oderId || null,
-        }),
-      });
+      if (gameType === "caro") {
+        const response = await fetch("/api/caro", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            visitorId: player.visitorId,
+            name: player.name,
+          }),
+        });
 
-      const data = await response.json();
-      
-      if (!response.ok) {
-        console.error("Create room failed:", data);
-        throw new Error(data.details || data.error || "Không thể tạo phòng");
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Không thể tạo phòng Caro");
+        }
+
+        router.push(`/caro/${data.room.code}`);
+      } else {
+        const response = await fetch("/api/rooms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            visitorId: player.visitorId,
+            hostName: player.name,
+            difficulty,
+            userId: player.oderId || null,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.details || data.error || "Không thể tạo phòng");
+        }
+
+        router.push(`/room/${data.code}`);
       }
-
-      console.log("Room created:", data.code);
-      router.push(`/room/${data.code}`);
     } catch (err) {
       console.error("Create room error:", err);
       setError(err instanceof Error ? err.message : "Đã xảy ra lỗi khi tạo phòng");
       setIsLoading(false);
     }
-  }, [player, difficulty, router]);
+  }, [player, difficulty, gameType, router]);
+
+  const isCaro = gameType === "caro";
+  const accentColor = isCaro ? "pink" : "cyan";
 
   if (step === "name") {
     return (
       <div className="space-y-4">
         <NameInput
           onSubmit={handleNameSubmit}
-          buttonText="Tiếp tục"
+          buttonText="▸ TIẾP TỤC"
           isLoading={isLoading}
         />
         {error && (
-          <p className="text-sm text-error-500 text-center">{error}</p>
+          <p className="text-sm text-red-400 text-center font-mono">{error}</p>
         )}
         {onCancel && (
-          <Button variant="ghost" fullWidth onClick={onCancel}>
-            Hủy
-          </Button>
+          <button
+            onClick={onCancel}
+            className="w-full py-2 text-gray-500 hover:text-cyan-400 font-mono text-sm uppercase tracking-wider transition-colors"
+          >
+            [ HỦY ]
+          </button>
         )}
       </div>
     );
@@ -127,35 +147,70 @@ export function CreateRoomForm({ onCancel }: CreateRoomFormProps) {
       className="space-y-4"
     >
       <div className="text-center mb-4">
-        <p className="text-gray-600">
-          Xin chào, <span className="font-semibold">{player?.name}</span>!
+        <p className="text-gray-400 font-mono text-sm">
+          PLAYER: <span className={`text-${accentColor}-400 font-bold`}>{player?.name}</span>
         </p>
       </div>
 
-      <Select
-        label="Độ khó"
-        options={difficultyOptions}
-        value={difficulty}
-        onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-      />
-
-      {error && (
-        <p className="text-sm text-error-500 text-center">{error}</p>
+      {gameType === "sudoku" && (
+        <div className="space-y-2">
+          <label className="block text-gray-400 font-mono text-xs uppercase tracking-wider mb-2">
+            ► Độ khó
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {difficultyOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setDifficulty(opt.value as Difficulty)}
+                className={`
+                  py-2 px-3 border-2 font-mono text-xs uppercase tracking-wider transition-all
+                  ${difficulty === opt.value
+                    ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400'
+                    : 'border-gray-600 text-gray-400 hover:border-cyan-400/50'
+                  }
+                `}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
-      <Button
+      {gameType === "caro" && (
+        <div className="border border-pink-500/30 bg-pink-500/10 p-4 text-center">
+          <p className="text-pink-300 font-mono text-sm">
+            ► BÀN CỜ 15×15 • 2 PLAYERS • 5 Ô LIÊN TIẾP
+          </p>
+        </div>
+      )}
+
+      {error && (
+        <p className="text-sm text-red-400 text-center font-mono">{error}</p>
+      )}
+
+      <button
         onClick={handleCreateRoom}
-        fullWidth
-        size="lg"
-        isLoading={isLoading}
+        disabled={isLoading}
+        className={`
+          w-full py-3 px-4 font-bold uppercase tracking-wider transition-all duration-200
+          ${isCaro
+            ? 'bg-pink-500 hover:bg-pink-400 hover:shadow-[0_0_20px_rgba(255,0,255,0.6)]'
+            : 'bg-cyan-500 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,255,255,0.6)]'
+          }
+          text-black disabled:opacity-50 disabled:cursor-not-allowed
+        `}
       >
-        🚀 Tạo phòng
-      </Button>
+        {isLoading ? "ĐANG TẠO..." : `▸ TẠO PHÒNG ${isCaro ? 'CARO' : 'SUDOKU'}`}
+      </button>
 
       {onCancel && (
-        <Button variant="ghost" fullWidth onClick={onCancel}>
-          Hủy
-        </Button>
+        <button
+          onClick={onCancel}
+          className="w-full py-2 text-gray-500 hover:text-cyan-400 font-mono text-sm uppercase tracking-wider transition-colors"
+        >
+          [ HỦY ]
+        </button>
       )}
     </motion.div>
   );

@@ -2,8 +2,6 @@
 
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 
 interface NameInputProps {
   onSubmit: (name: string) => void;
@@ -16,7 +14,7 @@ interface NameInputProps {
 export function NameInput({
   onSubmit,
   placeholder = "Nhập tên của bạn",
-  buttonText = "Tiếp tục",
+  buttonText = "▸ TIẾP TỤC",
   isLoading = false,
   initialValue = "",
 }: NameInputProps) {
@@ -66,24 +64,40 @@ export function NameInput({
       animate={{ opacity: 1, y: 0 }}
       className="space-y-4"
     >
-      <Input
-        label="Tên người chơi"
-        placeholder={placeholder}
-        value={name}
-        onChange={handleChange}
-        error={error || undefined}
-        disabled={isLoading}
-        autoFocus
-        maxLength={20}
-      />
-      <Button
+      <div className="space-y-2">
+        <label className="block text-gray-400 font-mono text-xs uppercase tracking-wider">
+          ► Tên người chơi
+        </label>
+        <input
+          type="text"
+          placeholder={placeholder}
+          value={name}
+          onChange={handleChange}
+          disabled={isLoading}
+          autoFocus
+          maxLength={20}
+          className={`
+            w-full px-4 py-3 bg-transparent border-2 
+            ${error ? 'border-red-500' : 'border-cyan-400/50 focus:border-cyan-400'}
+            text-white font-mono text-lg
+            placeholder:text-gray-600
+            focus:outline-none focus:shadow-[0_0_15px_rgba(0,255,255,0.3)]
+            disabled:opacity-50 disabled:cursor-not-allowed
+            transition-all
+          `}
+        />
+        {error && (
+          <p className="text-sm text-red-400 font-mono">► {error}</p>
+        )}
+      </div>
+
+      <button
         type="submit"
-        fullWidth
         disabled={name.trim().length < 2 || isLoading}
-        isLoading={isLoading}
+        className="w-full py-3 px-4 bg-cyan-500 hover:bg-cyan-400 text-black font-bold uppercase tracking-wider transition-all duration-200 hover:shadow-[0_0_20px_rgba(0,255,255,0.6)] disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {buttonText}
-      </Button>
+        {isLoading ? "ĐANG XỬ LÝ..." : buttonText}
+      </button>
     </motion.form>
   );
 }
