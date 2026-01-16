@@ -30,32 +30,12 @@ export function Header() {
             [ Tập luyện ]
           </Link>
 
-          {player ? (
+          {player && (
             <div className="flex items-center gap-3">
               <span className="text-sm text-cyan-300 font-mono hidden sm:flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_6px_#4ade80]"></span>
                 {isGuest ? "GUEST:" : "PLAYER:"} {player.name}
               </span>
-              {!isGuest && (
-                <Link href="/profile">
-                  <button className="px-3 py-1.5 border border-cyan-400/50 text-cyan-400 hover:bg-cyan-400/10 font-mono text-xs uppercase tracking-wider transition-all">
-                    Hồ sơ
-                  </button>
-                </Link>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link href="/login">
-                <button className="px-3 py-1.5 border border-gray-600 text-gray-400 hover:border-cyan-400 hover:text-cyan-400 font-mono text-xs uppercase tracking-wider transition-all">
-                  Đăng nhập
-                </button>
-              </Link>
-              <Link href="/register">
-                <button className="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-black font-mono text-xs uppercase tracking-wider transition-all hover:shadow-[0_0_15px_rgba(0,255,255,0.5)]">
-                  Đăng ký
-                </button>
-              </Link>
             </div>
           )}
         </nav>
