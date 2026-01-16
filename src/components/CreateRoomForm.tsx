@@ -105,7 +105,7 @@ export function CreateRoomForm({ onCancel, gameType = "sudoku" }: CreateRoomForm
           throw new Error(data.details || data.error || "Không thể tạo phòng");
         }
 
-        router.push(`/room/${data.code}`);
+        router.push(`/sudoku/${data.code}`);
       }
     } catch (err) {
       console.error("Create room error:", err);

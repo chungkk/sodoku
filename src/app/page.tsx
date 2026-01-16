@@ -1,28 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogHeader, DialogTitle, DialogContent } from "@/components/ui/dialog";
+import { useRouter } from "next/navigation";
 import { usePlayer } from "@/contexts/PlayerContext";
-import { CreateRoomForm } from "@/components/CreateRoomForm";
-import { JoinRoomForm } from "@/components/JoinRoomForm";
 
 export default function HomePage() {
+  const router = useRouter();
   const { player } = usePlayer();
-  const [showCreateRoom, setShowCreateRoom] = useState(false);
-  const [showJoinRoom, setShowJoinRoom] = useState(false);
-  const [activeGame, setActiveGame] = useState<"sudoku" | "caro" | null>(null);
-
-  const handleCreateRoom = (game: "sudoku" | "caro") => {
-    setActiveGame(game);
-    setShowCreateRoom(true);
-  };
-
-  const handleJoinRoom = (game: "sudoku" | "caro") => {
-    setActiveGame(game);
-    setShowJoinRoom(true);
-  };
 
   return (
     <div className="min-h-screen bg-[#0a0a1a] relative overflow-hidden">
@@ -84,10 +68,11 @@ export default function HomePage() {
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="group"
+            className="group cursor-pointer"
+            onClick={() => router.push("/sudoku")}
           >
             <div
-              className="relative border-4 border-cyan-400 bg-[#0d1117] p-1 transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,255,255,0.4)]"
+              className="relative border-4 border-cyan-400 bg-[#0d1117] p-1 transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,255,255,0.4)] hover:scale-[1.02]"
               style={{ clipPath: 'polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px))' }}
             >
               {/* Corner Accent */}
@@ -129,26 +114,9 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Buttons */}
-                <div className="space-y-3">
-                  <button
-                    className="w-full py-3 px-4 bg-cyan-500 hover:bg-cyan-400 text-black font-bold uppercase tracking-wider transition-all duration-200 hover:shadow-[0_0_20px_rgba(0,255,255,0.6)]"
-                    onClick={() => handleCreateRoom("sudoku")}
-                  >
-                    ▸ TẠO PHÒNG
-                  </button>
-                  <button
-                    className="w-full py-3 px-4 border-2 border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 font-bold uppercase tracking-wider transition-all duration-200"
-                    onClick={() => handleJoinRoom("sudoku")}
-                  >
-                    ▸ THAM GIA PHÒNG
-                  </button>
-                  <button
-                    className="w-full py-2 px-4 text-gray-500 hover:text-cyan-400 font-mono text-sm uppercase tracking-wider transition-colors"
-                    onClick={() => window.location.href = '/practice'}
-                  >
-                    [ LUYỆN TẬP ]
-                  </button>
+                {/* CTA */}
+                <div className="w-full py-3 px-4 bg-cyan-500 text-black font-bold uppercase tracking-wider text-center">
+                  ▸ CHƠI NGAY
                 </div>
               </div>
             </div>
@@ -159,10 +127,11 @@ export default function HomePage() {
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="group"
+            className="group cursor-pointer"
+            onClick={() => router.push("/caro")}
           >
             <div
-              className="relative border-4 border-pink-500 bg-[#0d1117] p-1 transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,0,255,0.4)]"
+              className="relative border-4 border-pink-500 bg-[#0d1117] p-1 transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,0,255,0.4)] hover:scale-[1.02]"
               style={{ clipPath: 'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)' }}
             >
               {/* Corner Accent */}
@@ -204,25 +173,29 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Buttons */}
-                <div className="space-y-3">
-                  <button
-                    className="w-full py-3 px-4 bg-pink-500 hover:bg-pink-400 text-black font-bold uppercase tracking-wider transition-all duration-200 hover:shadow-[0_0_20px_rgba(255,0,255,0.6)]"
-                    onClick={() => handleCreateRoom("caro")}
-                  >
-                    ▸ TẠO PHÒNG
-                  </button>
-                  <button
-                    className="w-full py-3 px-4 border-2 border-pink-500 text-pink-400 hover:bg-pink-500/10 font-bold uppercase tracking-wider transition-all duration-200"
-                    onClick={() => handleJoinRoom("caro")}
-                  >
-                    ▸ THAM GIA PHÒNG
-                  </button>
+                {/* CTA */}
+                <div className="w-full py-3 px-4 bg-pink-500 text-black font-bold uppercase tracking-wider text-center">
+                  ▸ CHƠI NGAY
                 </div>
               </div>
             </div>
           </motion.div>
         </div>
+
+        {/* Practice Link */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="text-center mt-12"
+        >
+          <button
+            onClick={() => router.push("/practice")}
+            className="px-6 py-3 border-2 border-gray-600 text-gray-400 hover:border-cyan-400 hover:text-cyan-400 font-mono uppercase tracking-wider transition-all"
+          >
+            🎯 LUYỆN TẬP SUDOKU (SOLO)
+          </button>
+        </motion.div>
 
         {/* Features Footer */}
         <motion.div
@@ -253,29 +226,6 @@ export default function HomePage() {
           </div>
         </motion.div>
       </div>
-
-      {/* Dialogs */}
-      <Dialog open={showCreateRoom} onClose={() => setShowCreateRoom(false)}>
-        <DialogHeader>
-          <DialogTitle>
-            {activeGame === "sudoku" ? "🧩 TẠO PHÒNG SUDOKU" : "❌⭕ TẠO PHÒNG CARO"}
-          </DialogTitle>
-        </DialogHeader>
-        <DialogContent>
-          <CreateRoomForm onCancel={() => setShowCreateRoom(false)} gameType={activeGame || "sudoku"} />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showJoinRoom} onClose={() => setShowJoinRoom(false)}>
-        <DialogHeader>
-          <DialogTitle>
-            {activeGame === "sudoku" ? "🧩 THAM GIA PHÒNG SUDOKU" : "❌⭕ THAM GIA PHÒNG CARO"}
-          </DialogTitle>
-        </DialogHeader>
-        <DialogContent>
-          <JoinRoomForm onCancel={() => setShowJoinRoom(false)} gameType={activeGame || "sudoku"} />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

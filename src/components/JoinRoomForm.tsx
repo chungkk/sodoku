@@ -111,7 +111,7 @@ export function JoinRoomForm({ onCancel, initialCode = "", gameType = "sudoku" }
             throw new Error("Phòng đã đầy (tối đa 4 người chơi)");
           }
 
-          router.push(`/room/${code}`);
+          router.push(`/sudoku/${code}`);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Đã xảy ra lỗi");

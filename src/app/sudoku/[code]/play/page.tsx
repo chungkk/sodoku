@@ -134,7 +134,7 @@ export default function GamePlayPage() {
     }
     lastSaveRef.current = now;
 
-    const notesArray = game.notes.map(row => 
+    const notesArray = game.notes.map(row =>
       row.map(cellNotes => Array.from(cellNotes))
     );
 
@@ -160,29 +160,29 @@ export default function GamePlayPage() {
       ]);
 
       if (!roomRes.ok) {
-        router.push(`/room/${code}`);
+        router.push(`/sudoku/${code}`);
         return;
       }
 
       const roomData = await roomRes.json();
 
       if (roomData.status !== "playing" && roomData.status !== "finished") {
-        router.push(`/room/${code}`);
+        router.push(`/sudoku/${code}`);
         return;
       }
 
       if (puzzleRes.ok) {
         const puzzleData = await puzzleRes.json();
-        
+
         let savedState = null;
-        
+
         if (stateRes && stateRes.ok) {
           const serverState = await stateRes.json();
           if (serverState.hasState) {
             savedState = serverState;
           }
         }
-        
+
         if (!savedState) {
           savedState = loadLocalState();
         }
@@ -191,11 +191,11 @@ export default function GamePlayPage() {
           const userInput = savedState.currentGrid.map((row: (number | null)[]) =>
             row.map((cell: number | null) => (cell === 0 ? null : cell))
           );
-          
+
           const notes: Set<number>[][] = savedState.notes && savedState.notes.length > 0
             ? savedState.notes.map((row: number[][]) =>
-                row.map((cellNotes: number[]) => new Set(cellNotes))
-              )
+              row.map((cellNotes: number[]) => new Set(cellNotes))
+            )
             : Array(9).fill(null).map(() => Array(9).fill(null).map(() => new Set<number>()));
 
           game.loadPuzzleWithState(
@@ -215,7 +215,7 @@ export default function GamePlayPage() {
           );
           timer.start();
         }
-        
+
         setStateLoaded(true);
       }
 
@@ -237,9 +237,9 @@ export default function GamePlayPage() {
       setLoading(false);
     } catch (error) {
       console.error("Failed to fetch game data:", error);
-      router.push(`/room/${code}`);
+      router.push(`/sudoku/${code}`);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, router, player, loadLocalState]);
 
   useEffect(() => {
@@ -497,7 +497,7 @@ export default function GamePlayPage() {
         setWinnerId(data.winnerId);
         setShowResultsModal(true);
       } else {
-        router.push(`/room/${code}`);
+        router.push(`/sudoku/${code}`);
       }
     } catch (error) {
       console.error("Give up error:", error);
@@ -508,7 +508,7 @@ export default function GamePlayPage() {
     if (gameEnded) return;
     // Chỉ người đã pause mới được resume
     if (pausedBy && pausedBy.visitorId !== player?.visitorId) return;
-    
+
     const newPaused = !timer.isPaused;
     if (newPaused) {
       timer.pause();
@@ -521,7 +521,7 @@ export default function GamePlayPage() {
   }, [gameEnded, timer, player, emit, code, pausedBy]);
 
   const handleBackToRoom = useCallback(() => {
-    router.push(`/room/${code}`);
+    router.push(`/sudoku/${code}`);
   }, [router, code]);
 
   const handleBackToHome = useCallback(() => {
@@ -551,8 +551,8 @@ export default function GamePlayPage() {
 
   const selectedValue = game.selectedCell
     ? (game.puzzle[game.selectedCell[0]][game.selectedCell[1]] !== 0
-        ? game.puzzle[game.selectedCell[0]][game.selectedCell[1]]
-        : game.userInput[game.selectedCell[0]][game.selectedCell[1]])
+      ? game.puzzle[game.selectedCell[0]][game.selectedCell[1]]
+      : game.userInput[game.selectedCell[0]][game.selectedCell[1]])
     : null;
 
   return (
@@ -617,8 +617,8 @@ export default function GamePlayPage() {
             <div className="px-4 pb-2">
               <div className="p-2 bg-amber-100 border border-amber-300 rounded-lg text-center">
                 <span className="text-amber-800 font-medium text-xs">
-                  {pausedBy.visitorId === player?.visitorId 
-                    ? "Bạn đã tạm dừng trò chơi" 
+                  {pausedBy.visitorId === player?.visitorId
+                    ? "Bạn đã tạm dừng trò chơi"
                     : `${pausedBy.name} đã tạm dừng trò chơi`}
                 </span>
               </div>
@@ -699,8 +699,8 @@ export default function GamePlayPage() {
           <div className="px-8 py-2">
             <div className="p-3 bg-amber-100 border border-amber-300 rounded-lg text-center">
               <span className="text-amber-800 font-medium text-sm">
-                {pausedBy.visitorId === player?.visitorId 
-                  ? "Bạn đã tạm dừng trò chơi" 
+                {pausedBy.visitorId === player?.visitorId
+                  ? "Bạn đã tạm dừng trò chơi"
                   : `${pausedBy.name} đã tạm dừng trò chơi`}
               </span>
             </div>
@@ -757,9 +757,8 @@ export default function GamePlayPage() {
               <button
                 onClick={handleUndo}
                 disabled={timer.isPaused || gameEnded || !game.canUndo}
-                className={`w-14 h-14 rounded-full bg-[#f0f4f8] flex items-center justify-center ${
-                  timer.isPaused || gameEnded || !game.canUndo ? "opacity-40" : "hover:bg-[#e0e8f0]"
-                }`}
+                className={`w-14 h-14 rounded-full bg-[#f0f4f8] flex items-center justify-center ${timer.isPaused || gameEnded || !game.canUndo ? "opacity-40" : "hover:bg-[#e0e8f0]"
+                  }`}
               >
                 <svg className="w-6 h-6 text-[#5a7a9a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -770,9 +769,8 @@ export default function GamePlayPage() {
               <button
                 onClick={handleClear}
                 disabled={timer.isPaused || gameEnded}
-                className={`w-14 h-14 rounded-full bg-[#f0f4f8] flex items-center justify-center ${
-                  timer.isPaused || gameEnded ? "opacity-40" : "hover:bg-[#e0e8f0]"
-                }`}
+                className={`w-14 h-14 rounded-full bg-[#f0f4f8] flex items-center justify-center ${timer.isPaused || gameEnded ? "opacity-40" : "hover:bg-[#e0e8f0]"
+                  }`}
               >
                 <svg className="w-6 h-6 text-[#5a7a9a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -783,9 +781,8 @@ export default function GamePlayPage() {
               <button
                 onClick={game.toggleMode}
                 disabled={timer.isPaused || gameEnded}
-                className={`relative w-14 h-14 rounded-full bg-[#f0f4f8] flex items-center justify-center ${
-                  timer.isPaused || gameEnded ? "opacity-40" : "hover:bg-[#e0e8f0]"
-                } ${game.mode === "note" ? "ring-2 ring-[#4a90d9]" : ""}`}
+                className={`relative w-14 h-14 rounded-full bg-[#f0f4f8] flex items-center justify-center ${timer.isPaused || gameEnded ? "opacity-40" : "hover:bg-[#e0e8f0]"
+                  } ${game.mode === "note" ? "ring-2 ring-[#4a90d9]" : ""}`}
               >
                 <svg className={`w-6 h-6 ${game.mode === "note" ? "text-[#4a90d9]" : "text-[#5a7a9a]"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -806,13 +803,12 @@ export default function GamePlayPage() {
                   key={num}
                   onClick={() => handleNumberClick(num)}
                   disabled={timer.isPaused || gameEnded}
-                  className={`w-full aspect-square rounded-xl text-3xl font-medium transition-all ${
-                    timer.isPaused || gameEnded
+                  className={`w-full aspect-square rounded-xl text-3xl font-medium transition-all ${timer.isPaused || gameEnded
                       ? "bg-[#f0f4f8] text-gray-300 cursor-not-allowed"
                       : selectedValue === num
-                      ? "bg-[#4a90d9] text-white"
-                      : "bg-[#f0f4f8] text-[#1e3a5f] hover:bg-[#e0e8f0]"
-                  }`}
+                        ? "bg-[#4a90d9] text-white"
+                        : "bg-[#f0f4f8] text-[#1e3a5f] hover:bg-[#e0e8f0]"
+                    }`}
                 >
                   {num}
                 </button>
@@ -823,9 +819,8 @@ export default function GamePlayPage() {
             <button
               onClick={() => setShowGiveUpConfirm(true)}
               disabled={timer.isPaused || gameEnded}
-              className={`w-full py-4 bg-[#5a7a9a] text-white text-lg font-medium rounded-xl hover:bg-[#4a6a8a] transition-colors ${
-                timer.isPaused || gameEnded ? "opacity-40 cursor-not-allowed" : ""
-              }`}
+              className={`w-full py-4 bg-[#5a7a9a] text-white text-lg font-medium rounded-xl hover:bg-[#4a6a8a] transition-colors ${timer.isPaused || gameEnded ? "opacity-40 cursor-not-allowed" : ""
+                }`}
             >
               Bỏ cuộc
             </button>
@@ -833,7 +828,7 @@ export default function GamePlayPage() {
         </div>
       </div>
 
-      <Dialog open={showResultsModal} onClose={() => {}}>
+      <Dialog open={showResultsModal} onClose={() => { }}>
         <DialogHeader>
           <DialogTitle className="text-center">
             {winnerId === player.visitorId ? "🎉 Chúc mừng!" : "🏁 Trò chơi kết thúc!"}
