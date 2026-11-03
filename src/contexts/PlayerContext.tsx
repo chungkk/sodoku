@@ -2,19 +2,18 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { PlayerSession, createGuestSession } from "@/lib/auth";
+import { PlayerSession } from "@/lib/auth";
+import { GUEST_SESSION_KEY } from "@/lib/api-client";
 
 interface PlayerContextType {
   player: PlayerSession | null;
   isLoading: boolean;
   isGuest: boolean;
-  setGuestName: (name: string, visitorId?: string) => void;
+  setGuestName: (name: string, visitorId: string, token: string) => void;
   clearSession: () => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
-
-const GUEST_SESSION_KEY = "sudoku_guest_session";
 
 export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
@@ -32,7 +31,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       if (stored) {
         try {
           const parsed = JSON.parse(stored) as PlayerSession;
-          setGuestSession(parsed);
+          // Phiên cũ chưa có token thì không dùng được nữa: để người chơi nhập tên lại
+          if (parsed.token) {
+            setGuestSession(parsed);
+          } else {
+            localStorage.removeItem(GUEST_SESSION_KEY);
+          }
         } catch {
           localStorage.removeItem(GUEST_SESSION_KEY);
         }
@@ -42,10 +46,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, [session, status]);
 
-  const setGuestName = useCallback((name: string, visitorId?: string) => {
-    const newSession: PlayerSession = visitorId 
-      ? { visitorId, name, isGuest: true }
-      : createGuestSession(name);
+  const setGuestName = useCallback((name: string, visitorId: string, token: string) => {
+    const newSession: PlayerSession = { visitorId, token, name, isGuest: true };
     setGuestSession(newSession);
     localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(newSession));
   }, []);

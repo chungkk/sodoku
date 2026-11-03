@@ -20,6 +20,7 @@ interface UseCaroGameReturn {
   makeMove: (row: number, col: number, player: CellValue) => boolean;
   resetGame: () => void;
   loadBoard: (board: Board, turn: CellValue) => void;
+  applyServerMove: (board: Board, turn: CellValue, row: number, col: number, symbol: CellValue) => void;
   setLastMove: (move: { row: number; col: number } | null) => void;
 }
 
@@ -74,6 +75,20 @@ export function useCaroGame(): UseCaroGameReturn {
     setCurrentTurn(turn);
   }, []);
 
+  // Trạng thái server gửi về là chuẩn, ghi đè cả nước đi hiển thị trước ở máy này
+  const applyServerMove = useCallback(
+    (nextBoard: Board, turn: CellValue, row: number, col: number, symbol: CellValue) => {
+      setBoard(nextBoard);
+      setCurrentTurn(turn);
+      setLastMove({ row, col });
+      if (symbol && checkWinner(nextBoard, row, col, symbol)) {
+        setWinner(symbol);
+        setWinningCells(findWinningCells(nextBoard, row, col, symbol));
+      }
+    },
+    []
+  );
+
   return {
     board,
     currentTurn,
@@ -84,6 +99,7 @@ export function useCaroGame(): UseCaroGameReturn {
     makeMove,
     resetGame,
     loadBoard,
+    applyServerMove,
     setLastMove,
   };
 }

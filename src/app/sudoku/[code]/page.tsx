@@ -8,6 +8,7 @@ import { PlayerList } from "@/components/PlayerList";
 import { NameInput } from "@/components/NameInput";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useSocket } from "@/hooks/useSocket";
+import { apiFetch, requestGuestSession } from "@/lib/api-client";
 
 interface Player {
   visitorId: string;
@@ -53,6 +54,7 @@ export default function RoomPage() {
   const { isConnected, emit, on, off, error: socketError } = useSocket({
     visitorId: player?.visitorId || "",
     name: player?.name || "",
+    token: player?.token,
     autoConnect: !!player,
   });
 
@@ -62,7 +64,7 @@ export default function RoomPage() {
 
   const fetchRoom = useCallback(async () => {
     try {
-      const response = await fetch(`/api/rooms/${code}`);
+      const response = await apiFetch(`/api/rooms/${code}`);
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Room not found");
@@ -86,7 +88,7 @@ export default function RoomPage() {
     if (!isAlreadyInRoom) {
       try {
         console.log("Joining room via API:", code, player.visitorId);
-        const response = await fetch(`/api/rooms/${code}/join`, {
+        const response = await apiFetch(`/api/rooms/${code}/join`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -189,7 +191,7 @@ export default function RoomPage() {
 
     const interval = setInterval(async () => {
       try {
-        const response = await fetch(`/api/rooms/${code}`);
+        const response = await apiFetch(`/api/rooms/${code}`);
         if (response.ok) {
           const data = await response.json();
           setRoom(data);
@@ -207,18 +209,8 @@ export default function RoomPage() {
 
   const handleNameSubmit = async (name: string) => {
     try {
-      const response = await fetch("/api/player/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create session");
-      }
-
-      const data = await response.json();
-      setGuestName(data.name, data.visitorId);
+      const data = await requestGuestSession(name);
+      setGuestName(data.name, data.visitorId, data.token);
       setShowNameInput(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create session");
@@ -237,7 +229,7 @@ export default function RoomPage() {
     if (!player || !room) return;
 
     try {
-      const response = await fetch(`/api/rooms/${code}/start`, {
+      const response = await apiFetch(`/api/rooms/${code}/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ visitorId: player.visitorId }),

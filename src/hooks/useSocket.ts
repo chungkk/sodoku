@@ -6,6 +6,7 @@ import { io, Socket } from "socket.io-client";
 interface UseSocketOptions {
   visitorId: string;
   name: string;
+  token?: string;
   autoConnect?: boolean;
 }
 
@@ -23,6 +24,7 @@ interface UseSocketReturn {
 export function useSocket({
   visitorId,
   name,
+  token,
   autoConnect = true,
 }: UseSocketOptions): UseSocketReturn {
   const socketRef = useRef<Socket | null>(null);
@@ -36,7 +38,7 @@ export function useSocket({
     
     socketRef.current = io(socketUrl, {
       path: "/api/socketio",
-      auth: { visitorId, name },
+      auth: { visitorId, name, token },
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
@@ -61,7 +63,7 @@ export function useSocket({
     socketRef.current.on("error", (data: { code: string; message: string }) => {
       setError(data.message);
     });
-  }, [visitorId, name]);
+  }, [visitorId, name, token]);
 
   const disconnect = useCallback(() => {
     if (socketRef.current) {

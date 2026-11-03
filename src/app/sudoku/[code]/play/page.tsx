@@ -17,6 +17,7 @@ import { useSocket } from "@/hooks/useSocket";
 import { useGame } from "@/hooks/useGame";
 import { useTimer } from "@/hooks/useTimer";
 import { calculateProgress, findConflicts, isPuzzleComplete } from "@/lib/sudoku";
+import { apiFetch } from "@/lib/api-client";
 
 const GAME_STATE_KEY = "sudoku_game_state_";
 
@@ -63,6 +64,7 @@ export default function GamePlayPage() {
   const { isConnected, emit, on, off } = useSocket({
     visitorId: player?.visitorId || "",
     name: player?.name || "",
+    token: player?.token,
     autoConnect: !!player,
   });
 
@@ -106,7 +108,7 @@ export default function GamePlayPage() {
     if (!player) return;
 
     try {
-      await fetch(`/api/games/${code}/state`, {
+      await apiFetch(`/api/games/${code}/state`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -153,10 +155,10 @@ export default function GamePlayPage() {
   const fetchGameData = useCallback(async () => {
     try {
       const [roomRes, progressRes, puzzleRes, stateRes] = await Promise.all([
-        fetch(`/api/rooms/${code}`),
-        fetch(`/api/games/${code}/progress`),
-        fetch(`/api/games/${code}/puzzle`),
-        player ? fetch(`/api/games/${code}/state?visitorId=${player.visitorId}`) : Promise.resolve(null),
+        apiFetch(`/api/rooms/${code}`),
+        apiFetch(`/api/games/${code}/progress`),
+        apiFetch(`/api/games/${code}/puzzle`),
+        player ? apiFetch(`/api/games/${code}/state?visitorId=${player.visitorId}`) : Promise.resolve(null),
       ]);
 
       if (!roomRes.ok) {
@@ -432,7 +434,7 @@ export default function GamePlayPage() {
     if (!isPuzzleComplete(currentGrid, game.solution)) return;
 
     try {
-      const response = await fetch(`/api/games/${code}/complete`, {
+      const response = await apiFetch(`/api/games/${code}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -446,15 +448,6 @@ export default function GamePlayPage() {
 
       if (data.success) {
         timer.pause();
-        emit("complete_puzzle", {
-          roomCode: code,
-          grid: currentGrid,
-          time: timer.seconds,
-          errors: game.errors,
-          gameEnded: data.gameEnded,
-          winnerId: data.winnerId,
-        });
-
         if (data.gameEnded) {
           setGameEnded(true);
           setWinnerId(data.winnerId);
@@ -464,7 +457,7 @@ export default function GamePlayPage() {
     } catch (error) {
       console.error("Complete game error:", error);
     }
-  }, [player, game, code, timer, emit, gameEnded]);
+  }, [player, game, code, timer, gameEnded]);
 
   useEffect(() => {
     if (game.isComplete && !gameEnded) {
@@ -476,19 +469,13 @@ export default function GamePlayPage() {
     if (!player) return;
 
     try {
-      const response = await fetch(`/api/games/${code}/give-up`, {
+      const response = await apiFetch(`/api/games/${code}/give-up`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ visitorId: player.visitorId }),
       });
 
       const data = await response.json();
-
-      emit("give_up", {
-        roomCode: code,
-        gameEnded: data.gameEnded,
-        winnerId: data.winnerId,
-      });
 
       setShowGiveUpConfirm(false);
 
@@ -502,7 +489,7 @@ export default function GamePlayPage() {
     } catch (error) {
       console.error("Give up error:", error);
     }
-  }, [player, code, emit, router]);
+  }, [player, code, router]);
 
   const handlePauseToggle = useCallback(() => {
     if (gameEnded) return;

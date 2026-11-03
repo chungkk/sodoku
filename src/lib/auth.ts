@@ -15,7 +15,7 @@ export async function verifyPassword(
 }
 
 export function generateVisitorId(): string {
-  return `guest_${uuidv4().substring(0, 8)}`;
+  return `guest_${uuidv4().replace(/-/g, "").substring(0, 16)}`;
 }
 
 export function generateSessionToken(): string {
@@ -39,18 +39,11 @@ export function isValidPassword(password: string): boolean {
 
 export interface PlayerSession {
   visitorId: string;
+  token?: string;
   oderId?: string;
   name: string;
   email?: string;
   isGuest: boolean;
-}
-
-export function createGuestSession(name: string): PlayerSession {
-  return {
-    visitorId: generateVisitorId(),
-    name,
-    isGuest: true,
-  };
 }
 
 export function createUserSession(

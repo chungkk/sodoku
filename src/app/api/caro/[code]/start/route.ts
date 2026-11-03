@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import CaroRoom from "@/models/CaroRoom";
 import { createEmptyBoard } from "@/lib/caro";
+import { denyUnlessPlayer } from "@/lib/player-auth";
 
 export async function POST(
   request: NextRequest,
@@ -17,10 +18,17 @@ export async function POST(
       );
     }
 
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
+
     const room = CaroRoom.findByCode(code);
 
     if (!room) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
+    }
+
+    if (!room.players.some((p) => p.visitorId === visitorId)) {
+      return NextResponse.json({ error: "Player not in room" }, { status: 403 });
     }
 
     if (room.status !== "waiting") {

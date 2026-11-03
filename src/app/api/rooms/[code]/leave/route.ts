@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Room from "@/models/Room";
+import { denyUnlessPlayer } from "@/lib/player-auth";
 
 interface RouteParams {
   params: Promise<{ code: string }>;
@@ -24,6 +25,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         { status: 400 }
       );
     }
+
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
 
     const room = Room.findByCode(code.toUpperCase());
 

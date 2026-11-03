@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Room from "@/models/Room";
+import { denyUnlessPlayer } from "@/lib/player-auth";
+import { broadcast, sudokuSocketRoom } from "@/lib/realtime";
 
 interface RouteParams {
   params: Promise<{ roomCode: string }>;
@@ -17,6 +19,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         { status: 400 }
       );
     }
+
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
 
     const room = Room.findByCode(roomCode.toUpperCase());
 
@@ -65,6 +70,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     room.save();
+
+    const socketRoom = sudokuSocketRoom(room.code);
+    broadcast(socketRoom, "player_gave_up", { visitorId, name: player.name });
+    if (room.status === "finished") {
+      broadcast(socketRoom, "game_ended", { winnerId: room.winnerId, reason: "all_gave_up" });
+    }
 
     return NextResponse.json({
       success: true,

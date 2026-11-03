@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import CaroRoom from "@/models/CaroRoom";
+import { denyUnlessPlayer } from "@/lib/player-auth";
+import { broadcast, caroSocketRoom, caroTurnEnded } from "@/lib/realtime";
 
 export async function POST(
   request: NextRequest,
@@ -16,6 +18,9 @@ export async function POST(
       );
     }
 
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
+
     const room = CaroRoom.findByCode(code);
 
     if (!room) {
@@ -29,16 +34,21 @@ export async function POST(
       );
     }
 
-    const opponent = room.players.find((p: { visitorId: string }) => p.visitorId !== visitorId);
-
-    if (opponent) {
-      room.winnerId = opponent.visitorId;
+    const player = room.players.find((p) => p.visitorId === visitorId);
+    if (!player) {
+      return NextResponse.json({ error: "Player not in room" }, { status: 403 });
     }
 
+    const opponent = room.players.find((p) => p.visitorId !== visitorId);
+    room.winnerId = opponent?.visitorId ?? null;
     room.status = "finished";
     room.finishedAt = new Date();
-
     room.save();
+
+    const socketRoom = caroSocketRoom(room.code);
+    caroTurnEnded(room.code);
+    broadcast(socketRoom, "caro_player_gave_up", { visitorId, name: player.name });
+    broadcast(socketRoom, "caro_game_ended", { winnerId: room.winnerId, isDraw: false });
 
     return NextResponse.json({
       success: true,

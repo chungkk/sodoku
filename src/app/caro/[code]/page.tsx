@@ -9,6 +9,7 @@ import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from "
 import { NameInput } from "@/components/NameInput";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useSocket } from "@/hooks/useSocket";
+import { apiFetch, requestGuestSession } from "@/lib/api-client";
 
 interface CaroPlayer {
   visitorId: string;
@@ -41,12 +42,13 @@ export default function CaroRoomPage() {
   const { isConnected, emit, on, off } = useSocket({
     visitorId: player?.visitorId || "",
     name: player?.name || "",
+    token: player?.token,
     autoConnect: !!player,
   });
 
   const fetchRoom = useCallback(async () => {
     try {
-      const response = await fetch(`/api/caro/${code}`);
+      const response = await apiFetch(`/api/caro/${code}`);
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Room not found");
@@ -74,7 +76,7 @@ export default function CaroRoomPage() {
     
     if (!isAlreadyInRoom) {
       try {
-        const response = await fetch(`/api/caro/${code}/join`, {
+        const response = await apiFetch(`/api/caro/${code}/join`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -174,7 +176,7 @@ export default function CaroRoomPage() {
     if (!player) return;
 
     try {
-      const response = await fetch(`/api/caro/${code}/start`, {
+      const response = await apiFetch(`/api/caro/${code}/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ visitorId: player.visitorId }),
@@ -196,9 +198,14 @@ export default function CaroRoomPage() {
     router.push("/caro");
   };
 
-  const handleGuestSubmit = (name: string) => {
-    setGuestName(name);
-    setShowNameInput(false);
+  const handleGuestSubmit = async (name: string) => {
+    try {
+      const data = await requestGuestSession(name);
+      setGuestName(data.name, data.visitorId, data.token);
+      setShowNameInput(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create session");
+    }
   };
 
   if (loading) {

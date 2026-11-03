@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import CaroRoom from "@/models/CaroRoom";
 import { v4 as uuidv4 } from "uuid";
 import { createEmptyBoard } from "@/lib/caro";
+import { denyUnlessPlayer } from "@/lib/player-auth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,7 +15,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const code = uuidv4().slice(0, 8).toUpperCase();
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
+
+    let code = uuidv4().slice(0, 6).toUpperCase();
+    while (CaroRoom.findByCode(code)) {
+      code = uuidv4().slice(0, 6).toUpperCase();
+    }
 
     const room = CaroRoom.create({
       code,

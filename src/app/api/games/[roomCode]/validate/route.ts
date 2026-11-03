@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Room from "@/models/Room";
 import Puzzle from "@/models/Puzzle";
 import { findConflicts } from "@/lib/sudoku";
+import { denyUnlessPlayer } from "@/lib/player-auth";
 
 interface RouteParams {
   params: Promise<{ roomCode: string }>;
@@ -19,6 +20,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         { status: 400 }
       );
     }
+
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
 
     const room = Room.findByCode(roomCode.toUpperCase());
 

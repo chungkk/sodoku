@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { NameInput } from "@/components/NameInput";
 import { usePlayer } from "@/contexts/PlayerContext";
+import { apiFetch, requestGuestSession } from "@/lib/api-client";
 
 interface JoinRoomFormProps {
   onCancel?: () => void;
@@ -26,19 +27,8 @@ export function JoinRoomForm({ onCancel, initialCode = "", gameType = "sudoku" }
       setError(null);
 
       try {
-        const response = await fetch("/api/player/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name }),
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || "Failed to create session");
-        }
-
-        const data = await response.json();
-        setGuestName(data.name, data.visitorId);
+        const data = await requestGuestSession(name);
+        setGuestName(data.name, data.visitorId, data.token);
         setStep("code");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Đã xảy ra lỗi");
@@ -69,7 +59,7 @@ export function JoinRoomForm({ onCancel, initialCode = "", gameType = "sudoku" }
 
       try {
         if (gameType === "caro") {
-          const response = await fetch(`/api/caro/${code}`);
+          const response = await apiFetch(`/api/caro/${code}`);
 
           if (!response.ok) {
             const data = await response.json();
@@ -91,7 +81,7 @@ export function JoinRoomForm({ onCancel, initialCode = "", gameType = "sudoku" }
 
           router.push(`/caro/${code}`);
         } else {
-          const response = await fetch(`/api/rooms/${code}`);
+          const response = await apiFetch(`/api/rooms/${code}`);
 
           if (!response.ok) {
             const data = await response.json();

@@ -11,6 +11,8 @@ import { useCaroGame } from "@/hooks/useCaroGame";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useSocket } from "@/hooks/useSocket";
 import type { CellValue } from "@/lib/caro";
+import { apiFetch } from "@/lib/api-client";
+import type { Board } from "@/lib/caro";
 
 interface CaroPlayer {
   visitorId: string;
@@ -39,16 +41,18 @@ export default function CaroPlayPage() {
   const [pausedBy, setPausedBy] = useState<{ visitorId: string; name: string } | null>(null);
 
   const game = useCaroGame();
+  const { loadBoard, applyServerMove } = game;
 
   const { isConnected, emit, on, off } = useSocket({
     visitorId: player?.visitorId || "",
     name: player?.name || "",
+    token: player?.token,
     autoConnect: !!player,
   });
 
   const fetchRoomData = useCallback(async () => {
     try {
-      const res = await fetch(`/api/caro/${code}`);
+      const res = await apiFetch(`/api/caro/${code}`);
       if (res.ok) {
         const data = await res.json();
         setRoomPlayers(data.players);
@@ -59,8 +63,11 @@ export default function CaroPlayPage() {
           setMySymbol(me.symbol);
         }
 
-        if (data.status === "playing" && data.board) {
-          game.loadBoard(data.board, data.currentTurn);
+        if (data.board) {
+          loadBoard(data.board, data.currentTurn);
+        }
+
+        if (data.status === "playing") {
           if (data.turnStartedAt) {
             setTurnStartedAt(new Date(data.turnStartedAt));
           }
@@ -79,7 +86,7 @@ export default function CaroPlayPage() {
     } finally {
       setLoading(false);
     }
-  }, [code, player, game]);
+  }, [code, player, loadBoard]);
 
   useEffect(() => {
     if (player) {
@@ -90,21 +97,25 @@ export default function CaroPlayPage() {
   useEffect(() => {
     if (isConnected && player) {
       emit("caro_join_room", { roomCode: code });
+      // Lấy lại bàn cờ phòng khi bỏ lỡ nước đi lúc mất kết nối
+      fetchRoomData();
     }
-  }, [isConnected, player, code, emit]);
+  }, [isConnected, player, code, emit, fetchRoomData]);
 
   useEffect(() => {
     if (!isConnected) return;
 
-    on<{ visitorId: string; row: number; col: number; symbol: "X" | "O" }>(
-      "caro_move_made",
-      (data) => {
-        if (data.visitorId !== player?.visitorId) {
-          game.makeMove(data.row, data.col, data.symbol);
-        }
-        setTurnStartedAt(new Date());
-      }
-    );
+    on<{
+      row: number;
+      col: number;
+      symbol: "X" | "O";
+      board: Board;
+      currentTurn: "X" | "O";
+      turnStartedAt: string;
+    }>("caro_move_made", (data) => {
+      applyServerMove(data.board, data.currentTurn, data.row, data.col, data.symbol);
+      setTurnStartedAt(new Date(data.turnStartedAt));
+    });
 
     on<{ winnerId: string | null; isDraw: boolean; reason?: string }>("caro_game_ended", (data) => {
       setGameStatus("finished");
@@ -150,7 +161,7 @@ export default function CaroPlayPage() {
       off("caro_game_started");
       off("caro_game_paused");
     };
-  }, [isConnected, on, off, player, game, roomPlayers, fetchRoomData]);
+  }, [isConnected, on, off, applyServerMove, roomPlayers, fetchRoomData]);
 
   // Timer countdown effect
   useEffect(() => {
@@ -187,15 +198,8 @@ export default function CaroPlayPage() {
     // Reset timer for next turn
     setTurnStartedAt(new Date());
 
-    emit("caro_make_move", {
-      roomCode: code,
-      row,
-      col,
-      symbol: mySymbol,
-    });
-
     try {
-      const res = await fetch(`/api/caro/${code}/move`, {
+      const res = await apiFetch(`/api/caro/${code}/move`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -205,25 +209,13 @@ export default function CaroPlayPage() {
         }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.timeout) {
-          // Handle timeout case
-          emit("caro_game_ended", {
-            roomCode: code,
-            winnerId: data.winnerId,
-            isDraw: false,
-          });
-        } else if (data.status === "finished") {
-          emit("caro_game_ended", {
-            roomCode: code,
-            winnerId: data.winnerId,
-            isDraw: data.isDraw,
-          });
-        }
+      // Server từ chối nước đi: bỏ nước đã hiển thị trước và lấy lại bàn cờ thật
+      if (!res.ok) {
+        fetchRoomData();
       }
     } catch (error) {
       console.error("Failed to make move:", error);
+      fetchRoomData();
     }
   };
 
@@ -231,19 +223,11 @@ export default function CaroPlayPage() {
     if (!player) return;
 
     try {
-      const res = await fetch(`/api/caro/${code}/give-up`, {
+      await apiFetch(`/api/caro/${code}/give-up`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ visitorId: player.visitorId }),
       });
-
-      if (res.ok) {
-        const data = await res.json();
-        emit("caro_give_up", {
-          roomCode: code,
-          winnerId: data.winnerId,
-        });
-      }
     } catch (error) {
       console.error("Failed to give up:", error);
     }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import CaroRoom from "@/models/CaroRoom";
+import { denyUnlessPlayer } from "@/lib/player-auth";
 
 export async function POST(
   request: NextRequest,
@@ -15,6 +16,9 @@ export async function POST(
         { status: 400 }
       );
     }
+
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
 
     const room = CaroRoom.findByCode(code);
 

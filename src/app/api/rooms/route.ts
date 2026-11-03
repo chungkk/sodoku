@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Room from "@/models/Room";
 import { Difficulty } from "@/models/Puzzle";
+import { denyUnlessPlayer } from "@/lib/player-auth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,6 +22,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
 
     const room = Room.createRoom(
       visitorId,

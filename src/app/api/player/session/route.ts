@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateVisitorId } from "@/lib/auth";
+import { signPlayerToken } from "@/lib/player-token";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,6 +26,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       visitorId,
+      token: signPlayerToken(visitorId),
       name: trimmedName,
       isGuest: true,
     });

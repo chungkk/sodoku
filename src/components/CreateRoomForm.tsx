@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { NameInput } from "@/components/NameInput";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { Difficulty } from "@/lib/sudoku";
+import { apiFetch, requestGuestSession } from "@/lib/api-client";
 
 const difficultyOptions = [
   { value: "easy", label: "🟢 DỄ", color: "text-green-400" },
@@ -32,19 +33,8 @@ export function CreateRoomForm({ onCancel, gameType = "sudoku" }: CreateRoomForm
       setError(null);
 
       try {
-        const response = await fetch("/api/player/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name }),
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || "Failed to create session");
-        }
-
-        const data = await response.json();
-        setGuestName(data.name, data.visitorId);
+        const data = await requestGuestSession(name);
+        setGuestName(data.name, data.visitorId, data.token);
         setStep("create");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Đã xảy ra lỗi");
@@ -71,7 +61,7 @@ export function CreateRoomForm({ onCancel, gameType = "sudoku" }: CreateRoomForm
 
     try {
       if (gameType === "caro") {
-        const response = await fetch("/api/caro", {
+        const response = await apiFetch("/api/caro", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -88,7 +78,7 @@ export function CreateRoomForm({ onCancel, gameType = "sudoku" }: CreateRoomForm
 
         router.push(`/caro/${data.room.code}`);
       } else {
-        const response = await fetch("/api/rooms", {
+        const response = await apiFetch("/api/rooms", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
