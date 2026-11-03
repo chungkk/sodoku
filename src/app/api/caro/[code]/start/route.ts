@@ -4,10 +4,10 @@ import { createEmptyBoard } from "@/lib/caro";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
   try {
-    const { code } = params;
+    const { code } = await params;
     const { visitorId } = await request.json();
 
     if (!visitorId) {

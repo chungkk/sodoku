@@ -3,10 +3,10 @@ import CaroRoom from "@/models/CaroRoom";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
   try {
-    const { code } = params;
+    const { code } = await params;
     const { visitorId, name } = await request.json();
 
     if (!visitorId || !name) {
