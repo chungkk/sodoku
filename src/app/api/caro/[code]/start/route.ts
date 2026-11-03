@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import CaroRoom from "@/models/CaroRoom";
 import { createEmptyBoard } from "@/lib/caro";
 
@@ -18,9 +17,7 @@ export async function POST(
       );
     }
 
-    await connectDB();
-
-    const room = await CaroRoom.findOne({ code });
+    const room = CaroRoom.findByCode(code);
 
     if (!room) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
@@ -55,7 +52,7 @@ export async function POST(
     room.currentTurn = "X";
     room.moves = [];
 
-    await room.save();
+    room.save();
 
     return NextResponse.json({
       success: true,

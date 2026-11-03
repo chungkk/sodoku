@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import CaroRoom from "@/models/CaroRoom";
 
 export async function POST(
@@ -17,9 +16,7 @@ export async function POST(
       );
     }
 
-    await connectDB();
-
-    const room = await CaroRoom.findOne({ code });
+    const room = CaroRoom.findByCode(code);
 
     if (!room) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
@@ -52,7 +49,7 @@ export async function POST(
       });
     }
 
-    await room.save();
+    room.save();
 
     return NextResponse.json({
       success: true,

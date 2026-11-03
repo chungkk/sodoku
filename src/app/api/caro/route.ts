@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import CaroRoom from "@/models/CaroRoom";
 import { v4 as uuidv4 } from "uuid";
 import { createEmptyBoard } from "@/lib/caro";
@@ -15,11 +14,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await connectDB();
-
     const code = uuidv4().slice(0, 8).toUpperCase();
 
-    const room = await CaroRoom.create({
+    const room = CaroRoom.create({
       code,
       players: [
         {
@@ -52,16 +49,9 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    await connectDB();
-
-    const rooms = await CaroRoom.find({
-      status: { $in: ["waiting", "playing"] },
-      createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-    })
-      .sort({ createdAt: -1 })
-      .limit(20);
+    const rooms = CaroRoom.findActive(new Date(Date.now() - 24 * 60 * 60 * 1000), 20);
 
     return NextResponse.json({
       success: true,

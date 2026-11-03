@@ -1,4 +1,6 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
+import { getDb } from "../lib/db";
+
+const MAX_HISTORY = 50;
 
 export interface GameRecord {
   date: Date;
@@ -20,111 +22,76 @@ export interface UserStats {
   };
 }
 
-export interface IUser extends Document {
+interface UserRow {
+  id: number;
+  email: string;
+  password_hash: string;
+  display_name: string;
+  stats: string;
+  game_history: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export default class User {
+  id: number;
   email: string;
   passwordHash: string;
   displayName: string;
-  gameHistory: GameRecord[];
   stats: UserStats;
+  gameHistory: GameRecord[];
   createdAt: Date;
   updatedAt: Date;
-  addGameRecord(record: Omit<GameRecord, "date">): Promise<IUser>;
+
+  private constructor(row: UserRow) {
+    this.id = row.id;
+    this.email = row.email;
+    this.passwordHash = row.password_hash;
+    this.displayName = row.display_name;
+    this.stats = JSON.parse(row.stats);
+    this.gameHistory = JSON.parse(row.game_history).map(
+      (g: Omit<GameRecord, "date"> & { date: string }) => ({ ...g, date: new Date(g.date) })
+    );
+    this.createdAt = new Date(row.created_at);
+    this.updatedAt = new Date(row.updated_at);
+  }
+
+  static findById(id: string | number): User | null {
+    const row = getDb().prepare("SELECT * FROM users WHERE id = ?").get(Number(id));
+    return row ? new User(row as unknown as UserRow) : null;
+  }
+
+  static findByEmail(email: string): User | null {
+    const row = getDb()
+      .prepare("SELECT * FROM users WHERE email = ?")
+      .get(email.trim().toLowerCase());
+    return row ? new User(row as unknown as UserRow) : null;
+  }
+
+  addGameRecord(record: Omit<GameRecord, "date">): void {
+    this.gameHistory = [{ ...record, date: new Date() }, ...this.gameHistory].slice(0, MAX_HISTORY);
+
+    this.stats.totalGames += 1;
+    if (record.result === "won") {
+      this.stats.wins += 1;
+    }
+
+    const currentBest = this.stats.bestTime[record.difficulty];
+    if (
+      (record.result === "completed" || record.result === "won") &&
+      (currentBest === null || record.time < currentBest)
+    ) {
+      this.stats.bestTime[record.difficulty] = record.time;
+    }
+
+    this.updatedAt = new Date();
+    getDb()
+      .prepare("UPDATE users SET stats = ?, game_history = ?, updated_at = ? WHERE id = ?")
+      .run(
+        JSON.stringify(this.stats),
+        JSON.stringify(this.gameHistory),
+        this.updatedAt.toISOString(),
+        this.id
+      );
+  }
 }
-
-const GameRecordSchema = new Schema<GameRecord>(
-  {
-    date: { type: Date, default: Date.now },
-    mode: { type: String, enum: ["practice", "solo"], required: true },
-    difficulty: { type: String, enum: ["easy", "medium", "hard"], required: true },
-    time: { type: Number, required: true },
-    errors: { type: Number, default: 0 },
-    result: {
-      type: String,
-      enum: ["completed", "abandoned", "won", "lost"],
-      required: true,
-    },
-    roomCode: { type: String },
-  },
-  { _id: false, suppressReservedKeysWarning: true }
-);
-
-const UserSchema = new Schema<IUser>(
-  {
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-      match: [/^\S+@\S+\.\S+$/, "Please enter a valid email"],
-    },
-    passwordHash: {
-      type: String,
-      required: true,
-      minlength: 60,
-    },
-    displayName: {
-      type: String,
-      required: true,
-      trim: true,
-      minlength: 2,
-      maxlength: 20,
-    },
-    gameHistory: {
-      type: [GameRecordSchema],
-      default: [],
-      validate: {
-        validator: function (v: GameRecord[]) {
-          return v.length <= 50;
-        },
-        message: "Game history cannot exceed 50 records",
-      },
-    },
-    stats: {
-      totalGames: { type: Number, default: 0 },
-      wins: { type: Number, default: 0 },
-      bestTime: {
-        easy: { type: Number, default: null },
-        medium: { type: Number, default: null },
-        hard: { type: Number, default: null },
-      },
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
-
-UserSchema.index({ createdAt: -1 });
-
-UserSchema.methods.addGameRecord = function (record: Omit<GameRecord, "date">) {
-  const gameRecord: GameRecord = {
-    ...record,
-    date: new Date(),
-  };
-
-  this.gameHistory.unshift(gameRecord);
-  if (this.gameHistory.length > 50) {
-    this.gameHistory = this.gameHistory.slice(0, 50);
-  }
-
-  this.stats.totalGames += 1;
-  if (record.result === "won") {
-    this.stats.wins += 1;
-  }
-
-  const currentBest = this.stats.bestTime[record.difficulty];
-  if (
-    (record.result === "completed" || record.result === "won") &&
-    (currentBest === null || record.time < currentBest)
-  ) {
-    this.stats.bestTime[record.difficulty] = record.time;
-  }
-
-  return this.save();
-};
-
-const User: Model<IUser> =
-  mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
-
-export default User;

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import Room from "@/models/Room";
 import Puzzle from "@/models/Puzzle";
 
@@ -18,9 +17,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await connectDB();
-
-    const room = await Room.findOne({ code: roomCode.toUpperCase() });
+    const room = Room.findByCode(roomCode.toUpperCase());
 
     if (!room) {
       return NextResponse.json(
@@ -36,7 +33,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const puzzle = await Puzzle.findById(room.puzzleId);
+    const puzzle = Puzzle.findById(room.puzzleId);
 
     if (!puzzle) {
       return NextResponse.json(

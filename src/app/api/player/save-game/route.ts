@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 
 export async function POST(request: NextRequest) {
@@ -25,9 +24,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await connectDB();
-
-    const user = await User.findById(session.user.id);
+    const user = User.findById(session.user.id);
 
     if (!user) {
       return NextResponse.json(
@@ -36,7 +33,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await user.addGameRecord({
+    user.addGameRecord({
       mode,
       difficulty,
       time,

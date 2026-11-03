@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 
 export async function GET() {
@@ -15,9 +14,7 @@ export async function GET() {
       );
     }
 
-    await connectDB();
-
-    const user = await User.findById(session.user.id).select("gameHistory");
+    const user = User.findById(session.user.id);
 
     if (!user) {
       return NextResponse.json(

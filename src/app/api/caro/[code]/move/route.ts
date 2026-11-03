@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import CaroRoom from "@/models/CaroRoom";
 import { checkWinner, isValidMove, isBoardFull } from "@/lib/caro";
 
@@ -18,9 +17,7 @@ export async function POST(
       );
     }
 
-    await connectDB();
-
-    const room = await CaroRoom.findOne({ code });
+    const room = CaroRoom.findByCode(code);
 
     if (!room) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
@@ -62,7 +59,7 @@ export async function POST(
         room.status = "finished";
         room.winnerId = opponent?.visitorId || null;
         room.finishedAt = new Date();
-        await room.save();
+        room.save();
 
         return NextResponse.json({
           success: false,
@@ -98,7 +95,7 @@ export async function POST(
       room.turnStartedAt = new Date();
     }
 
-    await room.save();
+    room.save();
 
     return NextResponse.json({
       success: true,

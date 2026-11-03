@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import Room from "@/models/Room";
 
 interface RouteParams {
@@ -19,9 +18,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await connectDB();
-
-    const room = await Room.findOne({ code: roomCode.toUpperCase() });
+    const room = Room.findByCode(roomCode.toUpperCase());
 
     if (!room) {
       return NextResponse.json(
@@ -70,9 +67,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await connectDB();
-
-    const room = await Room.findOne({ code: roomCode.toUpperCase() });
+    const room = Room.findByCode(roomCode.toUpperCase());
 
     if (!room) {
       return NextResponse.json(
@@ -120,7 +115,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
     player.lastSeen = new Date();
 
-    await room.save();
+    room.save();
 
     return NextResponse.json({
       success: true,

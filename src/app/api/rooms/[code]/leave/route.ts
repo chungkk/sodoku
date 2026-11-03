@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import Room from "@/models/Room";
 
 interface RouteParams {
@@ -26,9 +25,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await connectDB();
-
-    const room = await Room.findOne({ code: code.toUpperCase() });
+    const room = Room.findByCode(code.toUpperCase());
 
     if (!room) {
       return NextResponse.json(
@@ -49,14 +46,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     room.removePlayer(visitorId);
 
     if (room.players.length === 0) {
-      await Room.deleteOne({ _id: room._id });
+      room.delete();
       return NextResponse.json({
         success: true,
         roomDeleted: true,
       });
     }
 
-    await room.save();
+    room.save();
 
     return NextResponse.json({
       success: true,

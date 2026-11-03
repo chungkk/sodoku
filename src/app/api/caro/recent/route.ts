@@ -1,18 +1,12 @@
 import { NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import CaroRoom from "@/models/CaroRoom";
+
+// Danh sách đổi liên tục: không để Next dựng tĩnh lúc build
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await connectDB();
-
-    const rooms = await CaroRoom.find({
-      status: "waiting",
-      "players.1": { $exists: false }, // chi lay phong co 1 nguoi (cho doi)
-      createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) }, // trong 1 gio
-    })
-      .sort({ createdAt: -1 })
-      .limit(10);
+    const rooms = CaroRoom.findOpen(new Date(Date.now() - 60 * 60 * 1000), 10);
 
     return NextResponse.json(
       rooms.map((room) => ({

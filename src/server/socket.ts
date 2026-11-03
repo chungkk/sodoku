@@ -1,5 +1,7 @@
 import { Server, Socket } from "socket.io";
-import connectDB from "../lib/mongodb";
+import CaroRoom from "../models/CaroRoom";
+import Puzzle from "../models/Puzzle";
+import Room from "../models/Room";
 
 interface SocketAuth {
   visitorId: string;
@@ -78,12 +80,7 @@ export function setupSocketHandlers(io: Server): void {
       const socketRoom = SUDOKU_PREFIX + roomCode;
       
       try {
-        await connectDB();
-        const Room = (await import("../models/Room")).default;
-        await Room.findOneAndUpdate(
-          { code: roomCode, "players.visitorId": visitorId },
-          { $set: { "players.$.isReady": ready } }
-        );
+        Room.updatePlayerReady(roomCode, visitorId, ready);
         console.log(`${name} set ready=${ready} in sudoku room ${roomCode}`);
       } catch (error) {
         console.error("Failed to update ready status:", error);
@@ -102,17 +99,14 @@ export function setupSocketHandlers(io: Server): void {
       // Wait for countdown then emit game_started
       setTimeout(async () => {
         try {
-          await connectDB();
-          const Room = (await import("../models/Room")).default;
-          const Puzzle = (await import("../models/Puzzle")).default;
           
-          const room = await Room.findOne({ code: roomCode });
+          const room = Room.findByCode(roomCode);
           if (!room || !room.puzzleId) {
             console.error("Room or puzzle not found for game start");
             return;
           }
           
-          const puzzle = await Puzzle.findById(room.puzzleId);
+          const puzzle = Puzzle.findById(room.puzzleId);
           if (!puzzle) {
             console.error("Puzzle not found");
             return;
@@ -280,12 +274,7 @@ export function setupSocketHandlers(io: Server): void {
       const socketRoom = CARO_PREFIX + roomCode;
       
       try {
-        await connectDB();
-        const CaroRoom = (await import("../models/CaroRoom")).default;
-        await CaroRoom.findOneAndUpdate(
-          { code: roomCode, "players.visitorId": visitorId },
-          { $set: { "players.$.isReady": ready } }
-        );
+        CaroRoom.updatePlayerReady(roomCode, visitorId, ready);
         console.log(`${name} set ready=${ready} in caro room ${roomCode}`);
       } catch (error) {
         console.error("Failed to update caro ready status:", error);
@@ -302,10 +291,8 @@ export function setupSocketHandlers(io: Server): void {
       
       setTimeout(async () => {
         try {
-          await connectDB();
-          const CaroRoom = (await import("../models/CaroRoom")).default;
           
-          const room = await CaroRoom.findOne({ code: roomCode });
+          const room = CaroRoom.findByCode(roomCode);
           if (!room) {
             console.error("Caro room not found for game start");
             return;
@@ -348,9 +335,7 @@ export function setupSocketHandlers(io: Server): void {
       
       // Check if game is still playing
       try {
-        await connectDB();
-        const CaroRoom = (await import("../models/CaroRoom")).default;
-        const room = await CaroRoom.findOne({ code: data.roomCode });
+        const room = CaroRoom.findByCode(data.roomCode);
         
         if (room && room.status === "playing") {
           startCaroTurnTimeout(io, data.roomCode);
@@ -475,23 +460,21 @@ function startCaroTurnTimeout(io: Server, roomCode: string): void {
   
   const timeoutId = setTimeout(async () => {
     try {
-      await connectDB();
-      const CaroRoom = (await import("../models/CaroRoom")).default;
       
-      const room = await CaroRoom.findOne({ code: roomCode });
+      const room = CaroRoom.findByCode(roomCode);
       if (!room || room.status !== "playing") {
         return;
       }
       
       // Find current player and opponent
-      const currentPlayer = room.players.find((p: { symbol: string }) => p.symbol === room.currentTurn);
-      const opponent = room.players.find((p: { symbol: string }) => p.symbol !== room.currentTurn);
+      const currentPlayer = room.players.find((p) => p.symbol === room.currentTurn);
+      const opponent = room.players.find((p) => p.symbol !== room.currentTurn);
       
       // Current player loses due to timeout
       room.status = "finished";
       room.winnerId = opponent?.visitorId || null;
       room.finishedAt = new Date();
-      await room.save();
+      room.save();
       
       const socketRoom = CARO_PREFIX + roomCode;
       io.to(socketRoom).emit("caro_turn_timeout", {

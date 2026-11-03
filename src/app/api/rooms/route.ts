@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import Room from "@/models/Room";
 import { Difficulty } from "@/models/Puzzle";
 
@@ -23,9 +22,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await connectDB();
-
-    const room = await Room.createRoom(
+    const room = Room.createRoom(
       visitorId,
       hostName,
       difficulty || "medium",

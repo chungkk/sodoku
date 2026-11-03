@@ -1,6 +1,5 @@
 import { AuthOptions, User as NextAuthUser } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 import { verifyPassword } from "@/lib/auth";
 
@@ -41,9 +40,7 @@ export const authOptions: AuthOptions = {
           throw new Error("Email and password are required");
         }
 
-        await connectDB();
-
-        const user = await User.findOne({ email: credentials.email.toLowerCase() });
+        const user = User.findByEmail(credentials.email);
         if (!user) {
           throw new Error("Invalid email or password");
         }
@@ -54,7 +51,7 @@ export const authOptions: AuthOptions = {
         }
 
         return {
-          id: user._id.toString(),
+          id: String(user.id),
           email: user.email,
           name: user.displayName,
         };
