@@ -22,6 +22,7 @@ const playerSockets = new Map<string, PlayerSocket>();
 const roomPlayers = new Map<string, Set<string>>();
 const disconnectTimeouts = new Map<string, NodeJS.Timeout>();
 const caroTurnTimeouts = new Map<string, NodeJS.Timeout>();
+const sudokuPauseTimeouts = new Map<string, NodeJS.Timeout>();
 // Đủ dài để khoá màn hình hay rớt mạng ngắn không bị xử thua
 const DISCONNECT_TIMEOUT = 2 * 60 * 1000;
 const CARO_START_ANNOUNCE_WINDOW_MS = 15 * 1000;
@@ -190,12 +191,24 @@ export function setupSocketHandlers(io: Server): void {
     playerSocket.on("pause_game", (data: { roomCode: string; paused: boolean }) => {
       const roomCode = codeOf(data);
       const member = roomCode && sudokuMember(roomCode);
-      if (!roomCode || !member) return;
+      if (!roomCode || !member || member.room.status !== "playing") return;
+
+      const { room } = member;
+      const paused = data.paused === true;
+      if (paused) {
+        if (!room.pause(visitorId)) return;
+      } else {
+        // Chỉ người đã dừng mới được cho chạy tiếp; quá quỹ thì server tự chạy tiếp
+        if (room.pausedBy !== visitorId) return;
+        room.resume();
+      }
+      room.save();
+      scheduleSudokuPauseTimer(io, roomCode);
 
       io.to(sudokuSocketRoom(roomCode)).emit("game_paused", {
         visitorId,
         name: member.player.name,
-        paused: data.paused === true,
+        paused,
       });
     });
 
@@ -211,6 +224,16 @@ export function setupSocketHandlers(io: Server): void {
       const socketRoom = sudokuSocketRoom(roomCode);
       enterSocketRoom(socketRoom);
       io.to(socketRoom).emit("player_reconnected", { visitorId, name: member.player.name });
+
+      // Có thể đã lỡ sự kiện tạm dừng hoặc chạy tiếp lúc mất kết nối
+      if (member.room.status === "playing") {
+        const pauser = member.room.players.find((p) => p.visitorId === member.room.pausedBy);
+        playerSocket.emit("game_paused", {
+          visitorId: pauser?.visitorId ?? visitorId,
+          name: pauser?.name ?? member.player.name,
+          paused: !!pauser,
+        });
+      }
     });
 
     // Caro game events. Nước đi, kết thúc ván và bỏ cuộc đi qua API; API phát sự kiện sau khi kiểm tra.
@@ -396,11 +419,16 @@ function forfeitSudokuPlayer(io: Server, roomCode: string, visitorId: string): v
   try {
     const room = Room.findByCode(roomCode);
     const player = room?.players.find((p) => p.visitorId === visitorId);
-    if (!room || !player || room.status !== "playing" || !room.giveUp(visitorId)) return;
+    if (!room || !player || room.status !== "playing") return;
+    const wasPauser = room.pausedBy === visitorId;
+    if (!room.giveUp(visitorId)) return;
     room.save();
 
     const socketRoom = sudokuSocketRoom(roomCode);
     io.to(socketRoom).emit("player_gave_up", { visitorId, name: player.name });
+    if (wasPauser) {
+      io.to(socketRoom).emit("game_paused", { visitorId, name: player.name, paused: false });
+    }
     if (room.isFinished) {
       io.to(socketRoom).emit("game_ended", { winnerId: room.winnerId, reason: "abandoned" });
     }
@@ -419,6 +447,14 @@ function recoverAfterRestart(io: Server): void {
     console.error("Failed to restore caro timers:", error);
   }
 
+  try {
+    for (const room of Room.findPlaying()) {
+      scheduleSudokuPauseTimer(io, room.code);
+    }
+  } catch (error) {
+    console.error("Failed to restore sudoku pause timers:", error);
+  }
+
   // Cho người chơi thời gian kết nối lại; ai vẫn vắng thì xử lý như vừa ngắt kết nối
   setTimeout(() => {
     try {
@@ -434,6 +470,41 @@ function recoverAfterRestart(io: Server): void {
       console.error("Failed to check absent players:", error);
     }
   }, DISCONNECT_TIMEOUT);
+}
+
+/** Hẹn giờ tự chạy tiếp khi hết quỹ tạm dừng; không dừng thì chỉ huỷ hẹn cũ. */
+function scheduleSudokuPauseTimer(io: Server, roomCode: string): void {
+  clearTimeout(sudokuPauseTimeouts.get(roomCode));
+  sudokuPauseTimeouts.delete(roomCode);
+
+  const delay = Room.findByCode(roomCode)?.pauseRemainingMs();
+  if (delay === null || delay === undefined) return;
+
+  sudokuPauseTimeouts.set(
+    roomCode,
+    setTimeout(() => handleSudokuPauseExpired(io, roomCode), delay)
+  );
+}
+
+function handleSudokuPauseExpired(io: Server, roomCode: string): void {
+  sudokuPauseTimeouts.delete(roomCode);
+  try {
+    const room = Room.findByCode(roomCode);
+    if (!room || room.status !== "playing" || !room.pausedBy) return;
+
+    const visitorId = room.pausedBy;
+    const pauser = room.players.find((p) => p.visitorId === visitorId);
+    room.resume();
+    room.save();
+
+    io.to(sudokuSocketRoom(roomCode)).emit("game_paused", {
+      visitorId,
+      name: pauser?.name,
+      paused: false,
+    });
+  } catch (error) {
+    console.error("Error handling sudoku pause expiry:", error);
+  }
 }
 
 /** Đặt đồng hồ theo trạng thái trong DB. Gọi lại bao nhiêu lần cũng không kéo dài được lượt. */

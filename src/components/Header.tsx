@@ -1,42 +1,38 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { usePlayer } from "@/contexts/PlayerContext";
+import { Awning } from "@/components/candy";
+import { Mascot } from "@/components/Mascot";
 
 export function Header() {
   const { player } = usePlayer();
+  const pathname = usePathname();
+  // Trên điện thoại, màn chơi dành toàn bộ chiều cao cho bàn cờ
+  const isStage = pathname.endsWith("/play") || pathname === "/practice";
 
   return (
-    <header className="sticky top-0 z-30 bg-[#0a0a1a]/95 backdrop-blur-md border-b-2 border-cyan-400/30">
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 group">
-          <span className="text-3xl drop-shadow-[0_0_10px_rgba(0,255,255,0.8)]">🎮</span>
-          <span
-            className="text-xl font-black uppercase tracking-wider text-transparent bg-clip-text"
-            style={{
-              backgroundImage: 'linear-gradient(180deg, #fff 0%, #00ffff 100%)',
-              textShadow: '0 0 20px rgba(0, 255, 255, 0.5)'
-            }}
-          >
-            Solo Games
-          </span>
-        </Link>
-
-        <nav className="flex items-center gap-4">
-          <Link
-            href="/practice"
-            className="text-gray-400 hover:text-cyan-400 font-mono text-sm uppercase tracking-wider transition-colors hidden sm:block"
-          >
-            [ Tập luyện ]
+    <header className={`relative z-30 ${isStage ? "hidden lg:block" : ""}`}>
+      <Awning />
+      <div className={`mx-auto h-14 items-center justify-between gap-3 px-4 ${pathname === "/" ? "hidden max-w-6xl lg:flex" : "flex max-w-5xl"}`}>
+        {pathname === "/" ? (
+          <span />
+        ) : (
+          <Link href="/" className="flex min-w-0 items-center gap-1.5 rounded-full">
+            <Mascot animated={false} className="w-9" />
+            <span className="whitespace-nowrap font-display text-xl text-ink">Solo Games</span>
           </Link>
+        )}
 
+        <nav className="flex min-w-0 items-center gap-3">
+          <Link href="/practice" className="whitespace-nowrap font-semibold underline decoration-[3px] underline-offset-4 hover:decoration-cherry">
+            Luyện tập
+          </Link>
           {player && (
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-cyan-300 font-mono hidden sm:flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_6px_#4ade80]"></span>
-                GUEST: {player.name}
-              </span>
-            </div>
+            <span className="hidden max-w-40 truncate rounded-full border-[3px] border-ink bg-milk px-3 py-0.5 font-semibold sm:block">
+              {player.name}
+            </span>
           )}
         </nav>
       </div>

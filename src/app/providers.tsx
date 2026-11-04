@@ -1,8 +1,13 @@
 "use client";
 
+import { MotionConfig } from "framer-motion";
 import { PlayerProvider } from "@/contexts/PlayerContext";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 export function Providers({ children }: { children: ReactNode }) {
-  return <PlayerProvider>{children}</PlayerProvider>;
+  return (
+    <MotionConfig reducedMotion="user">
+      <PlayerProvider>{children}</PlayerProvider>
+    </MotionConfig>
+  );
 }

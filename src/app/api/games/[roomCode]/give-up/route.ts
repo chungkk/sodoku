@@ -47,6 +47,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    const wasPauser = room.pausedBy === visitorId;
     if (!room.giveUp(visitorId)) {
       return NextResponse.json(
         { error: "Player already finished", code: "ALREADY_FINISHED" },
@@ -58,6 +59,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const socketRoom = sudokuSocketRoom(room.code);
     broadcast(socketRoom, "player_gave_up", { visitorId, name: player.name });
+    if (wasPauser) {
+      broadcast(socketRoom, "game_paused", { visitorId, name: player.name, paused: false });
+    }
     if (room.isFinished) {
       broadcast(socketRoom, "game_ended", { winnerId: room.winnerId, reason: "all_gave_up" });
     }

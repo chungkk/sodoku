@@ -1,5 +1,6 @@
 import { getDb, toDate } from "../lib/db";
 import { pickWinnerId } from "../lib/ranking";
+import { MAX_PAUSE_MS_PER_PLAYER } from "../lib/sudoku";
 import type { Difficulty } from "./Puzzle";
 
 export type RoomStatus = "waiting" | "playing" | "finished";
@@ -36,6 +37,9 @@ interface RoomData {
   startedAt: string | null;
   finishedAt: string | null;
   winnerId: string | null;
+  pausedBy?: string | null;
+  pausedAt?: string | null;
+  pauseUsedMs?: Record<string, number>;
 }
 
 interface RoomRow {
@@ -90,6 +94,9 @@ export default class Room {
   finishedAt: Date | null;
   winnerId: string | null;
   createdAt: Date;
+  pausedBy: string | null;
+  pausedAt: Date | null;
+  pauseUsedMs: Record<string, number>;
 
   private constructor(row: RoomRow) {
     const data: RoomData = JSON.parse(row.data);
@@ -102,6 +109,9 @@ export default class Room {
     this.startedAt = toDate(data.startedAt);
     this.finishedAt = toDate(data.finishedAt);
     this.winnerId = data.winnerId;
+    this.pausedBy = data.pausedBy ?? null;
+    this.pausedAt = toDate(data.pausedAt);
+    this.pauseUsedMs = data.pauseUsedMs ?? {};
     this.players = data.players.map((p) => ({
       ...p,
       finishedAt: toDate(p.finishedAt),
@@ -119,6 +129,9 @@ export default class Room {
       startedAt: this.startedAt,
       finishedAt: this.finishedAt,
       winnerId: this.winnerId,
+      pausedBy: this.pausedBy,
+      pausedAt: this.pausedAt,
+      pauseUsedMs: this.pauseUsedMs,
     });
   }
 
@@ -237,10 +250,54 @@ export default class Room {
   giveUp(visitorId: string): boolean {
     const player = this.players.find((p) => p.visitorId === visitorId);
     if (!player || player.finishedAt) return false;
+    // Người đang giữ tạm dừng rời ván thì những người còn lại phải chơi tiếp được
+    if (this.pausedBy === visitorId) this.resume();
     player.progress = -1;
     player.finishedAt = new Date();
     this.finishIfAllDone();
     return true;
+  }
+
+  private pauseBudgetMs(visitorId: string): number {
+    return Math.max(0, MAX_PAUSE_MS_PER_PLAYER - (this.pauseUsedMs[visitorId] ?? 0));
+  }
+
+  /** False nếu ván không chạy, đang dừng sẵn, người này đã xong ván hoặc đã hết quỹ tạm dừng. Người gọi tự save(). */
+  pause(visitorId: string, now = new Date()): boolean {
+    const player = this.players.find((p) => p.visitorId === visitorId);
+    if (!player || player.finishedAt || this.status !== "playing" || this.pausedBy) return false;
+    if (this.pauseBudgetMs(visitorId) <= 0) return false;
+    this.pausedBy = visitorId;
+    this.pausedAt = now;
+    return true;
+  }
+
+  /**
+   * Chạy tiếp và lùi mốc bắt đầu cùng mốc xong của người đã hoàn thành trước lúc dừng,
+   * để thời gian và thứ hạng không tính phần đã dừng. Người gọi tự save().
+   */
+  resume(now = new Date()): void {
+    if (!this.pausedBy || !this.pausedAt) return;
+    const pausedAt = this.pausedAt.getTime();
+    const pausedMs = now.getTime() - pausedAt;
+    this.pauseUsedMs[this.pausedBy] = (this.pauseUsedMs[this.pausedBy] ?? 0) + pausedMs;
+    if (this.startedAt) {
+      this.startedAt = new Date(this.startedAt.getTime() + pausedMs);
+    }
+    for (const player of this.players) {
+      if (player.finishedAt && player.finishedAt.getTime() <= pausedAt) {
+        player.finishedAt = new Date(player.finishedAt.getTime() + pausedMs);
+      }
+    }
+    this.pausedBy = null;
+    this.pausedAt = null;
+  }
+
+  /** Còn bao lâu thì hết quỹ của người đang dừng, null nếu không dừng. Tính từ DB nên gọi lại không kéo dài được. */
+  pauseRemainingMs(now = new Date()): number | null {
+    if (!this.pausedBy || !this.pausedAt) return null;
+    const deadline = this.pausedAt.getTime() + this.pauseBudgetMs(this.pausedBy);
+    return Math.max(0, deadline - now.getTime());
   }
 
   canStart(): boolean {

@@ -1,76 +1,36 @@
 "use client";
 
-import { memo } from "react";
+import { memo, type ReactNode } from "react";
+import { PencilIcon, UndoIcon } from "@/components/icons";
 
 interface GameToolbarProps {
   onUndo: () => void;
-  onErase: () => void;
   onToggleNotes: () => void;
   isNotesMode: boolean;
   canUndo: boolean;
   disabled?: boolean;
+  /** Hành động riêng của màn: bỏ cuộc hoặc ván mới */
+  action?: ReactNode;
 }
 
-const GameToolbar = memo(function GameToolbar({
-  onUndo,
-  onErase,
-  onToggleNotes,
-  isNotesMode,
-  canUndo,
-  disabled = false,
-}: GameToolbarProps) {
-  const buttonClass = "flex items-center justify-center w-12 h-10 text-gray-500 touch-manipulation";
-  const iconClass = "w-6 h-6";
+export const toolButtonClass =
+  "inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border-[3px] border-ink bg-milk px-1.5 text-[0.95rem] font-bold leading-none max-[359px]:[&>svg]:hidden transition-colors hover:bg-lemon-pale disabled:cursor-not-allowed disabled:opacity-45 [&>svg]:shrink-0 [&>svg]:text-lg";
 
+const GameToolbar = memo(function GameToolbar({ onUndo, onToggleNotes, isNotesMode, canUndo, disabled = false, action }: GameToolbarProps) {
   return (
-    <div className="flex items-center justify-center gap-6 py-1">
-      {/* Undo */}
-      <button
-        onClick={onUndo}
-        disabled={disabled || !canUndo}
-        className={`${buttonClass} ${disabled || !canUndo ? "opacity-30" : ""}`}
-        aria-label="Hoàn tác"
-      >
-        <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-            d="M3 10h10a5 5 0 015 5v0a5 5 0 01-5 5H8M3 10l4-4m-4 4l4 4" />
-        </svg>
+    <div className="flex items-center gap-1.5">
+      <button onClick={onUndo} disabled={disabled || !canUndo} className={toolButtonClass}>
+        <UndoIcon /> Hoàn tác
       </button>
-
-      {/* Erase */}
-      <button
-        onClick={onErase}
-        disabled={disabled}
-        className={`${buttonClass} ${disabled ? "opacity-30" : ""}`}
-        aria-label="Xóa"
-      >
-        <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-      </button>
-
-      {/* Notes Toggle */}
       <button
         onClick={onToggleNotes}
         disabled={disabled}
-        className={`${buttonClass} ${isNotesMode ? "text-primary-500" : ""} ${disabled ? "opacity-30" : ""}`}
-        aria-label={isNotesMode ? "Tắt ghi chú" : "Bật ghi chú"}
+        aria-pressed={isNotesMode}
+        className={`${toolButtonClass} ${isNotesMode ? "!bg-lemon" : ""}`}
       >
-        <div className="relative">
-          <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-          </svg>
-          {!isNotesMode && (
-            <span className="absolute -bottom-0.5 -right-1.5 bg-gray-400 text-white text-[7px] px-0.5 rounded">
-              OFF
-            </span>
-          )}
-        </div>
+        <PencilIcon /> Ghi chú
       </button>
-
-
+      {action}
     </div>
   );
 });

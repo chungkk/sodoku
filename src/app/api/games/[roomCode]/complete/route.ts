@@ -46,6 +46,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Bàn của mọi người đang bị khoá thì không ai được nộp, kể cả người đã dừng ván
+    if (room.pausedBy) {
+      return NextResponse.json(
+        { error: "Game is paused", code: "GAME_PAUSED" },
+        { status: 400 }
+      );
+    }
+
     const player = room.players.find((p) => p.visitorId === visitorId);
     if (!player) {
       return NextResponse.json(

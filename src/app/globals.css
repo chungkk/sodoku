@@ -3,153 +3,343 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #1e3a5f;
-  --sudoku-border: #1e3a5f;
-  --sudoku-cell-bg: #ffffff;
-  --sudoku-given-color: #1e3a5f;
-  --sudoku-user-color: #3b82f6;
-  --sudoku-highlight-bg: #e8f0fe;
-  --sudoku-selected-bg: #c5d9f7;
-  --sudoku-same-number-bg: #d1e3fa;
+  --ink: #55303f;
+  --ink-rgb: 85 48 63;
+  --ink-soft: #6f4a59;
+  --mint: #a9ecd8;
+  --mint-deep: #8fe0c8;
+  --mint-pale: #dcf7ee;
+  --milk: #fffaf3;
+  --cherry: #d92c45;
+  --cherry-pale: #ffd9dd;
+  --lemon: #ffd24d;
+  --lemon-pale: #fff0bd;
+  --gum: #ff9db0;
+  --sugar: #fdeeda;
+  --teal: #0b7f73;
+  --tray-shadow: 0 14px 26px -14px rgba(85, 48, 63, 0.55);
 }
 
 @layer base {
-  body {
-    @apply bg-background text-foreground;
+  html {
+    scrollbar-color: var(--ink) var(--mint-deep);
+    -webkit-text-size-adjust: 100%;
   }
 
-  * {
-    @apply border-gray-200;
+  body {
+    color: var(--ink);
+    background-color: var(--mint);
+    background-image: radial-gradient(var(--mint-deep) 3px, transparent 3.5px);
+    background-size: 26px 26px;
+    caret-color: var(--cherry);
+  }
+
+  ::selection {
+    background: var(--lemon);
+    color: var(--ink);
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--ink);
+    outline-offset: 2px;
+  }
+
+  button {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 }
 
 @layer components {
+  /* Khay kẹo: bề mặt chính của mọi màn */
+  .tray {
+    background: var(--milk);
+    border: 5px solid var(--ink);
+    border-radius: 2rem;
+    box-shadow: var(--tray-shadow);
+  }
+
+  .title-candy {
+    font-family: var(--font-display);
+    color: var(--cherry);
+    -webkit-text-stroke: 0.19em var(--milk);
+    paint-order: stroke fill;
+    line-height: 1;
+    filter: drop-shadow(0 6px 5px rgba(85, 48, 63, 0.35));
+  }
+
+  /* Lớp bóng của kẹo cứng */
+  .candy-gloss {
+    position: relative;
+    box-shadow: 0 10px 16px -10px rgba(85, 48, 63, 0.7);
+  }
+
+  .candy-gloss::before {
+    content: "";
+    position: absolute;
+    top: 0.3rem;
+    left: 0.85rem;
+    width: min(1.75rem, 34%);
+    height: 0.28rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.65);
+    pointer-events: none;
+  }
+
+  /* Vệt bóng nằm gọn trong viên kẹo tròn */
+  .candy-gloss-round::before {
+    top: 14%;
+    left: 22%;
+    width: 24%;
+    height: 0.4rem;
+    transform: rotate(-32deg);
+  }
+
+  .stripe-fill {
+    background-image: repeating-linear-gradient(
+      135deg,
+      var(--teal) 0 10px,
+      #2a9c8f 10px 20px
+    );
+  }
+
+  .stripe-fill-rival {
+    background-image: repeating-linear-gradient(
+      135deg,
+      var(--lemon) 0 10px,
+      #f2b705 10px 20px
+    );
+  }
+
+  /* Bàn Sudoku: chữ số tính theo bề rộng bàn nên luôn vừa ô */
+  .sudoku-board {
+    container-type: inline-size;
+    display: grid;
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    grid-template-rows: repeat(9, minmax(0, 1fr));
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: var(--milk);
+    border: 5px solid var(--ink);
+    border-radius: 1.5rem;
+    box-shadow: var(--tray-shadow);
+  }
+
   .sudoku-cell {
-    @apply flex items-center justify-center
-           text-xl sm:text-2xl md:text-3xl font-medium
-           select-none cursor-pointer
-           touch-manipulation
-           outline-none
-           border border-gray-300;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    -webkit-tap-highlight-color: transparent;
-    will-change: transform, background-color;
-    color: var(--sudoku-given-color);
-    background-color: var(--sudoku-cell-bg);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    color: var(--ink);
+    font-size: 6.6cqw;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    user-select: none;
+    border-right: 1px solid rgba(85, 48, 63, 0.22);
+    border-bottom: 1px solid rgba(85, 48, 63, 0.22);
+    transition: background-color 120ms ease-out;
   }
 
-  .sudoku-cell-given {
-    color: var(--sudoku-given-color);
-    background-color: var(--sudoku-cell-bg);
-    font-weight: 500;
+  .sudoku-cell:focus-visible {
+    outline-offset: -3px;
+    z-index: 1;
   }
 
-  .sudoku-cell-user {
-    color: var(--sudoku-user-color);
-    background-color: var(--sudoku-cell-bg);
+  /* Các ngăn xen kẽ của khay */
+  .sudoku-cell-tint {
+    background: var(--sugar);
   }
 
-  .sudoku-cell-selected {
-    background-color: var(--sudoku-selected-bg) !important;
+  /* Đường chia ngăn nằm trên một lớp riêng nên không bị đường ô cắt */
+  .sudoku-box-line {
+    position: absolute;
+    z-index: 2;
+    background: var(--ink);
+    pointer-events: none;
   }
 
   .sudoku-cell-highlighted {
-    background-color: var(--sudoku-highlight-bg);
+    background: var(--mint-pale);
   }
 
   .sudoku-cell-same-number {
-    background-color: var(--sudoku-same-number-bg);
+    background: #ffe58a;
   }
 
-  .sudoku-cell-conflict {
-    @apply text-red-500;
-    background-color: #fee2e2 !important;
+  .sudoku-cell-selected {
+    background: var(--lemon);
   }
 
-  .sudoku-cell-note {
-    @apply text-[8px] sm:text-[10px] text-gray-500;
+  .sudoku-cell-conflict-bg {
+    background: var(--cherry-pale);
   }
 
-  /* Number Pad Container */
-  .number-pad-container {
-    @apply flex items-center justify-between gap-1 px-3 py-3;
-    background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+  /* Viên kẹo số người chơi thả vào ô */
+  .sudoku-candy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 84%;
+    height: 84%;
+    border-radius: 50%;
+    position: relative;
+    color: var(--milk);
+    background: var(--teal);
   }
 
-  /* Number Pad Button */
-  .number-pad-btn {
-    @apply flex items-center justify-center
-           flex-1 aspect-square max-w-[40px]
-           rounded-xl
-           touch-manipulation
-           transition-all duration-150 ease-out;
-    background: linear-gradient(145deg, #ffffff, #f0f4f8);
-    box-shadow: 
-      0 2px 4px rgba(0, 0, 0, 0.06),
-      0 1px 2px rgba(0, 0, 0, 0.04),
-      inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    -webkit-tap-highlight-color: transparent;
+  .sudoku-candy::before {
+    content: "";
+    position: absolute;
+    top: 12%;
+    left: 14%;
+    width: 36%;
+    height: 36%;
+    border-top: 0.11em solid rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    transform: rotate(-35deg);
   }
 
-  .number-pad-btn:active:not(.number-pad-btn-disabled) {
-    transform: scale(0.92);
-    box-shadow: 
-      0 1px 2px rgba(0, 0, 0, 0.08),
-      inset 0 1px 2px rgba(0, 0, 0, 0.06);
+  .sudoku-candy-conflict {
+    background: var(--cherry);
   }
 
-  .number-pad-btn-text {
-    @apply text-lg font-semibold;
-    color: #1e3a5f;
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  .sudoku-notes {
+    position: absolute;
+    inset: 1px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    font-size: 3cqw;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--ink-soft);
   }
 
-  .number-pad-btn-active {
-    background: linear-gradient(145deg, #4a90d9, #3b7fc8);
-    border-color: #3b7fc8;
-    box-shadow: 
-      0 3px 8px rgba(74, 144, 217, 0.35),
-      0 1px 3px rgba(74, 144, 217, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  .number-candy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 3.25rem;
+    font-size: 1.625rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    background: var(--milk);
+    border: 4px solid var(--ink);
+    border-radius: 9999px;
+    transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1), background-color 120ms ease-out;
   }
 
-  .number-pad-btn-active .number-pad-btn-text {
-    color: #ffffff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  .number-candy:hover:not(:disabled) {
+    background: var(--lemon-pale);
+    transform: translateY(-2px);
   }
 
-  .number-pad-btn-disabled {
-    @apply opacity-40 cursor-not-allowed;
+  .number-candy:active:not(:disabled) {
+    transform: scale(0.9);
   }
 
-  .number-pad-btn-disabled:active {
-    transform: none;
+  .number-candy:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
   }
 
-  .game-toolbar-btn {
-    @apply flex flex-col items-center justify-center
-           w-14 h-14 sm:w-16 sm:h-16
-           text-gray-500 
-           touch-manipulation;
-    -webkit-tap-highlight-color: transparent;
+  .number-candy-active {
+    background: var(--lemon);
   }
 
-  .game-toolbar-btn-active {
-    @apply text-primary-500;
+  .sudoku-stage {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 100dvh;
+    padding: 0.5rem 0.75rem max(0.5rem, env(safe-area-inset-bottom));
   }
+
+  .sudoku-stage-tools {
+    margin-top: auto;
+  }
+
+  @media (min-height: 780px) and (max-width: 1023px) {
+    .number-candy {
+      height: 4rem;
+      font-size: 1.875rem;
+    }
+  }
+
+  .sudoku-stage-board {
+    width: min(100%, calc(100dvh - 22.5rem));
+    min-width: 17rem;
+    margin-inline: auto;
+  }
+
+  @media (max-height: 720px) {
+    .sudoku-stage-board {
+      width: min(100%, calc(100dvh - 21rem));
+    }
+  }
+
+  @media (max-height: 600px) {
+    .number-candy {
+      height: 2.75rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .sudoku-stage {
+      display: grid;
+      grid-template-columns: auto 22rem;
+      grid-template-areas:
+        "info say"
+        "board tools"
+        "board pad"
+        "board .";
+      grid-template-rows: auto auto auto 1fr;
+      justify-content: center;
+      column-gap: 2.5rem;
+      row-gap: 1rem;
+      min-height: 0;
+      padding: 1.5rem 2rem 2.5rem;
+    }
+
+    .sudoku-stage-info { grid-area: info; align-self: end; }
+    .sudoku-stage-say { grid-area: say; display: flex; }
+    .sudoku-stage-board { grid-area: board; width: min(36rem, calc(100dvh - 15rem)); margin: 0; }
+    .sudoku-stage-tools { grid-area: tools; margin-top: 0; }
+    .sudoku-stage-pad { grid-area: pad; }
+    .number-candy { height: 4.75rem; font-size: 2.125rem; }
+  }
+
+  .caro-board {
+    container-type: inline-size;
+  }
+
+  /* Linh vật */
+  .mascot-animated .m-body { transform-origin: 660px 740px; animation: m-breathe 2.8s ease-in-out infinite; }
+  .mascot-animated .m-head { transform-origin: 590px 560px; animation: m-head 2.8s ease-in-out infinite; }
+  .mascot-animated .m-tail { transform-origin: 770px 700px; animation: m-tail 2.8s ease-in-out infinite; }
+  .mascot-animated .m-leaf { transform-origin: 215px 700px; animation: m-leaf 2.6s ease-in-out infinite; }
+  .mascot-animated .m-pompom { transform-origin: 672px 200px; animation: m-pompom 1.4s ease-in-out infinite; }
+  .mascot-animated .m-blink { transform-box: fill-box; transform-origin: center; animation: m-blink 4.2s linear infinite; }
+  .mascot-cheer { animation: m-hop 0.7s ease-in-out infinite alternate; }
+  .m-pupils { transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1); }
 }
 
-@layer utilities {
-  .grid-sudoku {
-    display: grid;
-    grid-template-columns: repeat(9, 1fr);
-    background: var(--sudoku-cell-bg);
-    border: 2px solid var(--sudoku-border);
-  }
+@keyframes m-breathe { 50% { transform: scale(1.025); } }
+@keyframes m-head { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(4deg) translateY(6px); } }
+@keyframes m-tail { 50% { transform: rotate(7deg); } }
+@keyframes m-leaf { 50% { transform: rotate(-10deg); } }
+@keyframes m-pompom { 50% { transform: rotate(12deg); } }
+@keyframes m-blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.08); } }
+@keyframes m-hop { to { transform: translateY(-6%); } }
 
-  .touch-manipulation {
-    touch-action: manipulation;
+@media (prefers-reduced-motion: reduce) {
+  .mascot-animated *,
+  .mascot-cheer {
+    animation: none !important;
   }
 }

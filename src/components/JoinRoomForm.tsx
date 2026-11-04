@@ -2,16 +2,24 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import { NameInput } from "@/components/NameInput";
+import { Button } from "@/components/ui/button";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { apiFetch, requestGuestSession } from "@/lib/api-client";
+
+type GameType = "sudoku" | "caro";
 
 interface JoinRoomFormProps {
   onCancel?: () => void;
   initialCode?: string;
-  gameType?: "sudoku" | "caro";
+  /** "any": tự tìm mã phòng trong cả hai trò */
+  gameType?: GameType | "any";
 }
+
+const GAMES: Record<GameType, { path: string; maxPlayers: number }> = {
+  sudoku: { path: "/api/rooms", maxPlayers: 4 },
+  caro: { path: "/api/caro", maxPlayers: 2 },
+};
 
 export function JoinRoomForm({ onCancel, initialCode = "", gameType = "sudoku" }: JoinRoomFormProps) {
   const router = useRouter();
@@ -19,7 +27,6 @@ export function JoinRoomForm({ onCancel, initialCode = "", gameType = "sudoku" }
   const [roomCode, setRoomCode] = useState(initialCode);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState<"code" | "name">(player ? "code" : "name");
 
   const handleNameSubmit = useCallback(
     async (name: string) => {
@@ -29,7 +36,6 @@ export function JoinRoomForm({ onCancel, initialCode = "", gameType = "sudoku" }
       try {
         const data = await requestGuestSession(name);
         setGuestName(data.name, data.visitorId, data.token);
-        setStep("code");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Đã xảy ra lỗi");
       } finally {
@@ -45,12 +51,7 @@ export function JoinRoomForm({ onCancel, initialCode = "", gameType = "sudoku" }
       const code = roomCode.trim().toUpperCase();
 
       if (code.length !== 6) {
-        setError("Mã phòng phải có 6 ký tự");
-        return;
-      }
-
-      if (!player) {
-        setStep("name");
+        setError("Mã phòng có đúng 6 ký tự");
         return;
       }
 
@@ -58,115 +59,49 @@ export function JoinRoomForm({ onCancel, initialCode = "", gameType = "sudoku" }
       setError(null);
 
       try {
-        if (gameType === "caro") {
-          const response = await apiFetch(`/api/caro/${code}`);
+        const candidates: GameType[] = gameType === "any" ? ["sudoku", "caro"] : [gameType];
 
-          if (!response.ok) {
-            const data = await response.json();
-            if (data.code === "ROOM_NOT_FOUND") {
-              throw new Error("Không tìm thấy phòng Caro với mã này");
-            }
-            throw new Error(data.error || "Không thể tham gia phòng");
+        for (const game of candidates) {
+          const response = await apiFetch(`${GAMES[game].path}/${code}`);
+          if (response.status === 404) continue;
+
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "Không thể vào phòng");
+          if (data.status !== "waiting") throw new Error("Ván này đã bắt đầu, không vào được nữa");
+          if (data.players.length >= GAMES[game].maxPlayers) {
+            throw new Error(`Phòng đã đủ ${GAMES[game].maxPlayers} người`);
           }
 
-          const roomData = await response.json();
-
-          if (roomData.status !== "waiting") {
-            throw new Error("Trò chơi đã bắt đầu, không thể tham gia");
-          }
-
-          if (roomData.players.length >= 2) {
-            throw new Error("Phòng đã đầy (tối đa 2 người chơi)");
-          }
-
-          router.push(`/caro/${code}`);
-        } else {
-          const response = await apiFetch(`/api/rooms/${code}`);
-
-          if (!response.ok) {
-            const data = await response.json();
-            if (data.code === "ROOM_NOT_FOUND") {
-              throw new Error("Không tìm thấy phòng với mã này");
-            }
-            throw new Error(data.error || "Không thể tham gia phòng");
-          }
-
-          const roomData = await response.json();
-
-          if (roomData.status !== "waiting") {
-            throw new Error("Trò chơi đã bắt đầu, không thể tham gia");
-          }
-
-          if (roomData.players.length >= 4) {
-            throw new Error("Phòng đã đầy (tối đa 4 người chơi)");
-          }
-
-          router.push(`/sudoku/${code}`);
+          router.push(`/${game}/${code}`);
+          return;
         }
+
+        throw new Error("Không tìm thấy phòng có mã này, bạn kiểm tra lại nhé");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Đã xảy ra lỗi");
         setIsLoading(false);
       }
     },
-    [roomCode, player, gameType, router]
+    [roomCode, gameType, router]
   );
 
-  const isCaro = gameType === "caro";
-  const accentColor = isCaro ? "pink" : "cyan";
-
-  if (step === "name") {
+  if (!player) {
     return (
-      <div className="space-y-4">
-        <NameInput
-          onSubmit={handleNameSubmit}
-          buttonText="▸ TIẾP TỤC"
-          isLoading={isLoading}
-        />
-        {error && (
-          <p className="text-sm text-red-400 text-center font-mono">{error}</p>
-        )}
-        {onCancel && (
-          <button
-            onClick={onCancel}
-            className="w-full py-2 text-gray-500 hover:text-cyan-400 font-mono text-sm uppercase tracking-wider transition-colors"
-          >
-            [ HỦY ]
-          </button>
-        )}
+      <div className="flex flex-col gap-3">
+        <NameInput onSubmit={handleNameSubmit} isLoading={isLoading} />
+        {error && <p role="alert" className="text-center font-semibold text-cherry">{error}</p>}
+        {onCancel && <Button variant="ghost" fullWidth onClick={onCancel}>Hủy</Button>}
       </div>
     );
   }
 
   return (
-    <motion.form
-      onSubmit={handleJoinRoom}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
-    >
-      {player && (
-        <div className="text-center mb-4">
-          <p className="text-gray-400 font-mono text-sm">
-            PLAYER: <span className={`text-${accentColor}-400 font-bold`}>{player.name}</span>
-          </p>
-        </div>
-      )}
-
-      {gameType === "caro" && (
-        <div className="border border-pink-500/30 bg-pink-500/10 p-3 text-center mb-2">
-          <p className="text-pink-300 font-mono text-xs">
-            ► PHÒNG CARO • 2 PLAYERS
-          </p>
-        </div>
-      )}
-
-      <div className="space-y-2">
-        <label className="block text-gray-400 font-mono text-xs uppercase tracking-wider">
-          ► Mã phòng
-        </label>
+    <form onSubmit={handleJoinRoom} className="flex flex-col gap-3">
+      <label className="flex flex-col gap-1.5">
+        <span className="text-lg font-bold">Mã phòng</span>
         <input
           type="text"
-          placeholder="NHẬP MÃ 6 KÝ TỰ"
+          placeholder="ABC123"
           value={roomCode}
           onChange={(e) => {
             setRoomCode(e.target.value.toUpperCase());
@@ -174,45 +109,23 @@ export function JoinRoomForm({ onCancel, initialCode = "", gameType = "sudoku" }
           }}
           maxLength={6}
           autoFocus
-          className={`
-            w-full px-4 py-3 bg-transparent border-2 
-            ${error ? 'border-red-500' : `border-${accentColor}-400/50 focus:border-${accentColor}-400`}
-            text-white font-mono text-2xl text-center tracking-[0.5em] uppercase
-            placeholder:text-gray-600 placeholder:tracking-normal placeholder:text-sm
-            focus:outline-none focus:shadow-[0_0_15px_rgba(0,255,255,0.3)]
-            transition-all
-          `}
+          autoCapitalize="characters"
+          autoComplete="off"
+          aria-invalid={!!error}
+          className={`w-full rounded-2xl border-4 bg-white px-2 py-3 text-center font-display text-3xl tracking-[0.2em] text-ink placeholder:text-ink/65 focus:ring-4 focus:ring-lemon ${
+            error ? "border-cherry focus:border-cherry" : "border-ink focus:border-ink"
+          }`}
         />
-      </div>
+      </label>
 
-      {error && (
-        <p className="text-sm text-red-400 text-center font-mono">► {error}</p>
-      )}
+      {error && <p role="alert" className="text-center font-semibold text-cherry">{error}</p>}
 
-      <button
-        type="submit"
-        disabled={roomCode.length !== 6 || isLoading}
-        className={`
-          w-full py-3 px-4 font-bold uppercase tracking-wider transition-all duration-200
-          ${isCaro
-            ? 'bg-pink-500 hover:bg-pink-400 hover:shadow-[0_0_20px_rgba(255,0,255,0.6)]'
-            : 'bg-cyan-500 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,255,255,0.6)]'
-          }
-          text-black disabled:opacity-50 disabled:cursor-not-allowed
-        `}
-      >
-        {isLoading ? "ĐANG KẾT NỐI..." : `▸ THAM GIA PHÒNG`}
-      </button>
+      <Button type="submit" wrapped fullWidth size="lg" disabled={roomCode.length !== 6} isLoading={isLoading}>
+        Vào phòng
+      </Button>
 
-      {onCancel && (
-        <button
-          type="button"
-          onClick={onCancel}
-          className="w-full py-2 text-gray-500 hover:text-cyan-400 font-mono text-sm uppercase tracking-wider transition-colors"
-        >
-          [ HỦY ]
-        </button>
-      )}
-    </motion.form>
+      <p className="text-center font-semibold text-ink-soft">Bạn chơi với tên {player.name}</p>
+      {onCancel && <Button variant="ghost" fullWidth onClick={onCancel}>Hủy</Button>}
+    </form>
   );
 }

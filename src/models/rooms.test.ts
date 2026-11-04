@@ -7,6 +7,7 @@ import CaroRoom from "./CaroRoom";
 import Room from "./Room";
 import { createEmptyBoard, MAX_PAUSE_MS_PER_PLAYER, TURN_TIMEOUT_MS } from "../lib/caro";
 import { getDb } from "../lib/db";
+import { MAX_PAUSE_MS_PER_PLAYER as MAX_SUDOKU_PAUSE_MS } from "../lib/sudoku";
 
 after(() => {
   getDb().close();
@@ -73,6 +74,67 @@ test("phòng rời bỏ giữa chừng kết thúc khi người cuối bị xử
 
   assert.equal(room.status, "finished");
   assert.equal(room.winnerId, "a");
+});
+
+test("Sudoku: thời gian dừng không tính vào ván, người đã xong trước lúc dừng giữ nguyên thành tích", () => {
+  const room = playingSudokuRoom();
+  const start = new Date(1_000_000);
+  room.startedAt = start;
+  const done = room.players.find((p) => p.visitorId === "a")!;
+  done.progress = 100;
+  done.finishedAt = new Date(start.getTime() + 30_000);
+
+  assert.equal(room.pause("b", new Date(start.getTime() + 60_000)), true);
+  room.resume(new Date(start.getTime() + 120_000));
+
+  assert.equal(room.startedAt.getTime(), start.getTime() + 60_000);
+  assert.equal(done.finishedAt.getTime() - room.startedAt.getTime(), 30_000);
+});
+
+test("Sudoku: người đã xong ván không thể khoá người còn lại", () => {
+  const room = playingSudokuRoom();
+  const done = room.players.find((p) => p.visitorId === "a")!;
+  done.progress = 100;
+  done.finishedAt = new Date();
+
+  assert.equal(room.pause("a"), false);
+  assert.equal(room.pause("outsider"), false);
+  assert.equal(room.pause("b"), true);
+});
+
+test("Sudoku: không thể dừng vô hạn và không dừng chồng được", () => {
+  const room = playingSudokuRoom();
+  const start = new Date(1_000_000);
+
+  assert.equal(room.pause("a", start), true);
+  assert.equal(room.pause("b", start), false);
+  assert.equal(room.pauseRemainingMs(start), MAX_SUDOKU_PAUSE_MS);
+  const end = new Date(start.getTime() + MAX_SUDOKU_PAUSE_MS);
+  assert.equal(room.pauseRemainingMs(end), 0);
+  room.resume(end);
+
+  assert.equal(room.pauseRemainingMs(end), null);
+  assert.equal(room.pause("a", end), false);
+  assert.equal(room.pause("b", end), true);
+});
+
+test("Sudoku: trạng thái tạm dừng được lưu qua lần đọc lại từ DB", () => {
+  const room = playingSudokuRoom();
+  const start = new Date(1_000_000);
+  room.pause("a", start);
+  room.save();
+
+  const reloaded = Room.findByCode(room.code)!;
+  assert.equal(reloaded.pausedBy, "a");
+  assert.equal(reloaded.pauseRemainingMs(start), MAX_SUDOKU_PAUSE_MS);
+});
+
+test("Sudoku: người đang giữ tạm dừng bỏ cuộc thì ván chạy tiếp", () => {
+  const room = playingSudokuRoom();
+  room.pause("a");
+  assert.equal(room.giveUp("a"), true);
+  assert.equal(room.pausedBy, null);
+  assert.equal(room.status, "playing");
 });
 
 test("thời gian tạm dừng không bị tính vào lượt", () => {

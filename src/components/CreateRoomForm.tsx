@@ -2,16 +2,16 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import { NameInput } from "@/components/NameInput";
+import { Button } from "@/components/ui/button";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { Difficulty } from "@/lib/sudoku";
 import { apiFetch, requestGuestSession } from "@/lib/api-client";
 
-const difficultyOptions = [
-  { value: "easy", label: "🟢 DỄ", color: "text-green-400" },
-  { value: "medium", label: "🟡 TRUNG BÌNH", color: "text-yellow-400" },
-  { value: "hard", label: "🔴 KHÓ", color: "text-red-400" },
+const difficultyOptions: { value: Difficulty; label: string }[] = [
+  { value: "easy", label: "Dễ" },
+  { value: "medium", label: "Trung bình" },
+  { value: "hard", label: "Khó" },
 ];
 
 interface CreateRoomFormProps {
@@ -25,7 +25,6 @@ export function CreateRoomForm({ onCancel, gameType = "sudoku" }: CreateRoomForm
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState<"name" | "create">(player ? "create" : "name");
 
   const handleNameSubmit = useCallback(
     async (name: string) => {
@@ -35,7 +34,6 @@ export function CreateRoomForm({ onCancel, gameType = "sudoku" }: CreateRoomForm
       try {
         const data = await requestGuestSession(name);
         setGuestName(data.name, data.visitorId, data.token);
-        setStep("create");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Đã xảy ra lỗi");
       } finally {
@@ -46,12 +44,7 @@ export function CreateRoomForm({ onCancel, gameType = "sudoku" }: CreateRoomForm
   );
 
   const handleCreateRoom = useCallback(async () => {
-    if (!player) {
-      setStep("name");
-      return;
-    }
-
-    if (!player.visitorId || !player.name) {
+    if (!player?.visitorId || !player.name) {
       setError("Thông tin người chơi không hợp lệ. Vui lòng thử lại.");
       return;
     }
@@ -64,36 +57,19 @@ export function CreateRoomForm({ onCancel, gameType = "sudoku" }: CreateRoomForm
         const response = await apiFetch("/api/caro", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            visitorId: player.visitorId,
-            name: player.name,
-          }),
+          body: JSON.stringify({ visitorId: player.visitorId, name: player.name }),
         });
-
         const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || "Không thể tạo phòng Caro");
-        }
-
+        if (!response.ok) throw new Error(data.error || "Không thể tạo phòng Caro");
         router.push(`/caro/${data.room.code}`);
       } else {
         const response = await apiFetch("/api/rooms", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            visitorId: player.visitorId,
-            hostName: player.name,
-            difficulty,
-          }),
+          body: JSON.stringify({ visitorId: player.visitorId, hostName: player.name, difficulty }),
         });
-
         const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.details || data.error || "Không thể tạo phòng");
-        }
-
+        if (!response.ok) throw new Error(data.details || data.error || "Không thể tạo phòng");
         router.push(`/sudoku/${data.code}`);
       }
     } catch (err) {
@@ -103,104 +79,47 @@ export function CreateRoomForm({ onCancel, gameType = "sudoku" }: CreateRoomForm
     }
   }, [player, difficulty, gameType, router]);
 
-  const isCaro = gameType === "caro";
-  const accentColor = isCaro ? "pink" : "cyan";
-
-  if (step === "name") {
+  if (!player) {
     return (
-      <div className="space-y-4">
-        <NameInput
-          onSubmit={handleNameSubmit}
-          buttonText="▸ TIẾP TỤC"
-          isLoading={isLoading}
-        />
-        {error && (
-          <p className="text-sm text-red-400 text-center font-mono">{error}</p>
-        )}
-        {onCancel && (
-          <button
-            onClick={onCancel}
-            className="w-full py-2 text-gray-500 hover:text-cyan-400 font-mono text-sm uppercase tracking-wider transition-colors"
-          >
-            [ HỦY ]
-          </button>
-        )}
+      <div className="flex flex-col gap-3">
+        <NameInput onSubmit={handleNameSubmit} isLoading={isLoading} />
+        {error && <p role="alert" className="text-center font-semibold text-cherry">{error}</p>}
+        {onCancel && <Button variant="ghost" fullWidth onClick={onCancel}>Hủy</Button>}
       </div>
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
-    >
-      <div className="text-center mb-4">
-        <p className="text-gray-400 font-mono text-sm">
-          PLAYER: <span className={`text-${accentColor}-400 font-bold`}>{player?.name}</span>
-        </p>
-      </div>
-
+    <div className="flex flex-col gap-3">
       {gameType === "sudoku" && (
-        <div className="space-y-2">
-          <label className="block text-gray-400 font-mono text-xs uppercase tracking-wider mb-2">
-            ► Độ khó
-          </label>
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="pb-1.5 text-lg font-bold">Độ khó</legend>
           <div className="grid grid-cols-3 gap-2">
             {difficultyOptions.map((opt) => (
               <button
                 key={opt.value}
-                onClick={() => setDifficulty(opt.value as Difficulty)}
-                className={`
-                  py-2 px-3 border-2 font-mono text-xs uppercase tracking-wider transition-all
-                  ${difficulty === opt.value
-                    ? 'border-cyan-400 bg-cyan-400/20 text-cyan-400'
-                    : 'border-gray-600 text-gray-400 hover:border-cyan-400/50'
-                  }
-                `}
+                type="button"
+                aria-pressed={difficulty === opt.value}
+                onClick={() => setDifficulty(opt.value)}
+                className={`min-h-12 rounded-full border-4 border-ink px-1 text-[0.95rem] font-bold leading-none transition-colors ${
+                  difficulty === opt.value ? "bg-lemon" : "bg-white hover:bg-lemon-pale"
+                }`}
               >
                 {opt.label}
               </button>
             ))}
           </div>
-        </div>
+        </fieldset>
       )}
 
-      {gameType === "caro" && (
-        <div className="border border-pink-500/30 bg-pink-500/10 p-4 text-center">
-          <p className="text-pink-300 font-mono text-sm">
-            ► BÀN CỜ 15×15 • 2 PLAYERS • 5 Ô LIÊN TIẾP
-          </p>
-        </div>
-      )}
+      {error && <p role="alert" className="text-center font-semibold text-cherry">{error}</p>}
 
-      {error && (
-        <p className="text-sm text-red-400 text-center font-mono">{error}</p>
-      )}
+      <Button wrapped fullWidth size="lg" onClick={handleCreateRoom} isLoading={isLoading}>
+        Tạo phòng
+      </Button>
 
-      <button
-        onClick={handleCreateRoom}
-        disabled={isLoading}
-        className={`
-          w-full py-3 px-4 font-bold uppercase tracking-wider transition-all duration-200
-          ${isCaro
-            ? 'bg-pink-500 hover:bg-pink-400 hover:shadow-[0_0_20px_rgba(255,0,255,0.6)]'
-            : 'bg-cyan-500 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,255,255,0.6)]'
-          }
-          text-black disabled:opacity-50 disabled:cursor-not-allowed
-        `}
-      >
-        {isLoading ? "ĐANG TẠO..." : `▸ TẠO PHÒNG ${isCaro ? 'CARO' : 'SUDOKU'}`}
-      </button>
-
-      {onCancel && (
-        <button
-          onClick={onCancel}
-          className="w-full py-2 text-gray-500 hover:text-cyan-400 font-mono text-sm uppercase tracking-wider transition-colors"
-        >
-          [ HỦY ]
-        </button>
-      )}
-    </motion.div>
+      <p className="text-center font-semibold text-ink-soft">Bạn chơi với tên {player.name}</p>
+      {onCancel && <Button variant="ghost" fullWidth onClick={onCancel}>Hủy</Button>}
+    </div>
   );
 }

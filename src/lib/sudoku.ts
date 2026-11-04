@@ -1,3 +1,6 @@
+/** Tổng thời gian mỗi người được tạm dừng trong một ván đối kháng; hết quỹ thì ván tự chạy tiếp. */
+export const MAX_PAUSE_MS_PER_PLAYER = 3 * 60 * 1000;
+
 export type Difficulty = "easy" | "medium" | "hard" | "expert" | "master" | "extreme";
 
 export interface SudokuPuzzle {

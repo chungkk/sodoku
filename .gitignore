@@ -38,3 +38,8 @@ next-env.d.ts
 
 # SQLite
 /data/
+
+# Impeccable working files
+.impeccable/mocks
+.impeccable/review
+.impeccable/build

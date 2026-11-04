@@ -1,0 +1,570 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-04T20:38:41+00:00",
+  "title": "Design System: Solo Games",
+  "extensions": {
+    "colorMeta": {
+      "cherry": {
+        "role": "primary",
+        "displayName": "Candy Cherry",
+        "canonical": "#d92c45",
+        "tonalRamp": [
+          "#220001",
+          "#4c000e",
+          "#7f011e",
+          "#b60530",
+          "#e3384d",
+          "#fc7379",
+          "#fdb3b2",
+          "#fee9e8"
+        ]
+      },
+      "mascot-red": {
+        "role": "primary",
+        "displayName": "Mascot Stripe Red",
+        "canonical": "#e8384f",
+        "tonalRamp": [
+          "#220001",
+          "#4d000e",
+          "#7e0720",
+          "#b41132",
+          "#e5344c",
+          "#fe7279",
+          "#feb2b2",
+          "#ffe8e8"
+        ]
+      },
+      "cherry-pale": {
+        "role": "primary",
+        "displayName": "Conflict Blush",
+        "canonical": "#ffd9dd",
+        "tonalRamp": [
+          "#150608",
+          "#371c20",
+          "#56393c",
+          "#77575b",
+          "#9a787c",
+          "#be9b9e",
+          "#ddc1c4",
+          "#f5eced"
+        ]
+      },
+      "teal": {
+        "role": "secondary",
+        "displayName": "Bottle Teal",
+        "canonical": "#0b7f73",
+        "tonalRamp": [
+          "#00100d",
+          "#002c27",
+          "#004e46",
+          "#0e7166",
+          "#2f9488",
+          "#58b8ab",
+          "#95d9cd",
+          "#e0f3f0"
+        ]
+      },
+      "lemon": {
+        "role": "tertiary",
+        "displayName": "Lemon Drop",
+        "canonical": "#ffd24d",
+        "tonalRamp": [
+          "#130900",
+          "#302300",
+          "#523f00",
+          "#785e00",
+          "#9e7e14",
+          "#c99f09",
+          "#e6c66d",
+          "#f8eed5"
+        ]
+      },
+      "lemon-wash": {
+        "role": "tertiary",
+        "displayName": "Lemon Wash",
+        "canonical": "#ffe58a",
+        "tonalRamp": [
+          "#110a00",
+          "#2e2400",
+          "#4f4103",
+          "#745f08",
+          "#99801e",
+          "#bda448",
+          "#dbc988",
+          "#f4efdb"
+        ]
+      },
+      "lemon-pale": {
+        "role": "tertiary",
+        "displayName": "Lemon Cream",
+        "canonical": "#fff0bd",
+        "tonalRamp": [
+          "#120a00",
+          "#2e2400",
+          "#4e4110",
+          "#6e6032",
+          "#908253",
+          "#b3a574",
+          "#d4c9a5",
+          "#f2eee3"
+        ]
+      },
+      "gum": {
+        "role": "tertiary",
+        "displayName": "Bubblegum",
+        "canonical": "#ff9db0",
+        "tonalRamp": [
+          "#210006",
+          "#4b001b",
+          "#721e36",
+          "#974055",
+          "#bd6275",
+          "#e48497",
+          "#fcb1bf",
+          "#ffe8eb"
+        ]
+      },
+      "mint": {
+        "role": "neutral",
+        "displayName": "Mint Field",
+        "canonical": "#a9ecd8",
+        "tonalRamp": [
+          "#00100a",
+          "#002d23",
+          "#004e3f",
+          "#2c6f5e",
+          "#50917f",
+          "#73b4a2",
+          "#a5d5c6",
+          "#e4f2ee"
+        ]
+      },
+      "mint-deep": {
+        "role": "neutral",
+        "displayName": "Deep Mint",
+        "canonical": "#8fe0c8",
+        "tonalRamp": [
+          "#00100a",
+          "#002d23",
+          "#044e3f",
+          "#18715d",
+          "#42937e",
+          "#67b7a0",
+          "#9dd7c5",
+          "#e2f3ed"
+        ]
+      },
+      "mint-pale": {
+        "role": "neutral",
+        "displayName": "Pale Mint",
+        "canonical": "#dcf7ee",
+        "tonalRamp": [
+          "#030e0a",
+          "#142a24",
+          "#314741",
+          "#506760",
+          "#708981",
+          "#92aca3",
+          "#bbcec8",
+          "#eaf0ee"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Plum Ink",
+        "canonical": "#55303f",
+        "tonalRamp": [
+          "#17040c",
+          "#3a1827",
+          "#5a3544",
+          "#7c5463",
+          "#9f7484",
+          "#c396a7",
+          "#e1becb",
+          "#f6ebef"
+        ]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Soft Plum",
+        "canonical": "#6f4a59",
+        "tonalRamp": [
+          "#17050c",
+          "#391927",
+          "#593644",
+          "#7a5464",
+          "#9d7585",
+          "#c197a8",
+          "#e0bfcb",
+          "#f6ebef"
+        ]
+      },
+      "milk": {
+        "role": "neutral",
+        "displayName": "Milk",
+        "canonical": "#fffaf3",
+        "tonalRamp": [
+          "#0d0b08",
+          "#28241f",
+          "#45413c",
+          "#65615b",
+          "#86827b",
+          "#a9a49e",
+          "#ccc8c3",
+          "#efeeed"
+        ]
+      },
+      "sugar": {
+        "role": "neutral",
+        "displayName": "Sugar",
+        "canonical": "#fdeeda",
+        "tonalRamp": [
+          "#100a03",
+          "#2e2313",
+          "#4c4030",
+          "#6c5f4e",
+          "#8d806e",
+          "#b1a390",
+          "#d2c7b9",
+          "#f1eee9"
+        ]
+      },
+      "field-white": {
+        "role": "neutral",
+        "displayName": "Field White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      }
+    },
+    "channelTokens": [
+      {
+        "name": "--ink-rgb",
+        "value": "85 48 63",
+        "purpose": "Space-separated channels behind the Tailwind ink colour, so opacity modifiers work."
+      }
+    ],
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Candy title on home and lobbies: cherry with a 0.19em milk stroke behind the fill. 5.75rem on home at 1024px and up; lobbies use clamp(3.25rem,16vw,5rem)."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Dialog titles, single-purpose screens, paused board message."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Game names on home tiles."
+      },
+      "button-large": {
+        "displayName": "Button large",
+        "purpose": "Wrapped candy."
+      },
+      "button": {
+        "displayName": "Button",
+        "purpose": "Medium button faces."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Dialog sentences and supporting copy."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Chips, names, form labels."
+      },
+      "tool-label": {
+        "displayName": "Tool label",
+        "purpose": "Tool buttons; the speech bubble uses this size at weight 600."
+      },
+      "board-digit": {
+        "displayName": "Board digit",
+        "purpose": "Sudoku digits sized from board width through a container query."
+      },
+      "pad-digit": {
+        "displayName": "Pad digit",
+        "purpose": "Number keys."
+      }
+    },
+    "shadows": [
+      {
+        "name": "tray-lift",
+        "value": "0 14px 26px -14px rgba(85, 48, 63, 0.55)",
+        "purpose": "Trays, dialogs and the Sudoku board. Source token --tray-shadow."
+      },
+      {
+        "name": "candy-lift",
+        "value": "0 10px 16px -10px rgba(85, 48, 63, 0.7)",
+        "purpose": "Glossed primary buttons, room code candies and the countdown candy."
+      },
+      {
+        "name": "title-glow",
+        "value": "drop-shadow(0 6px 5px rgba(85, 48, 63, 0.35))",
+        "purpose": "Filter on the candy title only."
+      }
+    ],
+    "motion": [
+      {
+        "name": "sudoku-candy-drop",
+        "value": "spring stiffness 620 damping 17, from y -70% scale 0.6",
+        "purpose": "Player digit dropping into a Sudoku cell."
+      },
+      {
+        "name": "caro-candy-drop",
+        "value": "spring stiffness 560 damping 15, from y -110% scale 0.6",
+        "purpose": "Caro piece dropping into a cell."
+      },
+      {
+        "name": "home-tray-drop",
+        "value": "spring stiffness 420 damping 15, staggered 50ms",
+        "purpose": "Sample candies filling the home tiles."
+      },
+      {
+        "name": "button-press",
+        "value": "spring stiffness 500 damping 26",
+        "purpose": "Buttons lifting 2px on hover and squashing to 0.96 on press."
+      },
+      {
+        "name": "dialog-rise",
+        "value": "spring stiffness 380 damping 26",
+        "purpose": "Dialogs rising into place over a 180ms scrim fade."
+      },
+      {
+        "name": "countdown-drop",
+        "value": "spring stiffness 500 damping 14",
+        "purpose": "Countdown candy before a match."
+      },
+      {
+        "name": "progress-fill",
+        "value": "spring stiffness 170 damping 24",
+        "purpose": "Candy bar width."
+      },
+      {
+        "name": "snap-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Number key transforms over 120ms and mascot pupils over 180ms."
+      },
+      {
+        "name": "mascot-idle",
+        "value": "2.8s ease-in-out breathing, head and tail; 4.2s blink",
+        "purpose": "Mascot idle loop, removed under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "short-600",
+        "value": "max-height 600px"
+      },
+      {
+        "name": "short-700",
+        "value": "max-height 700px"
+      },
+      {
+        "name": "short-720",
+        "value": "max-height 720px"
+      },
+      {
+        "name": "short-740",
+        "value": "max-height 740px"
+      },
+      {
+        "name": "tall-780",
+        "value": "min-height 780px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Wrapped Candy Button",
+      "kind": "button",
+      "refersTo": "button-primary-wrapped",
+      "description": "The one main action of a screen: a cherry pill with twisted wrapper ends.",
+      "html": "<button class=\"ds-candy-wrapped\"><svg class=\"ds-ear ds-ear-l\" viewBox=\"0 0 30 56\" aria-hidden=\"true\"><path d=\"M28 18 4 4c-3 8-2 12 1 15-4 5-4 12 0 18-3 3-4 8-1 15l24-14Z\" fill=\"#d92c45\" stroke=\"#55303f\" stroke-width=\"4\" stroke-linejoin=\"round\"/><path d=\"M26 24 13 22M26 32l-13 2\" stroke=\"#55303f\" stroke-width=\"2.5\" stroke-linecap=\"round\"/></svg><svg class=\"ds-ear ds-ear-r\" viewBox=\"0 0 30 56\" aria-hidden=\"true\"><path d=\"M28 18 4 4c-3 8-2 12 1 15-4 5-4 12 0 18-3 3-4 8-1 15l24-14Z\" fill=\"#d92c45\" stroke=\"#55303f\" stroke-width=\"4\" stroke-linejoin=\"round\"/><path d=\"M26 24 13 22M26 32l-13 2\" stroke=\"#55303f\" stroke-width=\"2.5\" stroke-linecap=\"round\"/></svg>Chơi ván mới</button>",
+      "css": ".ds-candy-wrapped{position:relative;display:inline-flex;align-items:center;justify-content:center;min-height:4rem;margin:0 1.375rem;padding:0 1.75rem;border:4px solid var(--ink,#55303f);border-radius:9999px;background:var(--cherry,#d92c45);color:var(--milk,#fffaf3);font-family:var(--font-display,'Paytone One'),sans-serif;font-size:1.5rem;line-height:1;box-shadow:0 10px 16px -10px rgba(85,48,63,.7);cursor:pointer;transition:transform 120ms cubic-bezier(.16,1,.3,1),filter 120ms ease-out,background-color 120ms ease-out;}.ds-candy-wrapped::before{content:'';position:absolute;top:.3rem;left:.85rem;width:min(1.75rem,34%);height:.28rem;border-radius:9999px;background:rgba(255,255,255,.65);pointer-events:none}.ds-candy-wrapped:hover{transform:translateY(-2px);filter:brightness(1.1)}.ds-candy-wrapped:active{transform:translateY(1px) scale(.96)}.ds-candy-wrapped:focus-visible{outline:3px solid var(--ink,#55303f);outline-offset:2px}.ds-ear{position:absolute;top:50%;width:1.75rem;height:76%;transform:translateY(-50%)}.ds-ear-l{left:-23px}.ds-ear-r{right:-23px;transform:translateY(-50%) scaleX(-1)}"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Cherry candy for a screen or dialog action that is not the wrapped main action.",
+      "html": "<button class=\"ds-btn-primary\">Chơi tiếp</button>",
+      "css": ".ds-btn-primary{position:relative;display:inline-flex;align-items:center;justify-content:center;min-height:3rem;padding:0 1.25rem;border:4px solid var(--ink,#55303f);border-radius:9999px;background:var(--cherry,#d92c45);color:var(--milk,#fffaf3);font-family:var(--font-display,'Paytone One'),sans-serif;font-size:1.125rem;line-height:1;box-shadow:0 10px 16px -10px rgba(85,48,63,.7);cursor:pointer;transition:transform 120ms cubic-bezier(.16,1,.3,1),filter 120ms ease-out,background-color 120ms ease-out;}.ds-btn-primary::before{content:'';position:absolute;top:.3rem;left:.85rem;width:min(1.75rem,34%);height:.28rem;border-radius:9999px;background:rgba(255,255,255,.65);pointer-events:none}.ds-btn-primary:hover{transform:translateY(-2px);filter:brightness(1.1)}.ds-btn-primary:active{transform:translateY(1px) scale(.96)}.ds-btn-primary:focus-visible{outline:3px solid var(--ink,#55303f);outline-offset:2px}"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary and quitting actions, with no gloss.",
+      "html": "<button class=\"ds-btn-outline\">Về trang chủ</button>",
+      "css": ".ds-btn-outline{display:inline-flex;align-items:center;justify-content:center;min-height:3rem;padding:0 1.25rem;border:4px solid var(--ink,#55303f);border-radius:9999px;background:var(--milk,#fffaf3);color:var(--ink,#55303f);font-family:var(--font-display,'Paytone One'),sans-serif;font-size:1.125rem;line-height:1;cursor:pointer;transition:transform 120ms cubic-bezier(.16,1,.3,1),filter 120ms ease-out,background-color 120ms ease-out;}.ds-btn-outline:hover{background:var(--lemon-pale,#fff0bd);transform:translateY(-2px)}.ds-btn-outline:active{transform:translateY(1px) scale(.96)}.ds-btn-outline:focus-visible{outline:3px solid var(--ink,#55303f);outline-offset:2px}"
+    },
+    {
+      "name": "Tool Button",
+      "kind": "button",
+      "refersTo": "tool-button",
+      "description": "In-game tools with an icon and label, sharing a row equally.",
+      "html": "<button class=\"ds-tool\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 20l1-5L16 4l4 4L9 19Z\"/><path d=\"m14 6 4 4\"/></svg>Ghi chú</button>",
+      "css": ".ds-tool{display:inline-flex;align-items:center;justify-content:center;gap:.375rem;min-height:2.75rem;padding:0 .75rem;border:3px solid var(--ink,#55303f);border-radius:9999px;background:var(--milk,#fffaf3);color:var(--ink,#55303f);font-family:var(--font-body,'Baloo 2'),sans-serif;font-size:.95rem;font-weight:700;line-height:1;cursor:pointer;transition:background-color 120ms ease-out}.ds-tool:hover{background:var(--lemon-pale,#fff0bd)}.ds-tool:active,.ds-tool[aria-pressed=true]{background:var(--lemon,#ffd24d)}.ds-tool:focus-visible{outline:3px solid var(--ink,#55303f);outline-offset:2px}"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Room, error count and clock plates; teal when a room status is active.",
+      "html": "<span class=\"ds-chip\">Phòng XUUEIT</span> <span class=\"ds-chip ds-chip-on\">Sẵn sàng</span>",
+      "css": ".ds-chip{display:inline-block;padding:.125rem .75rem;border:3px solid var(--ink,#55303f);border-radius:9999px;background:var(--milk,#fffaf3);color:var(--ink,#55303f);font-family:var(--font-body,'Baloo 2'),sans-serif;font-weight:700;font-variant-numeric:tabular-nums}.ds-chip-on{background:var(--teal,#0b7f73);color:var(--milk,#fffaf3)}"
+    },
+    {
+      "name": "Name Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Field White text input inside a tray. Its focus cue is the cherry caret until the known focus gap is fixed.",
+      "html": "<label class=\"ds-field\"><span>Tên của bạn</span><input type=\"text\" placeholder=\"Ví dụ: Minh\"></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:.375rem;color:var(--ink,#55303f);font-family:var(--font-body,'Baloo 2'),sans-serif;font-size:1.125rem;font-weight:700}.ds-field input{padding:.75rem 1rem;border:4px solid var(--ink,#55303f);border-radius:1rem;background:#fff;color:var(--ink,#55303f);caret-color:var(--cherry,#d92c45);font:inherit;font-size:1.25rem;font-weight:600}.ds-field input::placeholder{color:var(--ink-soft,#6f4a59)}"
+    },
+    {
+      "name": "Candy Tray",
+      "kind": "card",
+      "refersTo": "tray",
+      "description": "The main surface of every screen, holding compartments.",
+      "html": "<div class=\"ds-tray\"><div class=\"ds-compartment\"><strong>Sudoku</strong><span>2–4 người, ai giải xong trước thắng</span></div></div>",
+      "css": ".ds-tray{padding:.625rem;border:5px solid var(--ink,#55303f);border-radius:2rem;background:var(--milk,#fffaf3);color:var(--ink,#55303f);box-shadow:0 14px 26px -14px rgba(85,48,63,.55);font-family:var(--font-body,'Baloo 2'),sans-serif}.ds-compartment{display:flex;flex-direction:column;gap:.5rem;padding:.75rem;border:4px solid var(--ink,#55303f);border-radius:1.25rem;background:var(--lemon,#ffd24d);font-weight:600;transition:transform 150ms ease-out}.ds-compartment strong{font-family:var(--font-display,'Paytone One'),sans-serif;font-size:1.75rem;font-weight:400;line-height:1}.ds-compartment:hover{transform:translateY(-4px)}"
+    },
+    {
+      "name": "Mascot Speech Bubble",
+      "kind": "custom",
+      "refersTo": "speech-bubble",
+      "description": "The screen's one mascot line, beside the chameleon.",
+      "html": "<p class=\"ds-say\">Chọn số để thả vào ô nào!</p>",
+      "css": ".ds-say{position:relative;margin:0 0 0 .75rem;padding:.375rem .75rem;border:3.5px solid var(--ink,#55303f);border-radius:1.25rem;background:var(--milk,#fffaf3);color:var(--ink,#55303f);font-family:var(--font-body,'Baloo 2'),sans-serif;font-size:.95rem;font-weight:600;line-height:1.375}.ds-say::before{content:'';position:absolute;left:-.55rem;top:50%;width:.8rem;height:.8rem;background:var(--milk,#fffaf3);border-left:3.5px solid var(--ink,#55303f);border-bottom:3.5px solid var(--ink,#55303f);transform:translateY(-50%) rotate(45deg);border-radius:2px}"
+    },
+    {
+      "name": "Sudoku Cells",
+      "kind": "custom",
+      "refersTo": "sudoku-candy",
+      "description": "Given digit in plain ink, player digit as a teal candy, conflict as a cherry candy on blush.",
+      "html": "<div class=\"ds-cells\"><span class=\"ds-cell\">7</span><span class=\"ds-cell\"><span class=\"ds-candy\">4</span></span><span class=\"ds-cell ds-cell-bad\"><span class=\"ds-candy ds-candy-bad\">9</span></span><span class=\"ds-cell ds-cell-sel\"></span></div>",
+      "css": ".ds-cells{display:inline-grid;grid-template-columns:repeat(4,3.5rem);border:5px solid var(--ink,#55303f);border-radius:1.5rem;overflow:hidden;background:var(--milk,#fffaf3);box-shadow:0 14px 26px -14px rgba(85,48,63,.55)}.ds-cell{display:flex;align-items:center;justify-content:center;height:3.5rem;border-right:1px solid rgba(85,48,63,.22);color:var(--ink,#55303f);font-family:var(--font-body,'Baloo 2'),sans-serif;font-size:1.75rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}.ds-cell-bad{background:var(--cherry-pale,#ffd9dd)}.ds-cell-sel{background:var(--lemon,#ffd24d)}.ds-candy{position:relative;display:flex;align-items:center;justify-content:center;width:84%;height:84%;border-radius:50%;background:var(--teal,#0b7f73);color:var(--milk,#fffaf3)}.ds-candy::before{content:'';position:absolute;top:12%;left:14%;width:36%;height:36%;border-top:.11em solid rgba(255,255,255,.7);border-radius:50%;transform:rotate(-35deg)}.ds-candy-bad{background:var(--cherry,#d92c45)}"
+    },
+    {
+      "name": "Candy Progress Bars",
+      "kind": "custom",
+      "description": "Striped progress: teal for you, lemon for rivals.",
+      "html": "<div class=\"ds-bar\"><i class=\"ds-fill\" style=\"width:42%\"></i></div><div class=\"ds-bar\"><i class=\"ds-fill ds-fill-rival\" style=\"width:68%\"></i></div>",
+      "css": ".ds-bar{height:.75rem;margin:.25rem 0;overflow:hidden;border:2.5px solid var(--ink,#55303f);border-radius:9999px;background:var(--milk,#fffaf3)}.ds-fill{display:block;height:100%;border-radius:9999px;background-image:repeating-linear-gradient(135deg,var(--teal,#0b7f73) 0 10px,#2a9c8f 10px 20px)}.ds-fill-rival{background-image:repeating-linear-gradient(135deg,var(--lemon,#ffd24d) 0 10px,#f2b705 10px 20px)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Candy Box",
+    "overview": "The whole app is one striped candy box. A board is a tray with compartments, and every move drops a candy into one of them. A red and milk awning sits on top, the mint field runs edge to edge, and a chameleon on a branch tells the player the one thing to do next. It is cheerful, cute and physical, built for a phone held in one hand during a short break.\n\nDensity follows the game: lobbies are loose and friendly, while play screens give almost all their height to the board and pin the tools under the thumb. The material language is thick plum ink outlines, milk trays, and hard candy with soft shadows. Decoration never slows or covers play.\n\nThe system rejects the standard game app of white cards on a grey ground.",
+    "keyCharacteristics": [
+      "Mint dotted field across the full screen, no neutral grey anywhere",
+      "Thick plum outlines (3 to 5px) on every tray, candy and control",
+      "Soft shadows plus one streak of gloss as the only depth",
+      "Springy drops as the signature motion, with reduced motion respected",
+      "Teal for you, lemon for rivals, red for conflict during Sudoku versus",
+      "One chameleon line per screen, in Vietnamese"
+    ],
+    "rules": [
+      {
+        "name": "The Two Reds Rule",
+        "body": "Two reds ship on purpose. Mascot art keeps Mascot Stripe Red; everything in the UI uses Candy Cherry so milk text passes contrast. Never swap one for the other to tidy the palette.",
+        "section": "colors"
+      },
+      {
+        "name": "The Whose Candy Rule",
+        "body": "On the Sudoku versus board and progress bars, teal means you, lemon means rivals, and red means only a conflict. This is scoped to that play surface: Candy Cherry stays the primary action colour elsewhere and is the X piece in Caro.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ink Channel Rule",
+        "body": "Ink with alpha must go through the rgb channel token `--ink-rgb` (85 48 63), which is what makes Tailwind opacity modifiers work on `ink`. A hex custom property cannot take an alpha modifier.",
+        "section": "colors"
+      },
+      {
+        "name": "The Readable Vào Rule",
+        "body": "A display face must have a Vietnamese subset and a V that cannot be read as U. Coiny was rejected because its V broke \"Vào\". Test any replacement on real Vietnamese UI words, not on the name of the app.",
+        "section": "typography"
+      },
+      {
+        "name": "The Grid Truth Rule",
+        "body": "Lines and digits sit dead straight. Sudoku 3x3 box lines live on their own overlay layer so cell borders never cut them, and digits use tabular figures. Playfulness belongs to the candy, not the grid.",
+        "section": "layout"
+      },
+      {
+        "name": "The One Streak Rule",
+        "body": "Depth is a soft shadow and a single streak of gloss in white at 65 to 70%. Never use hard offset shadows or rim bevels. This is a candy, not a sticker or a plastic key.",
+        "section": "elevation"
+      },
+      {
+        "name": "The One Wrapper Rule",
+        "body": "The wrapped candy is reserved for the main action of a screen. If two candies seem to qualify, one of them is an outline button.",
+        "section": "components"
+      },
+      {
+        "name": "The One Line Rule",
+        "body": "Each screen has exactly one mascot line: an imperative or reaction in a milk speech bubble with an ink tail. A dialog is its own layer and may speak for itself, and status captions such as loading or paused labels are not lines.",
+        "section": "components"
+      },
+      {
+        "name": "The Always There Rule",
+        "body": "At short heights the mascot gets smaller and never disappears, down to 40px wide beside the board at 720px tall or less.",
+        "section": "components"
+      },
+      {
+        "name": "The Given Ink Rule",
+        "body": "Given digits stay plain ink. Player digits are dropped candies, 84% of the cell, with an arc of gloss. The candy falls from above on a bouncy spring (620/17) and turns cherry on conflict. Conflict follows Sudoku rules only, never the answer, because versus clients do not hold the solution.",
+        "section": "components"
+      },
+      {
+        "name": "The Two Signals Rule",
+        "body": "X is a red candy with a milk cross and O is a teal candy with a milk ring, so pieces differ by shape as well as colour. Keep both signals in any new piece treatment. Pieces drop with a spring (560/15); the last move sits on Lemon Cream, and winning cells turn lemon with their candies bouncing.",
+        "section": "components"
+      },
+      {
+        "name": "The Honest Rematch Rule",
+        "body": "The versus result primary is the wrapped candy \"Chơi ván mới\", and it goes to the game's lobby, because the server cannot restart a finished room. Never label it as an instant rematch. Practice can start again in place, so its primary is \"Chơi ván nữa\".",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do build every new screen as milk trays with ink outlines on the mint dotted field.",
+      "Do use Candy Cherry for all UI red and keep Mascot Stripe Red inside mascot art.",
+      "Do keep teal for you, lemon for rivals and red for conflict on the Sudoku versus board and progress bars.",
+      "Do make Caro pieces differ by shape as well as colour.",
+      "Do keep given digits plain ink and make player digits dropped candies.",
+      "Do give each screen exactly one mascot line, and shrink the mascot rather than removing it at short heights.",
+      "Do route ink alpha through `--ink-rgb`.",
+      "Do test a new display face on Vietnamese words such as \"Vào\".",
+      "Do pair bouncy springs with `MotionConfig reducedMotion=\"user\"` and the reduced-motion CSS guard."
+    ],
+    "donts": [
+      "Don't use hard offset shadows or rim bevels; depth is a soft shadow plus one streak of gloss.",
+      "Don't put milk text on Mascot Stripe Red.",
+      "Don't use red on the Sudoku versus board for anything except a conflict.",
+      "Don't promise an instant rematch from a finished versus room; \"Chơi ván mới\" goes to the lobby.",
+      "Don't bring back the mascot's headphones or sound-wave bars.",
+      "Don't build white cards on a grey ground. Compartments live inside one tray and hold their game's real pieces."
+    ]
+  }
+}

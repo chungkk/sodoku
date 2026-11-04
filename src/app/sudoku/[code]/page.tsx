@@ -2,10 +2,12 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { motion } from "framer-motion";
-import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from "@/components/ui/dialog";
-import { PlayerList } from "@/components/PlayerList";
+import { CandyLoader, MascotSay } from "@/components/candy";
+import { DoorIcon } from "@/components/icons";
 import { NameInput } from "@/components/NameInput";
+import { CenterScreen, CountdownOverlay, EmptySlot, PlayerSlot, RoomCode } from "@/components/room";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useSocket } from "@/hooks/useSocket";
 import { apiFetch, requestGuestSession } from "@/lib/api-client";
@@ -31,9 +33,9 @@ interface RoomData {
 }
 
 const difficultyLabels: Record<string, string> = {
-  easy: "EASY",
-  medium: "MEDIUM",
-  hard: "HARD",
+  easy: "Dễ",
+  medium: "Trung bình",
+  hard: "Khó",
 };
 
 export default function RoomPage() {
@@ -181,8 +183,12 @@ export default function RoomPage() {
     }
   }, [countdown]);
 
+  // Đang đếm ngược thì chờ đếm xong rồi mới chuyển sang màn chơi
+  const isCountingDown = countdown !== null && countdown > 0;
+
   useEffect(() => {
     if (room?.status === "playing") {
+      if (isCountingDown) return;
       router.push(`/sudoku/${code}/play`);
       return;
     }
@@ -195,9 +201,6 @@ export default function RoomPage() {
         if (response.ok) {
           const data = await response.json();
           setRoom(data);
-          if (data.status === "playing") {
-            router.push(`/sudoku/${code}/play`);
-          }
         }
       } catch (err) {
         console.error("Polling error:", err);
@@ -205,7 +208,7 @@ export default function RoomPage() {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [room?.status, code, router]);
+  }, [room?.status, code, router, isCountingDown]);
 
   const handleNameSubmit = async (name: string) => {
     try {
@@ -255,253 +258,106 @@ export default function RoomPage() {
     router.push("/");
   }, [code, emit, router]);
 
-  const copyRoomCode = useCallback(() => {
-    navigator.clipboard.writeText(code);
-  }, [code]);
-
   const isHost = room?.hostId === player?.visitorId;
   const canStart = room?.players && room.players.length >= 2 &&
     room.players.filter(p => !p.isHost).some(p => p.isReady);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a1a] flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-4 animate-pulse drop-shadow-[0_0_20px_rgba(0,255,255,0.8)]">🎮</div>
-          <p className="text-cyan-400 font-mono uppercase tracking-wider">LOADING ROOM...</p>
-        </div>
-      </div>
-    );
+    return <CandyLoader label="Đang mở phòng…" />;
   }
 
   if (error && !room) {
     return (
-      <div className="min-h-screen bg-[#0a0a1a] flex items-center justify-center">
-        <div className="max-w-md mx-auto px-4 py-12 text-center">
-          <div className="text-6xl mb-4">😢</div>
-          <h1 className="text-2xl font-bold text-red-400 font-mono uppercase mb-2">ROOM NOT FOUND</h1>
-          <p className="text-gray-400 font-mono mb-6">{error}</p>
-          <button
-            onClick={() => router.push("/")}
-            className="px-6 py-3 bg-cyan-500 text-black font-mono uppercase tracking-wider hover:bg-cyan-400 transition-all"
-          >
-            ▸ GO HOME
-          </button>
-        </div>
-      </div>
+      <CenterScreen mood="sad" title="Không tìm thấy phòng">
+        <p className="mb-4 text-lg font-semibold">{error}</p>
+        <Button onClick={() => router.push("/")}>Về trang chủ</Button>
+      </CenterScreen>
     );
   }
 
   if (showNameInput) {
     return (
-      <div className="min-h-screen bg-[#0a0a1a] flex items-center justify-center relative overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px)`,
-            backgroundSize: '40px 40px'
-          }}
-        />
-        <div className="max-w-md w-full mx-4 relative">
-          <div className="border-2 border-cyan-400 bg-[#0d1117] p-6 shadow-[0_0_30px_rgba(0,255,255,0.2)]">
-            <h2
-              className="text-xl font-bold text-white text-center mb-6 font-mono uppercase tracking-wider"
-              style={{ textShadow: '0 0 15px rgba(0, 255, 255, 0.6)' }}
-            >
-              ▸ ENTER YOUR NAME
-            </h2>
-            <NameInput
-              onSubmit={handleNameSubmit}
-              buttonText="▸ JOIN ROOM"
-            />
-          </div>
-        </div>
-      </div>
+      <CenterScreen title="Bạn tên gì nhỉ?">
+        <NameInput onSubmit={handleNameSubmit} buttonText="Vào phòng" />
+      </CenterScreen>
     );
   }
 
+  const players = room?.players ?? [];
+  const emptySlots = Math.max(0, 4 - players.length);
+  const say = isHost
+    ? canStart
+      ? "Mọi người sẵn sàng rồi, bắt đầu thôi!"
+      : players.length < 2
+        ? "Gửi mã này cho bạn đi!"
+        : "Chờ bạn bấm Sẵn sàng nhé."
+    : isReady
+      ? "Chờ chủ phòng bắt đầu nhé."
+      : "Bấm Sẵn sàng đi nào!";
+
   return (
-    <div className="min-h-screen bg-[#0a0a1a] relative overflow-hidden">
-      {/* Grid Background */}
-      <div
-        className="absolute inset-0 opacity-10"
-        style={{
-          backgroundImage: `linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px)`,
-          backgroundSize: '40px 40px'
-        }}
-      />
+    <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 pb-6">
+      {countdown !== null && <CountdownOverlay value={countdown} />}
 
-      {/* Countdown Overlay */}
-      {countdown !== null && (
-        <motion.div
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
-        >
-          <div className="text-center">
-            <p className="text-xl mb-4 text-cyan-400 font-mono uppercase tracking-wider">GAME STARTING IN...</p>
-            <motion.div
-              key={countdown}
-              initial={{ scale: 1.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="text-8xl font-bold text-cyan-400 font-mono"
-              style={{ textShadow: '0 0 40px rgba(0, 255, 255, 0.8)' }}
-            >
-              {countdown === 0 ? "🎮" : countdown}
-            </motion.div>
-          </div>
-        </motion.div>
-      )}
-
-      <div className="max-w-2xl mx-auto px-4 py-8 relative">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-6"
-        >
-          {/* Room Header Card */}
-          <div className="border-2 border-cyan-400 bg-[#0d1117] shadow-[0_0_30px_rgba(0,255,255,0.2)]">
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-cyan-400/30 bg-gradient-to-r from-cyan-900/30 to-transparent flex items-center justify-between">
-              <h1
-                className="text-xl font-bold text-white font-mono uppercase tracking-wider flex items-center gap-2"
-                style={{ textShadow: '0 0 15px rgba(0, 255, 255, 0.6)' }}
-              >
-                <span>🏠</span> ROOM LOBBY
-              </h1>
-              <span className="px-3 py-1 border border-cyan-400 text-cyan-400 text-sm font-mono">
-                {difficultyLabels[room?.difficulty || "medium"]}
-              </span>
-            </div>
-
-            {/* Content */}
-            <div className="p-6">
-              {/* Room Code */}
-              <div className="flex items-center justify-between border border-cyan-400/30 bg-cyan-400/5 p-4 mb-6">
-                <div>
-                  <p className="text-xs text-gray-500 font-mono uppercase">ROOM CODE</p>
-                  <p
-                    className="text-3xl font-bold font-mono tracking-[0.3em] text-cyan-400"
-                    style={{ textShadow: '0 0 20px rgba(0, 255, 255, 0.5)' }}
-                  >
-                    {code}
-                  </p>
-                </div>
-                <button
-                  onClick={copyRoomCode}
-                  className="px-4 py-2 border border-cyan-400 text-cyan-400 font-mono text-sm uppercase tracking-wider hover:bg-cyan-400/10 transition-all"
-                >
-                  📋 COPY
-                </button>
-              </div>
-
-              {error && (
-                <div className="border border-red-500 bg-red-500/10 text-red-400 px-4 py-2 mb-4 font-mono text-sm">
-                  ► {error}
-                </div>
-              )}
-
-              {/* Players List */}
-              <div className="mb-4">
-                <h3 className="text-sm text-gray-500 font-mono uppercase mb-3">► PLAYERS ({room?.players.length || 0}/4)</h3>
-                <div className="space-y-2">
-                  {room?.players.map((p, i) => (
-                    <div
-                      key={p.visitorId}
-                      className={`flex items-center justify-between p-3 border ${p.visitorId === player?.visitorId
-                        ? 'border-cyan-400 bg-cyan-400/10'
-                        : 'border-cyan-400/30'
-                        }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg">{p.isHost ? '👑' : '🎮'}</span>
-                        <span className="text-white font-mono">{p.name}</span>
-                        {p.visitorId === player?.visitorId && (
-                          <span className="text-xs text-cyan-400 font-mono">(YOU)</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {p.isHost ? (
-                          <span className="text-xs text-yellow-400 font-mono">HOST</span>
-                        ) : (
-                          <span className={`text-xs font-mono ${p.isReady ? 'text-green-400' : 'text-gray-500'}`}>
-                            {p.isReady ? '✓ READY' : 'NOT READY'}
-                          </span>
-                        )}
-                        <span className={`w-2 h-2 rounded-full ${p.isConnected ? 'bg-green-400 shadow-[0_0_6px_#4ade80]' : 'bg-gray-600'}`}></span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {!isConnected && (
-                <div className="text-center text-yellow-400 text-sm font-mono py-2">
-                  ⚠️ RECONNECTING...
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            {isHost ? (
-              <button
-                onClick={handleStartGame}
-                disabled={!canStart}
-                className={`flex-1 py-4 font-mono uppercase tracking-wider transition-all ${canStart
-                  ? 'bg-cyan-500 text-black hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,255,255,0.5)]'
-                  : 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                  }`}
-              >
-                {canStart ? '🚀 START GAME' : '⏳ WAITING FOR PLAYERS...'}
-              </button>
-            ) : (
-              <>
-                <button
-                  onClick={handleReadyToggle}
-                  className={`flex-1 py-4 font-mono uppercase tracking-wider transition-all ${isReady
-                    ? 'bg-green-500 text-black hover:bg-green-400'
-                    : 'bg-cyan-500 text-black hover:bg-cyan-400'
-                    }`}
-                >
-                  {isReady ? '✓ READY!' : '▸ SET READY'}
-                </button>
-              </>
-            )}
-            <button
-              onClick={() => setShowLeaveConfirm(true)}
-              className="px-4 py-4 border-2 border-red-500 text-red-400 font-mono hover:bg-red-500/10 transition-all"
-            >
-              🚪
-            </button>
-          </div>
-        </motion.div>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="font-display text-3xl">Phòng Sudoku</h1>
+        <span className="rounded-full border-[3px] border-ink bg-milk px-3 py-0.5 font-bold">
+          {difficultyLabels[room?.difficulty || "medium"]}
+        </span>
       </div>
 
-      {/* Leave Confirm Dialog */}
+      <MascotSay mascotClassName="w-20" mood={canStart || isReady ? "cheer" : "happy"}>{say}</MascotSay>
+
+      <div className="tray flex flex-col gap-4 p-4">
+        <RoomCode code={code} />
+
+        {error && <p role="alert" className="rounded-2xl border-[3px] border-cherry bg-cherry-pale px-3 py-2 font-semibold">{error}</p>}
+
+        <ul className="flex flex-col gap-2" aria-label={`Người chơi ${players.length} trên 4`}>
+          {players.map((p) => (
+            <PlayerSlot
+              key={p.visitorId}
+              name={p.name}
+              isMe={p.visitorId === player?.visitorId}
+              badge={p.isHost ? "host" : undefined}
+              status={p.isHost ? undefined : p.isReady ? "Sẵn sàng" : "Chưa sẵn sàng"}
+              statusActive={p.isReady}
+              offline={!p.isConnected}
+            />
+          ))}
+          {emptySlots > 0 && <EmptySlot count={emptySlots} />}
+        </ul>
+
+        {!isConnected && <p role="status" className="text-center font-semibold">Đang kết nối lại…</p>}
+      </div>
+
+      <div className="mt-auto flex items-center gap-2">
+        <Button variant="outline" size="lg" className="!px-4" aria-label="Rời phòng" onClick={() => setShowLeaveConfirm(true)}>
+          <DoorIcon />
+        </Button>
+        <div className="flex-1">
+          {isHost ? (
+            <Button wrapped fullWidth size="lg" onClick={handleStartGame} disabled={!canStart}>
+              {canStart ? "Bắt đầu" : "Đang chờ bạn"}
+            </Button>
+          ) : (
+            <Button wrapped fullWidth size="lg" variant={isReady ? "secondary" : "primary"} onClick={handleReadyToggle}>
+              {isReady ? "Đã sẵn sàng" : "Sẵn sàng"}
+            </Button>
+          )}
+        </div>
+      </div>
+
       <Dialog open={showLeaveConfirm} onClose={() => setShowLeaveConfirm(false)}>
         <DialogHeader>
-          <DialogTitle>LEAVE ROOM?</DialogTitle>
+          <DialogTitle>Rời phòng thật à?</DialogTitle>
         </DialogHeader>
         <DialogContent>
-          <p className="text-gray-400 font-mono">
-            Are you sure you want to leave this room?
-          </p>
+          <p className="text-lg font-semibold">Bạn sẽ cần nhập lại mã để quay vào.</p>
         </DialogContent>
         <DialogFooter>
-          <button
-            onClick={() => setShowLeaveConfirm(false)}
-            className="px-4 py-2 text-gray-500 font-mono text-sm uppercase tracking-wider hover:text-cyan-400"
-          >
-            [ CANCEL ]
-          </button>
-          <button
-            onClick={handleLeaveRoom}
-            className="px-6 py-2 bg-red-500 text-white font-mono uppercase tracking-wider hover:bg-red-400"
-          >
-            ▸ LEAVE
-          </button>
+          <Button variant="outline" onClick={handleLeaveRoom}>Rời phòng</Button>
+          <Button onClick={() => setShowLeaveConfirm(false)}>Ở lại</Button>
         </DialogFooter>
       </Dialog>
     </div>

@@ -2,14 +2,13 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { motion } from "framer-motion";
-import { SudokuBoard } from "@/components/SudokuBoard";
-import { NumberPad } from "@/components/NumberPad";
-import { GameToolbar } from "@/components/GameToolbar";
-import { formatTime } from "@/components/Timer";
+import { CandyLoader, WrapperRain } from "@/components/candy";
+import { toolButtonClass } from "@/components/GameToolbar";
+import { FlagIcon } from "@/components/icons";
 import { Leaderboard } from "@/components/Leaderboard";
+import { Mascot } from "@/components/Mascot";
+import { SudokuStage } from "@/components/SudokuStage";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { VersusProgressBar } from "@/components/VersusProgressBar";
 import { usePlayer } from "@/contexts/PlayerContext";
@@ -230,6 +229,15 @@ export default function GamePlayPage() {
         })));
       }
 
+      // Vào lại trang giữa lúc đang tạm dừng thì vẫn hiện đúng trạng thái
+      if (roomData.status === "playing" && roomData.pausedBy) {
+        const pauser = roomData.players.find(
+          (p: { visitorId: string }) => p.visitorId === roomData.pausedBy
+        );
+        setPausedBy({ visitorId: roomData.pausedBy, name: pauser?.name ?? "" });
+        timer.pause();
+      }
+
       if (roomData.status === "finished") {
         setGameEnded(true);
         setWinnerId(roomData.winnerId);
@@ -348,7 +356,8 @@ export default function GamePlayPage() {
         timer.pause();
       } else {
         setPausedBy(null);
-        timer.resume();
+        // Đã nộp bài xong thì đồng hồ của mình giữ nguyên, không chạy lại theo người khác
+        if (!submittedRef.current) timer.resume();
       }
     });
 
@@ -474,24 +483,17 @@ export default function GamePlayPage() {
   }, [player, code, router]);
 
   const handlePauseToggle = useCallback(() => {
-    if (gameEnded) return;
+    if (gameEnded || submittedRef.current) return;
     // Chỉ người đã pause mới được resume
     if (pausedBy && pausedBy.visitorId !== player?.visitorId) return;
 
-    const newPaused = !timer.isPaused;
-    if (newPaused) {
-      timer.pause();
-      setPausedBy({ visitorId: player?.visitorId || "", name: player?.name || "" });
-    } else {
-      timer.resume();
-      setPausedBy(null);
-    }
-    emit("pause_game", { roomCode: code, paused: newPaused });
-  }, [gameEnded, timer, player, emit, code, pausedBy]);
+    // Server quyết định; đồng hồ và bàn chơi đổi khi nhận sự kiện game_paused
+    emit("pause_game", { roomCode: code, paused: !pausedBy });
+  }, [gameEnded, player, emit, code, pausedBy]);
 
-  const handleBackToRoom = useCallback(() => {
-    router.push(`/sudoku/${code}`);
-  }, [router, code]);
+  const handleNewGame = useCallback(() => {
+    router.push("/sudoku");
+  }, [router]);
 
   const handleBackToHome = useCallback(() => {
     router.push("/");
@@ -502,340 +504,82 @@ export default function GamePlayPage() {
     : null;
 
   if (loading || !player) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="text-4xl mb-4 animate-bounce">🎮</div>
-          <p className="text-gray-600">Đang tải trò chơi...</p>
-        </div>
-      </div>
-    );
+    return <CandyLoader label="Đang mở khay kẹo…" />;
   }
 
-  const difficultyLabels: Record<string, string> = {
-    easy: "Dễ",
-    medium: "Trung bình",
-    hard: "Khó",
-  };
+  const iWon = winnerId === player.visitorId;
+  const pausedByMe = pausedBy?.visitorId === player.visitorId;
+  const finishedWaiting = game.isComplete && !gameEnded;
 
-  const selectedValue = game.selectedCell
-    ? (game.puzzle[game.selectedCell[0]][game.selectedCell[1]] !== 0
-      ? game.puzzle[game.selectedCell[0]][game.selectedCell[1]]
-      : game.userInput[game.selectedCell[0]][game.selectedCell[1]])
-    : null;
+  const lockedLabel = pausedByMe
+    ? "Bạn đang tạm dừng"
+    : pausedBy
+      ? `${pausedBy.name} đang tạm dừng`
+      : "Đang tạm dừng";
+
+  const say = gameEnded
+    ? "Ván này xong rồi!"
+    : finishedWaiting
+      ? "Giỏi quá! Chờ mọi người xong nhé."
+      : pausedByMe
+        ? "Bấm nút chạy tiếp khi sẵn sàng nhé."
+        : pausedBy
+          ? `Chờ ${pausedBy.name} quay lại một chút nhé.`
+          : game.mode === "note"
+            ? "Chạm số để ghi chú vào ô nhé."
+            : game.selectedCell
+              ? "Chọn số để thả vào ô nào!"
+              : "Chạm một ô trống đi nào!";
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      {/* Mobile: Fixed Full Layout */}
-      <div className="md:hidden fixed inset-0 flex flex-col bg-white z-40">
-        {/* Fixed Header */}
-        <div className="flex-shrink-0 bg-white border-b border-gray-100">
-          <div className="h-14 px-4 flex items-center justify-between">
-            <span className="text-2xl">🧩</span>
-            <span className="text-lg font-bold text-gray-900">Sudoku</span>
-            <div className="w-8"></div>
-          </div>
-        </div>
-
-        {/* Top Section: Info + Versus + Pause */}
-        <div className="flex-shrink-0 bg-gradient-to-b from-slate-50 to-white">
-          <div className="px-3 py-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-100">
-                <span className="text-xs text-slate-400">Room</span>
-                <span className="text-sm font-semibold text-[#1e3a5f]">{code}</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-100">
-                <span className="text-xs text-slate-400">Lỗi</span>
-                <span className="text-sm font-semibold text-[#1e3a5f]">{game.errors}</span>
-              </div>
-              <div className="flex items-center gap-2 px-2.5 py-1 bg-white rounded-lg shadow-sm border border-slate-100">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-slate-400">Time</span>
-                  <span className="text-sm font-semibold text-[#1e3a5f] tabular-nums">{formatTime(timer.seconds)}</span>
-                </div>
-                <button
-                  onClick={handlePauseToggle}
-                  disabled={!!(pausedBy && pausedBy.visitorId !== player?.visitorId)}
-                  className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors disabled:opacity-50"
-                >
-                  {timer.isPaused ? (
-                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  ) : (
-                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Versus Progress Bar */}
-          {playersProgress.length >= 2 && (
-            <VersusProgressBar
-              players={playersProgress}
-              currentPlayerId={player.visitorId}
-            />
-          )}
-
-          {/* Pause overlay message */}
-          {pausedBy && (
-            <div className="px-4 pb-2">
-              <div className="p-2 bg-amber-100 border border-amber-300 rounded-lg text-center">
-                <span className="text-amber-800 font-medium text-xs">
-                  {pausedBy.visitorId === player?.visitorId
-                    ? "Bạn đã tạm dừng trò chơi"
-                    : `${pausedBy.name} đã tạm dừng trò chơi`}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Middle: Sudoku Board */}
-        <div className="flex-1 flex items-center justify-center px-3 py-2 min-h-0">
-          <div className="w-full max-w-[min(100%,calc(100vh-320px))] aspect-square">
-            <SudokuBoard
-              puzzle={game.puzzle}
-              userInput={game.userInput}
-              notes={game.notes}
-              selectedCell={game.selectedCell}
-              onCellClick={game.selectCell}
-              isPaused={timer.isPaused || gameEnded}
-            />
-          </div>
-        </div>
-
-        {/* Bottom Section: Toolbar + NumberPad + Give up + Footer */}
-        <div className="flex-shrink-0 border-t border-gray-100 pb-safe">
-          <GameToolbar
-            onUndo={handleUndo}
-            onErase={handleClear}
-            onToggleNotes={game.toggleMode}
-            isNotesMode={game.mode === "note"}
-            canUndo={game.canUndo}
+    <>
+      <SudokuStage
+        game={game}
+        seconds={timer.seconds}
+        locked={timer.isPaused || gameEnded}
+        lockedLabel={lockedLabel}
+        frozen={gameEnded || game.isComplete}
+        paused={!!pausedBy}
+        pauseDisabled={gameEnded || game.isComplete || !!(pausedBy && !pausedByMe)}
+        onPauseToggle={handlePauseToggle}
+        onNumber={handleNumberClick}
+        onClear={handleClear}
+        onUndo={handleUndo}
+        say={say}
+        mood={pausedBy ? "sleep" : finishedWaiting ? "cheer" : game.selectedCell ? "think" : "happy"}
+        badge={`Phòng ${code}`}
+        progress={<VersusProgressBar players={playersProgress} currentPlayerId={player.visitorId} />}
+        action={
+          <button
+            onClick={() => setShowGiveUpConfirm(true)}
             disabled={timer.isPaused || gameEnded}
-          />
-          <NumberPad
-            onNumberClick={handleNumberClick}
-            selectedNumber={selectedValue}
-            disabled={timer.isPaused || gameEnded}
-          />
-          <div className="px-4 py-1">
-            <Button
-              variant="ghost"
-              fullWidth
-              onClick={() => setShowGiveUpConfirm(true)}
-              disabled={timer.isPaused || gameEnded}
-              className="text-red-500 text-sm"
-            >
-              Bỏ cuộc
-            </Button>
-          </div>
-          <div className="text-center pb-2 text-xs text-gray-400">
-            🧩 Sudoku Game
-          </div>
-        </div>
-      </div>
+            className={toolButtonClass}
+          >
+            <FlagIcon /> Bỏ cuộc
+          </button>
+        }
+      />
 
-      {/* Desktop Layout */}
-      <div className="hidden md:block">
-        {/* Top Bar */}
-        <div className="flex items-center justify-between px-8 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-4">
-            <span className="text-gray-400">Room:</span>
-            <span className="text-[#1e3a5f] text-xl font-bold">{code}</span>
-          </div>
-          {/* Versus Progress Bar */}
-          {playersProgress.length >= 2 && (
-            <div className="flex-1 max-w-md mx-8">
-              <VersusProgressBar
-                players={playersProgress}
-                currentPlayerId={player.visitorId}
-              />
-            </div>
-          )}
-          <div className="text-[#4a90d9] text-xl font-medium">
-            {game.difficulty}
-          </div>
-        </div>
-
-        {/* Pause overlay message */}
-        {pausedBy && (
-          <div className="px-8 py-2">
-            <div className="p-3 bg-amber-100 border border-amber-300 rounded-lg text-center">
-              <span className="text-amber-800 font-medium text-sm">
-                {pausedBy.visitorId === player?.visitorId
-                  ? "Bạn đã tạm dừng trò chơi"
-                  : `${pausedBy.name} đã tạm dừng trò chơi`}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Main Content - Grid + Controls */}
-        <div className="flex justify-center items-start gap-12 px-8 py-8">
-          {/* Sudoku Board */}
-          <div className="flex-shrink-0">
-            <div className="w-[450px]">
-              <SudokuBoard
-                puzzle={game.puzzle}
-                userInput={game.userInput}
-                notes={game.notes}
-                selectedCell={game.selectedCell}
-                onCellClick={game.selectCell}
-                isPaused={timer.isPaused || gameEnded}
-              />
-            </div>
-          </div>
-
-          {/* Right Panel */}
-          <div className="w-[280px] flex flex-col gap-6">
-            {/* Lỗi & Time */}
-            <div className="flex items-center gap-3">
-              <div className="flex-1 flex items-center gap-2 px-4 py-3 bg-white rounded-xl shadow-sm border border-slate-100">
-                <span className="text-sm text-slate-400">Lỗi</span>
-                <span className="text-xl font-bold text-[#1e3a5f]">{game.errors}</span>
-              </div>
-              <div className="flex-1 flex items-center gap-2 px-4 py-3 bg-white rounded-xl shadow-sm border border-slate-100">
-                <span className="text-sm text-slate-400">Time</span>
-                <span className="text-xl font-bold text-[#1e3a5f] tabular-nums">{formatTime(timer.seconds)}</span>
-                <button
-                  onClick={handlePauseToggle}
-                  disabled={!!(pausedBy && pausedBy.visitorId !== player?.visitorId)}
-                  className="ml-auto w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors disabled:opacity-50"
-                >
-                  {timer.isPaused ? (
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  ) : (
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center justify-between px-2">
-              <button
-                onClick={handleUndo}
-                disabled={timer.isPaused || gameEnded || !game.canUndo}
-                className={`w-14 h-14 rounded-full bg-[#f0f4f8] flex items-center justify-center ${timer.isPaused || gameEnded || !game.canUndo ? "opacity-40" : "hover:bg-[#e0e8f0]"
-                  }`}
-              >
-                <svg className="w-6 h-6 text-[#5a7a9a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                    d="M3 10h10a5 5 0 015 5v0a5 5 0 01-5 5H8M3 10l4-4m-4 4l4 4" />
-                </svg>
-              </button>
-
-              <button
-                onClick={handleClear}
-                disabled={timer.isPaused || gameEnded}
-                className={`w-14 h-14 rounded-full bg-[#f0f4f8] flex items-center justify-center ${timer.isPaused || gameEnded ? "opacity-40" : "hover:bg-[#e0e8f0]"
-                  }`}
-              >
-                <svg className="w-6 h-6 text-[#5a7a9a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-
-              <button
-                onClick={game.toggleMode}
-                disabled={timer.isPaused || gameEnded}
-                className={`relative w-14 h-14 rounded-full bg-[#f0f4f8] flex items-center justify-center ${timer.isPaused || gameEnded ? "opacity-40" : "hover:bg-[#e0e8f0]"
-                  } ${game.mode === "note" ? "ring-2 ring-[#4a90d9]" : ""}`}
-              >
-                <svg className={`w-6 h-6 ${game.mode === "note" ? "text-[#4a90d9]" : "text-[#5a7a9a]"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-                {game.mode !== "note" && (
-                  <span className="absolute -top-1 -right-1 bg-gray-400 text-white text-[9px] px-1.5 py-0.5 rounded-full font-medium">
-                    OFF
-                  </span>
-                )}
-              </button>
-            </div>
-
-            {/* Number Pad - 3x3 Grid */}
-            <div className="grid grid-cols-3 gap-3">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                <button
-                  key={num}
-                  onClick={() => handleNumberClick(num)}
-                  disabled={timer.isPaused || gameEnded}
-                  className={`w-full aspect-square rounded-xl text-3xl font-medium transition-all ${timer.isPaused || gameEnded
-                      ? "bg-[#f0f4f8] text-gray-300 cursor-not-allowed"
-                      : selectedValue === num
-                        ? "bg-[#4a90d9] text-white"
-                        : "bg-[#f0f4f8] text-[#1e3a5f] hover:bg-[#e0e8f0]"
-                    }`}
-                >
-                  {num}
-                </button>
-              ))}
-            </div>
-
-            {/* Give Up Button */}
-            <button
-              onClick={() => setShowGiveUpConfirm(true)}
-              disabled={timer.isPaused || gameEnded}
-              className={`w-full py-4 bg-[#5a7a9a] text-white text-lg font-medium rounded-xl hover:bg-[#4a6a8a] transition-colors ${timer.isPaused || gameEnded ? "opacity-40 cursor-not-allowed" : ""
-                }`}
-            >
-              Bỏ cuộc
-            </button>
-          </div>
-        </div>
-      </div>
+      {showResultsModal && iWon && <WrapperRain />}
 
       <Dialog open={showResultsModal} onClose={() => { }}>
-        <DialogHeader>
-          <DialogTitle className="text-center">
-            {winnerId === player.visitorId ? "🎉 Chúc mừng!" : "🏁 Trò chơi kết thúc!"}
+        <DialogHeader className="flex flex-col items-center text-center">
+          <Mascot mood={iWon ? "cheer" : winnerId ? "sad" : "think"} className="w-32" />
+          <DialogTitle>
+            {iWon ? "Bạn thắng rồi!" : winnerName ? `${winnerName} thắng rồi!` : "Ván này không ai thắng"}
           </DialogTitle>
-        </DialogHeader>
-        <DialogContent className="text-center">
-          {winnerId === player.visitorId ? (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", bounce: 0.5 }}
-              className="text-6xl mb-4"
-            >
-              🏆
-            </motion.div>
-          ) : (
-            <div className="text-4xl mb-4">🎮</div>
-          )}
-
-          <p className="text-gray-600 mb-4">
-            {winnerName
-              ? `${winnerName} đã chiến thắng!`
-              : "Trò chơi đã kết thúc"}
+          <p className="mt-1 text-lg font-semibold">
+            {iWon ? "Giỏi quá, làm ván nữa nhé!" : winnerId ? "Suýt nữa thôi, phục thù nào!" : "Mọi người đều dừng cuộc chơi, làm ván mới nhé!"}
           </p>
-
-          <Card padding="md" className="text-left">
-            <Leaderboard
-              players={playersProgress}
-              currentPlayerId={player.visitorId}
-              gameStatus="finished"
-            />
-          </Card>
+        </DialogHeader>
+        <DialogContent>
+          <Leaderboard players={playersProgress} currentPlayerId={player.visitorId} gameStatus="finished" />
         </DialogContent>
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={handleBackToRoom} fullWidth>
-            Về phòng chờ
+        <DialogFooter className="flex-col items-center gap-2">
+          <Button wrapped fullWidth size="lg" onClick={handleNewGame}>
+            Chơi ván mới
           </Button>
-          <Button onClick={handleBackToHome} fullWidth>
+          <Button variant="outline" onClick={handleBackToHome} fullWidth>
             Về trang chủ
           </Button>
         </DialogFooter>
@@ -843,22 +587,20 @@ export default function GamePlayPage() {
 
       <Dialog open={showGiveUpConfirm} onClose={() => setShowGiveUpConfirm(false)}>
         <DialogHeader>
-          <DialogTitle>Bỏ cuộc?</DialogTitle>
+          <DialogTitle>Bỏ cuộc thật à?</DialogTitle>
         </DialogHeader>
         <DialogContent>
-          <p className="text-gray-600">
-            Bạn có chắc muốn bỏ cuộc không? Bạn sẽ không thể tiếp tục trò chơi này.
-          </p>
+          <p className="text-lg font-semibold">Bạn sẽ không chơi tiếp được ván này nữa đâu.</p>
         </DialogContent>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setShowGiveUpConfirm(false)}>
-            Tiếp tục chơi
-          </Button>
-          <Button variant="danger" onClick={handleGiveUp}>
+          <Button variant="outline" onClick={handleGiveUp}>
             Bỏ cuộc
+          </Button>
+          <Button onClick={() => setShowGiveUpConfirm(false)}>
+            Chơi tiếp
           </Button>
         </DialogFooter>
       </Dialog>
-    </div>
+    </>
   );
 }

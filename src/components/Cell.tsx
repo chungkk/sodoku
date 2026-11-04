@@ -16,6 +16,8 @@ interface CellProps {
   col: number;
 }
 
+const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
 const Cell = memo(function Cell({
   value,
   notes,
@@ -28,88 +30,46 @@ const Cell = memo(function Cell({
   row,
   col,
 }: CellProps) {
-  const isBoxBorderRight = (col + 1) % 3 === 0 && col < 8;
-  const isBoxBorderBottom = (row + 1) % 3 === 0 && row < 8;
-  const isBoxBorderLeft = col % 3 === 0;
-  const isBoxBorderTop = row % 3 === 0;
+  const classes = ["sudoku-cell"];
+  if (col === 8) classes.push("!border-r-0");
+  if (row === 8) classes.push("!border-b-0");
+  const isTinted = (Math.floor(row / 3) + Math.floor(col / 3)) % 2 === 1;
 
-  const getCellClassName = () => {
-    const classes = ["sudoku-cell", "w-full", "aspect-square", "relative", "overflow-hidden"];
-
-    if (isGiven) {
-      classes.push("sudoku-cell-given");
-    } else if (value) {
-      classes.push("sudoku-cell-user");
-    }
-
-    if (hasConflict && !isGiven) {
-      classes.push("sudoku-cell-conflict");
-    } else if (isSelected) {
-      classes.push("sudoku-cell-selected");
-    } else if (isSameNumber && value) {
-      classes.push("sudoku-cell-same-number");
-    } else if (isHighlighted) {
-      classes.push("sudoku-cell-highlighted");
-    }
-
-    if (isBoxBorderRight) {
-      classes.push("!border-r-2 !border-r-[#1e3a5f]");
-    }
-    if (isBoxBorderBottom) {
-      classes.push("!border-b-2 !border-b-[#1e3a5f]");
-    }
-    if (isBoxBorderLeft && col !== 0) {
-      classes.push("!border-l-2 !border-l-[#1e3a5f]");
-    }
-    if (isBoxBorderTop && row !== 0) {
-      classes.push("!border-t-2 !border-t-[#1e3a5f]");
-    }
-
-    return classes.join(" ");
-  };
-
-  const renderNotes = () => {
-    if (value || notes.size === 0) return null;
-
-    return (
-      <div className="absolute inset-0 grid grid-cols-3 gap-0 p-0.5">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-          <span
-            key={num}
-            className={`
-              flex items-center justify-center
-              text-[7px] sm:text-[9px] md:text-[10px] font-medium leading-none
-              ${notes.has(num) 
-                ? "text-gray-600" 
-                : "text-transparent"
-              }
-            `}
-          >
-            {num}
-          </span>
-        ))}
-      </div>
-    );
-  };
+  if (isSelected) classes.push("sudoku-cell-selected");
+  else if (hasConflict && !isGiven) classes.push("sudoku-cell-conflict-bg");
+  else if (isSameNumber && value) classes.push("sudoku-cell-same-number");
+  else if (isHighlighted) classes.push("sudoku-cell-highlighted");
+  else if (isTinted) classes.push("sudoku-cell-tint");
 
   return (
     <button
       onClick={onClick}
-      className={getCellClassName()}
-      aria-label={`Cell ${row + 1}, ${col + 1}${value ? `, value ${value}` : ", empty"}`}
+      className={classes.join(" ")}
+      aria-label={`Ô hàng ${row + 1}, cột ${col + 1}${value ? `, số ${value}` : ", trống"}${isGiven ? ", số đề bài" : ""}${hasConflict ? ", bị trùng" : ""}`}
     >
       {value ? (
-        <motion.span
-          key={value}
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.1, ease: "easeOut" }}
-        >
-          {value}
-        </motion.span>
-      ) : (
-        renderNotes()
-      )}
+        isGiven ? (
+          value
+        ) : (
+          <motion.span
+            key={value}
+            className={`sudoku-candy ${hasConflict ? "sudoku-candy-conflict" : ""}`}
+            initial={{ y: "-70%", scale: 0.6 }}
+            animate={{ y: 0, scale: 1 }}
+            transition={{ type: "spring", stiffness: 620, damping: 17 }}
+          >
+            {value}
+          </motion.span>
+        )
+      ) : notes.size > 0 ? (
+        <span className="sudoku-notes">
+          {DIGITS.map((num) => (
+            <span key={num} className="flex items-center justify-center">
+              {notes.has(num) ? num : ""}
+            </span>
+          ))}
+        </span>
+      ) : null}
     </button>
   );
 });

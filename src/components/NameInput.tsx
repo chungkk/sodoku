@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 interface NameInputProps {
   onSubmit: (name: string) => void;
@@ -11,93 +11,58 @@ interface NameInputProps {
   initialValue?: string;
 }
 
+function validateName(value: string): string | null {
+  const trimmed = value.trim();
+  if (trimmed.length < 2) return "Tên cần ít nhất 2 ký tự";
+  if (trimmed.length > 20) return "Tên dài tối đa 20 ký tự";
+  return null;
+}
+
 export function NameInput({
   onSubmit,
-  placeholder = "Nhập tên của bạn",
-  buttonText = "▸ TIẾP TỤC",
+  placeholder = "Ví dụ: Minh",
+  buttonText = "Tiếp tục",
   isLoading = false,
   initialValue = "",
 }: NameInputProps) {
   const [name, setName] = useState(initialValue);
   const [error, setError] = useState<string | null>(null);
 
-  const validateName = useCallback((value: string): string | null => {
-    const trimmed = value.trim();
-    if (trimmed.length < 2) {
-      return "Tên phải có ít nhất 2 ký tự";
-    }
-    if (trimmed.length > 20) {
-      return "Tên không được quá 20 ký tự";
-    }
-    return null;
-  }, []);
-
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
       const validationError = validateName(name);
-      if (validationError) {
-        setError(validationError);
-        return;
-      }
-      setError(null);
-      onSubmit(name.trim());
+      setError(validationError);
+      if (!validationError) onSubmit(name.trim());
     },
-    [name, validateName, onSubmit]
-  );
-
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setName(e.target.value);
-      if (error) {
-        const validationError = validateName(e.target.value);
-        setError(validationError);
-      }
-    },
-    [error, validateName]
+    [name, onSubmit]
   );
 
   return (
-    <motion.form
-      onSubmit={handleSubmit}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
-    >
-      <div className="space-y-2">
-        <label className="block text-gray-400 font-mono text-xs uppercase tracking-wider">
-          ► Tên người chơi
-        </label>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <label className="flex flex-col gap-1.5">
+        <span className="text-lg font-bold">Tên của bạn</span>
         <input
           type="text"
           placeholder={placeholder}
           value={name}
-          onChange={handleChange}
+          onChange={(e) => {
+            setName(e.target.value);
+            if (error) setError(validateName(e.target.value));
+          }}
           disabled={isLoading}
           autoFocus
           maxLength={20}
-          className={`
-            w-full px-4 py-3 bg-transparent border-2 
-            ${error ? 'border-red-500' : 'border-cyan-400/50 focus:border-cyan-400'}
-            text-white font-mono text-lg
-            placeholder:text-gray-600
-            focus:outline-none focus:shadow-[0_0_15px_rgba(0,255,255,0.3)]
-            disabled:opacity-50 disabled:cursor-not-allowed
-            transition-all
-          `}
+          aria-invalid={!!error}
+          className={`w-full rounded-2xl border-4 bg-white px-4 py-3 text-xl font-semibold text-ink placeholder:text-ink-soft focus:ring-4 focus:ring-lemon disabled:opacity-60 ${
+            error ? "border-cherry focus:border-cherry" : "border-ink focus:border-ink"
+          }`}
         />
-        {error && (
-          <p className="text-sm text-red-400 font-mono">► {error}</p>
-        )}
-      </div>
-
-      <button
-        type="submit"
-        disabled={name.trim().length < 2 || isLoading}
-        className="w-full py-3 px-4 bg-cyan-500 hover:bg-cyan-400 text-black font-bold uppercase tracking-wider transition-all duration-200 hover:shadow-[0_0_20px_rgba(0,255,255,0.6)] disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isLoading ? "ĐANG XỬ LÝ..." : buttonText}
-      </button>
-    </motion.form>
+      </label>
+      {error && <p role="alert" className="font-semibold text-cherry">{error}</p>}
+      <Button type="submit" wrapped fullWidth size="lg" disabled={name.trim().length < 2} isLoading={isLoading}>
+        {buttonText}
+      </Button>
+    </form>
   );
 }

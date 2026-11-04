@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from "@/components/ui/dialog";
+import { CandyLoader, CandyO, CandyX, MascotSay } from "@/components/candy";
+import { DoorIcon } from "@/components/icons";
 import { NameInput } from "@/components/NameInput";
+import { CenterScreen, CountdownOverlay, EmptySlot, PlayerSlot, RoomCode } from "@/components/room";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { useSocket } from "@/hooks/useSocket";
 import { apiFetch, requestGuestSession } from "@/lib/api-client";
@@ -209,28 +210,15 @@ export default function CaroRoomPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="text-4xl mb-4 animate-bounce">❌⭕</div>
-          <p className="text-gray-600">Đang tải phòng...</p>
-        </div>
-      </div>
-    );
+    return <CandyLoader label="Đang mở phòng…" />;
   }
 
   if (error || !room) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card padding="lg" className="max-w-md">
-          <div className="text-center">
-            <div className="text-4xl mb-4">😕</div>
-            <h2 className="text-xl font-bold mb-2">Lỗi</h2>
-            <p className="text-gray-600 mb-4">{error || "Không tìm thấy phòng"}</p>
-            <Button onClick={() => router.push("/caro")}>Về trang chủ</Button>
-          </div>
-        </Card>
-      </div>
+      <CenterScreen mood="sad" title="Không vào được phòng">
+        <p className="mb-4 text-lg font-semibold">{error || "Không tìm thấy phòng"}</p>
+        <Button onClick={() => router.push("/caro")}>Về sảnh Caro</Button>
+      </CenterScreen>
     );
   }
 
@@ -238,183 +226,87 @@ export default function CaroRoomPage() {
   const isHost = room.players[0]?.visitorId === player?.visitorId;
   const allReady = room.players.length === 2 && room.players.every(p => p.isReady);
   const canStart = isHost && allReady;
+  const say = room.players.length < 2
+    ? "Gửi mã này cho bạn đi!"
+    : canStart
+      ? "Mọi người sẵn sàng rồi, bắt đầu thôi!"
+      : allReady
+        ? "Chờ chủ phòng bắt đầu nhé."
+        : me?.isReady
+          ? "Chờ bạn bấm Sẵn sàng nhé."
+          : "Bấm Sẵn sàng đi nào!";
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Phòng Caro</h1>
-            <p className="text-gray-600">Mã phòng: <span className="font-mono font-bold">{code}</span></p>
-          </div>
-          <Button variant="outline" onClick={() => setShowLeaveConfirm(true)}>
-            Rời phòng
-          </Button>
-        </div>
-      </motion.div>
+    <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 pb-6">
+      {countdown !== null && <CountdownOverlay value={countdown} />}
 
-      {error && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700"
-        >
-          {error}
-        </motion.div>
-      )}
+      <h1 className="font-display text-3xl">Phòng Caro</h1>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Người chơi ({room.players.length}/2)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {room.players.map((p, index) => (
-                <motion.div
-                  key={p.visitorId}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className={`p-4 rounded-lg border-2 ${
-                    p.visitorId === player?.visitorId
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 bg-white"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="text-2xl">
-                        {p.symbol === "X" ? "❌" : p.symbol === "O" ? "⭕" : "🎮"}
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {p.name}
-                          {index === 0 && <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">Host</span>}
-                          {p.visitorId === player?.visitorId && <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Bạn</span>}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {p.symbol || "Chưa có kí hiệu"}
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      {p.isReady ? (
-                        <span className="inline-flex items-center gap-1 text-green-600 font-medium">
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          Sẵn sàng
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">Chưa sẵn sàng</span>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+      <MascotSay mascotClassName="w-20" mood={allReady ? "cheer" : "happy"}>{say}</MascotSay>
 
-              {room.players.length < 2 && (
-                <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center text-gray-400">
-                  Đang chờ người chơi thứ 2...
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="tray flex flex-col gap-4 p-4">
+        <RoomCode code={code} />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Hướng dẫn</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2 text-sm text-gray-600">
-              <p>1. Chia sẻ mã phòng <span className="font-mono font-bold bg-gray-100 px-2 py-1 rounded">{code}</span> cho bạn bè</p>
-              <p>2. Chờ người chơi thứ 2 vào phòng</p>
-              <p>3. Cả hai người bấm "Sẵn sàng"</p>
-              <p>4. Chủ phòng bấm "Bắt đầu game"</p>
-            </div>
-
-            <div className="pt-4 border-t space-y-3">
-              {me && (
-                <Button
-                  onClick={handleToggleReady}
-                  fullWidth
-                  variant={me.isReady ? "outline" : "primary"}
-                  disabled={room.players.length < 2}
-                >
-                  {me.isReady ? "Hủy sẵn sàng" : "Sẵn sàng"}
-                </Button>
-              )}
-
-              {isHost && (
-                <Button
-                  onClick={handleStartGame}
-                  fullWidth
-                  disabled={!canStart}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  Bắt đầu game
-                </Button>
-              )}
-
-              {!isHost && allReady && (
-                <div className="text-center text-sm text-gray-600">
-                  Đang chờ chủ phòng bắt đầu game...
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <ul className="flex flex-col gap-2" aria-label={`Người chơi ${room.players.length} trên 2`}>
+          {room.players.map((p, index) => (
+            <PlayerSlot
+              key={p.visitorId}
+              name={p.name}
+              isMe={p.visitorId === player?.visitorId}
+              badge={index === 0 ? "host" : undefined}
+              status={p.isReady ? "Sẵn sàng" : "Chưa sẵn sàng"}
+              statusActive={p.isReady}
+              piece={p.symbol === "O" ? <CandyO className="h-11 w-11" /> : <CandyX className="h-11 w-11" />}
+            />
+          ))}
+          {room.players.length < 2 && <EmptySlot />}
+        </ul>
       </div>
 
-      {/* Countdown Overlay */}
-      {countdown !== null && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <motion.div
-            key={countdown}
-            initial={{ scale: 0 }}
-            animate={{ scale: [0, 1.2, 1] }}
-            className="text-white text-9xl font-bold"
-          >
-            {countdown}
-          </motion.div>
+      <div className="mt-auto flex flex-col gap-2">
+        {isHost && (
+          <Button wrapped fullWidth size="lg" onClick={handleStartGame} disabled={!canStart}>
+            {canStart ? "Bắt đầu" : "Chưa đủ người sẵn sàng"}
+          </Button>
+        )}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="md" className="!px-4" aria-label="Rời phòng" onClick={() => setShowLeaveConfirm(true)}>
+            <DoorIcon />
+          </Button>
+          {me && (
+            <div className="flex-1">
+              <Button
+                fullWidth
+                variant={me.isReady ? "outline" : isHost ? "secondary" : "primary"}
+                onClick={handleToggleReady}
+                disabled={room.players.length < 2}
+              >
+                {me.isReady ? "Hủy sẵn sàng" : "Sẵn sàng"}
+              </Button>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Name Input Dialog */}
       <Dialog open={showNameInput} onClose={() => router.push("/caro")}>
         <DialogHeader>
-          <DialogTitle>Nhập tên của bạn</DialogTitle>
+          <DialogTitle>Bạn tên gì nhỉ?</DialogTitle>
         </DialogHeader>
         <DialogContent>
-          <NameInput
-            onSubmit={handleGuestSubmit}
-          />
+          <NameInput onSubmit={handleGuestSubmit} buttonText="Vào phòng" />
         </DialogContent>
       </Dialog>
 
-      {/* Leave Confirmation Dialog */}
       <Dialog open={showLeaveConfirm} onClose={() => setShowLeaveConfirm(false)}>
         <DialogHeader>
-          <DialogTitle>Rời khỏi phòng?</DialogTitle>
+          <DialogTitle>Rời phòng thật à?</DialogTitle>
         </DialogHeader>
         <DialogContent>
-          <p className="text-gray-600">
-            Bạn có chắc muốn rời khỏi phòng không?
-          </p>
+          <p className="text-lg font-semibold">Bạn sẽ cần nhập lại mã để quay vào.</p>
         </DialogContent>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setShowLeaveConfirm(false)}>
-            Ở lại
-          </Button>
-          <Button variant="danger" onClick={handleLeaveRoom}>
-            Rời phòng
-          </Button>
+          <Button variant="outline" onClick={handleLeaveRoom}>Rời phòng</Button>
+          <Button onClick={() => setShowLeaveConfirm(false)}>Ở lại</Button>
         </DialogFooter>
       </Dialog>
     </div>

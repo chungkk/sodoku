@@ -1,231 +1,89 @@
 "use client";
 
+import { useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { MascotSay, CandyO, CandyX } from "@/components/candy";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { JoinRoomForm } from "@/components/JoinRoomForm";
 import { usePlayer } from "@/contexts/PlayerContext";
 
+const dropIn = (delay: number) => ({
+  initial: { y: -30, scale: 0.7 },
+  animate: { y: 0, scale: 1 },
+  transition: { type: "spring" as const, stiffness: 420, damping: 15, delay },
+});
+
+const SUDOKU_SAMPLE = [5, 0, 3, 0, 7, 0, 9, 0, 1];
+const CARO_SAMPLE = ["X", "O", "X", "O", "X", "O", "", "O", "X"];
+
 export default function HomePage() {
-  const router = useRouter();
   const { player } = usePlayer();
+  const [showJoin, setShowJoin] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#0a0a1a] relative overflow-hidden">
-      {/* Retro Grid Background */}
-      <div
-        className="absolute inset-0 opacity-20"
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px)
-          `,
-          backgroundSize: '40px 40px'
-        }}
-      />
+    <div className="mx-auto grid w-full max-w-6xl flex-1 content-start gap-x-10 px-4 pb-6 lg:grid-cols-[1fr_31rem] lg:content-center">
+      <div className="flex flex-col items-center lg:items-start">
+        <h1 className="title-candy pt-1 text-center text-[clamp(3.5rem,18vw,4.75rem)] [@media(max-height:740px)]:text-[clamp(3rem,13.5vw,4rem)] lg:text-left lg:text-[5.75rem] lg:[@media(max-height:740px)]:text-[5.75rem]">
+          <span className="block [@media(max-height:740px)]:inline lg:inline">Solo </span>
+          <span className="block [@media(max-height:740px)]:inline lg:inline">Games</span>
+        </h1>
+        <MascotSay followPointer className="my-1 w-full lg:mt-4" mascotClassName="w-40 [@media(max-height:740px)]:w-28 sm:w-48 lg:w-96 lg:[@media(max-height:740px)]:w-72">
+          {player ? `Chào ${player.name}, chọn một khay đi nào!` : "Chọn một khay đi nào!"}
+        </MascotSay>
+      </div>
 
-      {/* Glow Effects */}
-      <div className="absolute top-20 left-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-[120px]" />
-      <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-pink-500/20 rounded-full blur-[120px]" />
-
-      <div className="relative max-w-6xl mx-auto px-4 py-8 sm:py-16">
-        {/* Hero Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16"
-        >
-          <div className="inline-flex items-center gap-2 border-2 border-cyan-400/50 bg-cyan-400/10 px-4 py-2 mb-6">
-            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_10px_#4ade80]"></span>
-            <span className="text-sm text-cyan-300 font-mono uppercase tracking-wider">
-              {player ? `Player: ${player.name}` : "Insert Coin to Start"}
-            </span>
-          </div>
-
-          <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black mb-6 tracking-tight">
-            <span
-              className="text-transparent bg-clip-text"
-              style={{
-                backgroundImage: 'linear-gradient(180deg, #fff 0%, #00ffff 50%, #ff00ff 100%)',
-                textShadow: '0 0 40px rgba(0, 255, 255, 0.5), 0 0 80px rgba(255, 0, 255, 0.3)',
-                WebkitTextStroke: '1px rgba(255,255,255,0.3)'
-              }}
-            >
-              SOLO GAMES
-            </span>
-          </h1>
-
-          <p className="text-lg text-gray-400 max-w-xl mx-auto font-mono">
-            ▸ Thi đấu realtime với bạn bè ◂
-            <br />
-            <span className="text-cyan-400">2 TRÒ CHƠI KINH ĐIỂN</span>
-          </p>
-        </motion.div>
-
-        {/* Games Grid */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {/* Sudoku Card */}
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="group cursor-pointer"
-            onClick={() => router.push("/sudoku")}
-          >
-            <div
-              className="relative border-4 border-cyan-400 bg-[#0d1117] p-1 transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,255,255,0.4)] hover:scale-[1.02]"
-              style={{ clipPath: 'polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px))' }}
-            >
-              {/* Corner Accent */}
-              <div className="absolute top-0 right-0 w-0 h-0 border-l-[20px] border-l-transparent border-t-[20px] border-t-cyan-400" />
-
-              <div className="bg-gradient-to-b from-cyan-900/30 to-transparent p-6">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-5xl drop-shadow-[0_0_10px_rgba(0,255,255,0.8)]">🧩</span>
-                  <div className="flex items-center gap-2 border border-green-400 bg-green-400/10 px-3 py-1">
-                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_6px_#4ade80]"></span>
-                    <span className="text-xs font-mono text-green-400 uppercase">Online</span>
-                  </div>
-                </div>
-
-                <h2
-                  className="text-4xl font-black text-white mb-2 tracking-wide"
-                  style={{ textShadow: '0 0 20px rgba(0, 255, 255, 0.6)' }}
+      <div className="flex flex-col gap-4 lg:self-center">
+        <div className="tray grid grid-cols-2 gap-2.5 p-2.5">
+          <Link href="/sudoku" className="group flex flex-col rounded-[1.25rem] border-4 border-ink bg-lemon p-3 transition-transform hover:-translate-y-1">
+            <span className="font-display text-[1.75rem] leading-none">Sudoku</span>
+            <span className="mt-2 grid grid-cols-3 gap-1">
+              {SUDOKU_SAMPLE.map((n, i) => (
+                <motion.span
+                  key={i}
+                  {...dropIn(0.12 + i * 0.05)}
+                  className={`flex aspect-square items-center justify-center rounded-full text-lg font-extrabold ${n ? "border-[3px] border-ink bg-milk" : "border-[3px] border-dashed border-ink/40"}`}
                 >
-                  SUDOKU
-                </h2>
-                <p className="text-cyan-300/80 font-mono text-sm mb-6">
-                  ▸ Ai điền số nhanh hơn, chiến thắng!
-                </p>
+                  {n || ""}
+                </motion.span>
+              ))}
+            </span>
+            <span className="mt-2 text-[0.95rem] font-semibold leading-tight [text-wrap:balance]">2–4 người, ai giải xong trước thắng</span>
+          </Link>
 
-                {/* Stats */}
-                <div className="space-y-3 mb-6 font-mono text-sm">
-                  <div className="flex items-center gap-3 text-gray-400">
-                    <span className="text-cyan-400">►</span>
-                    <span>2-4 PLAYERS</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-gray-400">
-                    <span className="text-cyan-400">►</span>
-                    <span>3 DIFFICULTY LEVELS</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-gray-400">
-                    <span className="text-cyan-400">►</span>
-                    <span>REALTIME SYNC</span>
-                  </div>
-                </div>
-
-                {/* CTA */}
-                <div className="w-full py-3 px-4 bg-cyan-500 text-black font-bold uppercase tracking-wider text-center">
-                  ▸ CHƠI NGAY
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Caro Card */}
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="group cursor-pointer"
-            onClick={() => router.push("/caro")}
-          >
-            <div
-              className="relative border-4 border-pink-500 bg-[#0d1117] p-1 transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,0,255,0.4)] hover:scale-[1.02]"
-              style={{ clipPath: 'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)' }}
-            >
-              {/* Corner Accent */}
-              <div className="absolute top-0 left-0 w-0 h-0 border-r-[20px] border-r-transparent border-t-[20px] border-t-pink-500" />
-
-              <div className="bg-gradient-to-b from-pink-900/30 to-transparent p-6">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-5xl drop-shadow-[0_0_10px_rgba(255,0,255,0.8)]">❌⭕</span>
-                  <div className="flex items-center gap-2 border border-green-400 bg-green-400/10 px-3 py-1">
-                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_6px_#4ade80]"></span>
-                    <span className="text-xs font-mono text-green-400 uppercase">Online</span>
-                  </div>
-                </div>
-
-                <h2
-                  className="text-4xl font-black text-white mb-2 tracking-wide"
-                  style={{ textShadow: '0 0 20px rgba(255, 0, 255, 0.6)' }}
-                >
-                  CỜ CARO
-                </h2>
-                <p className="text-pink-300/80 font-mono text-sm mb-6">
-                  ▸ 5 ô liên tiếp để chiến thắng!
-                </p>
-
-                {/* Stats */}
-                <div className="space-y-3 mb-6 font-mono text-sm">
-                  <div className="flex items-center gap-3 text-gray-400">
-                    <span className="text-pink-400">►</span>
-                    <span>2 PLAYERS (X vs O)</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-gray-400">
-                    <span className="text-pink-400">►</span>
-                    <span>15×15 BOARD</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-gray-400">
-                    <span className="text-pink-400">►</span>
-                    <span>5 MIN PER TURN</span>
-                  </div>
-                </div>
-
-                {/* CTA */}
-                <div className="w-full py-3 px-4 bg-pink-500 text-black font-bold uppercase tracking-wider text-center">
-                  ▸ CHƠI NGAY
-                </div>
-              </div>
-            </div>
-          </motion.div>
+          <Link href="/caro" className="group flex flex-col rounded-[1.25rem] border-4 border-ink bg-gum p-3 transition-transform hover:-translate-y-1">
+            <span className="font-display text-[1.75rem] leading-none">Caro</span>
+            <span className="mt-2 grid grid-cols-3 gap-1">
+              {CARO_SAMPLE.map((c, i) => (
+                <motion.span key={i} {...dropIn(0.3 + i * 0.05)} className="flex aspect-square items-center justify-center">
+                  {c === "X" && <CandyX className="w-full" />}
+                  {c === "O" && <CandyO className="w-full" />}
+                  {!c && <span className="block h-full w-full rounded-full border-[3px] border-dashed border-ink/40" />}
+                </motion.span>
+              ))}
+            </span>
+            <span className="mt-2 text-[0.95rem] font-semibold leading-tight [text-wrap:balance]">2 người, 5 viên liền nhau là thắng</span>
+          </Link>
         </div>
 
-        {/* Practice Link */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="text-center mt-12"
-        >
-          <button
-            onClick={() => router.push("/practice")}
-            className="px-6 py-3 border-2 border-gray-600 text-gray-400 hover:border-cyan-400 hover:text-cyan-400 font-mono uppercase tracking-wider transition-all"
-          >
-            🎯 LUYỆN TẬP SUDOKU (SOLO)
-          </button>
-        </motion.div>
+        <Button wrapped fullWidth size="lg" onClick={() => setShowJoin(true)}>
+          Vào bằng mã phòng
+        </Button>
 
-        {/* Features Footer */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="mt-16 text-center"
-        >
-          <div className="inline-flex flex-wrap justify-center gap-6 font-mono text-sm">
-            {[
-              { icon: "⚡", label: "REALTIME" },
-              { icon: "👥", label: "MULTIPLAYER" },
-              { icon: "🌐", label: "NO DOWNLOAD" },
-              { icon: "🎮", label: "FREE PLAY" },
-            ].map((feature, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-2 text-gray-500 hover:text-cyan-400 transition-colors cursor-default"
-              >
-                <span>{feature.icon}</span>
-                <span className="uppercase tracking-wider">{feature.label}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-8 text-gray-600 font-mono text-xs">
-            © 2026 SOLO GAMES • MADE WITH 💜
-          </div>
-        </motion.div>
+        <Link href="/practice" className="text-center text-lg font-semibold underline decoration-[3px] underline-offset-4 hover:decoration-cherry">
+          Luyện Sudoku một mình
+        </Link>
       </div>
+
+      <Dialog open={showJoin} onClose={() => setShowJoin(false)}>
+        <DialogHeader>
+          <DialogTitle>Nhập mã phòng</DialogTitle>
+        </DialogHeader>
+        <DialogContent>
+          <JoinRoomForm gameType="any" onCancel={() => setShowJoin(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

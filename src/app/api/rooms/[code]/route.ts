@@ -43,6 +43,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       startedAt: room.startedAt,
       finishedAt: room.finishedAt,
       winnerId: room.winnerId,
+      pausedBy: room.pausedBy,
       createdAt: room.createdAt,
     });
   } catch (error) {
