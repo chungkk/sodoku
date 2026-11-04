@@ -1,4 +1,5 @@
 import { getDb, toDate } from "../lib/db";
+import { pickWinnerId } from "../lib/ranking";
 import type { Difficulty } from "./Puzzle";
 
 export type RoomStatus = "waiting" | "playing" | "finished";
@@ -9,7 +10,6 @@ const ROOM_TTL_MS = 24 * 60 * 60 * 1000;
 
 export interface IPlayer {
   visitorId: string;
-  oderId: string | null;
   name: string;
   isHost: boolean;
   isReady: boolean;
@@ -53,15 +53,9 @@ function cleanName(name: string): string {
   return trimmed;
 }
 
-function newPlayer(
-  visitorId: string,
-  name: string,
-  userId: string | null,
-  isHost: boolean
-): IPlayer {
+function newPlayer(visitorId: string, name: string, isHost: boolean): IPlayer {
   return {
     visitorId,
-    oderId: userId,
     name: cleanName(name),
     isHost,
     isReady: isHost,
@@ -148,8 +142,7 @@ export default class Room {
   static createRoom(
     hostId: string,
     hostName: string,
-    difficulty: Difficulty,
-    userId: string | null = null
+    difficulty: Difficulty
   ): Room {
     const db = getDb();
     const now = new Date();
@@ -167,7 +160,7 @@ export default class Room {
     const data = JSON.stringify({
       hostId,
       puzzleId: null,
-      players: [newPlayer(hostId, hostName, userId, true)],
+      players: [newPlayer(hostId, hostName, true)],
       difficulty,
       startedAt: null,
       finishedAt: null,
@@ -179,6 +172,11 @@ export default class Room {
       data
     );
     return Room.findByCode(code)!;
+  }
+
+  static findPlaying(): Room[] {
+    const rows = getDb().prepare("SELECT * FROM rooms WHERE status = 'playing'").all();
+    return rows.map((row) => new Room(row as unknown as RoomRow));
   }
 
   /** Đổi trạng thái sẵn sàng khi chỉ có code phòng (socket). Bỏ qua nếu không có phòng hoặc người chơi. */
@@ -200,12 +198,12 @@ export default class Room {
     getDb().prepare("DELETE FROM rooms WHERE code = ?").run(this.code);
   }
 
-  addPlayer(visitorId: string, name: string, userId: string | null = null): boolean {
+  addPlayer(visitorId: string, name: string): boolean {
     if (this.players.length >= MAX_PLAYERS) return false;
     if (this.status !== "waiting") return false;
     if (this.players.some((p) => p.visitorId === visitorId)) return false;
 
-    this.players.push(newPlayer(visitorId, name, userId, false));
+    this.players.push(newPlayer(visitorId, name, false));
     return true;
   }
 
@@ -220,6 +218,28 @@ export default class Room {
       this.players[0].isHost = true;
       this.hostId = this.players[0].visitorId;
     }
+    return true;
+  }
+
+  get isFinished(): boolean {
+    return this.status === "finished";
+  }
+
+  /** Kết thúc ván nếu không còn ai đang chơi. Người gọi tự save(). */
+  finishIfAllDone(): void {
+    if (this.players.some((p) => !p.finishedAt)) return;
+    this.status = "finished";
+    this.finishedAt = new Date();
+    this.winnerId = pickWinnerId(this.players);
+  }
+
+  /** Bỏ cuộc hoặc bị xử thua. False nếu người này đã xong ván. Người gọi tự save(). */
+  giveUp(visitorId: string): boolean {
+    const player = this.players.find((p) => p.visitorId === visitorId);
+    if (!player || player.finishedAt) return false;
+    player.progress = -1;
+    player.finishedAt = new Date();
+    this.finishIfAllDone();
     return true;
   }
 

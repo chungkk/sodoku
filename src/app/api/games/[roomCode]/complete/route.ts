@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Room from "@/models/Room";
 import Puzzle from "@/models/Puzzle";
-import { isPuzzleComplete } from "@/lib/sudoku";
+import { isSolutionOf } from "@/lib/sudoku";
+import { isNumberGrid } from "@/lib/validation";
 import { denyUnlessPlayer } from "@/lib/player-auth";
 import { broadcast, sudokuSocketRoom } from "@/lib/realtime";
 
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { roomCode } = await params;
     const body = await request.json();
-    const { visitorId, grid, time } = body;
+    const { visitorId, grid } = body;
 
     if (!roomCode || !visitorId || !grid) {
       return NextResponse.json(
@@ -24,6 +25,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const denied = denyUnlessPlayer(request, visitorId);
     if (denied) return denied;
+
+    if (!isNumberGrid(grid)) {
+      return NextResponse.json({ error: "Invalid grid" }, { status: 400 });
+    }
 
     const room = Room.findByCode(roomCode.toUpperCase());
 
@@ -64,9 +69,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const isComplete = isPuzzleComplete(grid, puzzle.solution);
-
-    if (!isComplete) {
+    if (!isSolutionOf(grid, puzzle.grid)) {
       return NextResponse.json({
         success: false,
         message: "Puzzle is not complete or has errors",
@@ -77,29 +80,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     player.progress = 100;
     player.currentGrid = grid;
 
-    const allFinished = room.players.every((p) => p.finishedAt !== null);
-
-    if (allFinished) {
-      room.status = "finished";
-      room.finishedAt = new Date();
-
-      const rankings = [...room.players]
-        .filter((p) => p.finishedAt)
-        .sort((a, b) => {
-          const timeA = a.finishedAt!.getTime() - room.startedAt!.getTime();
-          const timeB = b.finishedAt!.getTime() - room.startedAt!.getTime();
-          if (timeA !== timeB) return timeA - timeB;
-          return (a.errors || 0) - (b.errors || 0);
-        });
-
-      if (rankings.length > 0) {
-        room.winnerId = rankings[0].visitorId;
-      }
-    }
+    room.finishIfAllDone();
+    const allFinished = room.isFinished;
 
     room.save();
 
-    const elapsed = time || (player.finishedAt.getTime() - room.startedAt!.getTime()) / 1000;
+    const elapsed = (player.finishedAt.getTime() - room.startedAt!.getTime()) / 1000;
     const socketRoom = sudokuSocketRoom(room.code);
     broadcast(socketRoom, "player_completed", {
       visitorId,

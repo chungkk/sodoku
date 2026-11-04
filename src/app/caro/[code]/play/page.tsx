@@ -71,6 +71,10 @@ export default function CaroPlayPage() {
           if (data.turnStartedAt) {
             setTurnStartedAt(new Date(data.turnStartedAt));
           }
+          // Vào lại trang giữa lúc đang tạm dừng thì vẫn hiện đúng trạng thái
+          const pauser = data.players.find((p: CaroPlayer) => p.visitorId === data.pausedBy);
+          setIsPaused(!!pauser);
+          setPausedBy(pauser ? { visitorId: pauser.visitorId, name: pauser.name } : null);
         }
 
         if (data.status === "finished") {
@@ -143,13 +147,14 @@ export default function CaroPlayPage() {
       }
     );
 
-    on<{ visitorId: string; name: string; paused: boolean }>("caro_game_paused", (data) => {
+    on<{ visitorId: string; name: string; paused: boolean; turnStartedAt: string }>("caro_game_paused", (data) => {
       setIsPaused(data.paused);
       if (data.paused) {
         setPausedBy({ visitorId: data.visitorId, name: data.name });
       } else {
         setPausedBy(null);
-        setTurnStartedAt(new Date());
+        // Mốc do server tính lại; đặt về "bây giờ" sẽ làm đồng hồ lệch với server
+        setTurnStartedAt(new Date(data.turnStartedAt));
       }
     });
 

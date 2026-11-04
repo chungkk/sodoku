@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePlayer } from "@/contexts/PlayerContext";
 
 export function Header() {
-  const { player, isGuest } = usePlayer();
+  const { player } = usePlayer();
 
   return (
     <header className="sticky top-0 z-30 bg-[#0a0a1a]/95 backdrop-blur-md border-b-2 border-cyan-400/30">
@@ -34,7 +34,7 @@ export function Header() {
             <div className="flex items-center gap-3">
               <span className="text-sm text-cyan-300 font-mono hidden sm:flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_6px_#4ade80]"></span>
-                {isGuest ? "GUEST:" : "PLAYER:"} {player.name}
+                GUEST: {player.name}
               </span>
             </div>
           )}

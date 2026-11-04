@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Room from "@/models/Room";
 import { denyUnlessPlayer } from "@/lib/player-auth";
+import { clientProgress, isCount, isPlayerGrid } from "@/lib/validation";
 
 interface RouteParams {
   params: Promise<{ roomCode: string }>;
@@ -10,7 +11,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { roomCode } = await params;
     const body = await request.json();
-    const { visitorId, progress, errors, currentGrid } = body;
+    const { visitorId, errors, currentGrid } = body;
+    const progress = clientProgress(body.progress);
 
     if (!roomCode || !visitorId) {
       return NextResponse.json(
@@ -21,6 +23,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const denied = denyUnlessPlayer(request, visitorId);
     if (denied) return denied;
+
+    if (
+      progress === null ||
+      !isCount(errors) ||
+      (currentGrid !== undefined && !isPlayerGrid(currentGrid))
+    ) {
+      return NextResponse.json({ error: "Invalid progress data" }, { status: 400 });
+    }
 
     const room = Room.findByCode(roomCode.toUpperCase());
 
@@ -46,10 +56,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    if (player.finishedAt) {
+      return NextResponse.json(
+        { error: "Player already finished", code: "ALREADY_FINISHED" },
+        { status: 400 }
+      );
+    }
+
     player.progress = progress;
     player.errors = errors;
     if (currentGrid) {
-      player.currentGrid = currentGrid;
+      player.currentGrid = currentGrid as number[][];
     }
     player.lastSeen = new Date();
 

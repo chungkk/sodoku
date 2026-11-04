@@ -3,9 +3,9 @@
 ## ✅ Hoàn toàn tách biệt (NO CONFLICT)
 
 ### 1. Database Models
-- **Sudoku**: `Room.ts`, `Puzzle.ts`, `User.ts`
+- **Sudoku**: `Room.ts`, `Puzzle.ts`
 - **Caro**: `CaroRoom.ts`
-- ✅ Sử dụng collections MongoDB khác nhau
+- ✅ Sử dụng các bảng SQLite khác nhau
 - ✅ Schema hoàn toàn độc lập
 
 ### 2. API Routes
@@ -13,7 +13,6 @@
   - `/api/rooms/*`
   - `/api/games/*`
   - `/api/player/*`
-  - `/api/auth/*`
 - **Caro**:
   - `/api/caro/*`
   - `/api/caro/[code]/*`

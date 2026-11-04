@@ -259,6 +259,34 @@ export function calculateProgress(grid: number[][], solution: number[][], puzzle
   return Math.round((correct / total) * 100);
 }
 
+/**
+ * Tiến độ khi client không có lời giải: tỉ lệ ô đã điền. Chỉ đạt 100 khi bàn đã giải đúng,
+ * nên không cho biết từng ô đúng hay sai.
+ */
+export function calculateFillProgress(grid: number[][], puzzle: number[][]): number {
+  let filled = 0;
+  let total = 0;
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      if (puzzle[r][c] === 0) {
+        total++;
+        if (grid[r][c]) filled++;
+      }
+    }
+  }
+  if (total === 0 || validateSolution(grid)) return 100;
+  return Math.min(99, Math.round((filled / total) * 100));
+}
+
+/** Bàn đã điền đủ, đúng luật Sudoku và giữ nguyên các ô đề bài. */
+export function isSolutionOf(grid: number[][], puzzle: number[][]): boolean {
+  if (!isValidGrid(grid)) return false;
+  const keepsGivens = puzzle.every((row, r) =>
+    row.every((given, c) => given === 0 || grid[r][c] === given)
+  );
+  return keepsGivens && validateSolution(grid);
+}
+
 export function isValidGrid(grid: number[][]): boolean {
   if (!grid || grid.length !== 9) return false;
 
@@ -266,7 +294,7 @@ export function isValidGrid(grid: number[][]): boolean {
     if (!grid[r] || grid[r].length !== 9) return false;
     for (let c = 0; c < 9; c++) {
       const val = grid[r][c];
-      if (typeof val !== "number" || val < 0 || val > 9) return false;
+      if (!Number.isInteger(val) || val < 0 || val > 9) return false;
     }
   }
 

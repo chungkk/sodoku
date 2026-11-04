@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * visitorId là công khai (đối thủ nào cũng thấy), nên không đủ để chứng minh danh tính.
@@ -11,6 +12,10 @@ function secret(): string {
     throw new Error("NEXTAUTH_SECRET is required");
   }
   return "dev-only-secret";
+}
+
+export function generateVisitorId(): string {
+  return `guest_${uuidv4().replace(/-/g, "").substring(0, 16)}`;
 }
 
 export function signPlayerToken(visitorId: string): string {

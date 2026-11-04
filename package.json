@@ -8,14 +8,13 @@
     "build": "next build",
     "start": "NODE_ENV=production tsx server.ts",
     "lint": "eslint .",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "seed:puzzles": "tsx scripts/seed-puzzles.ts"
   },
   "dependencies": {
     "@tailwindcss/forms": "^0.5.10",
-    "bcryptjs": "^3.0.3",
     "framer-motion": "^12.23.25",
     "next": "^16.4.5",
-    "next-auth": "^4.24.15",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "socket.io": "^4.8.4",
@@ -24,7 +23,6 @@
     "uuid": "^14.0.3"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

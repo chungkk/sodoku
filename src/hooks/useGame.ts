@@ -5,15 +5,18 @@ import {
   Difficulty,
   generatePuzzle,
   isPuzzleComplete,
+  calculateFillProgress,
   calculateProgress,
   hasConflict,
+  validateSolution,
 } from "@/lib/sudoku";
 
 type InputMode = "fill" | "note";
 
 interface GameState {
   puzzle: number[][];
-  solution: number[][];
+  /** Chỉ có ở chế độ luyện tập. Chơi đối kháng để null vì server không gửi lời giải cho client. */
+  solution: number[][] | null;
   userInput: (number | null)[][];
   notes: Set<number>[][];
   selectedCell: [number, number] | null;
@@ -34,8 +37,8 @@ interface HistoryEntry {
 
 type GameAction =
   | { type: "START_GAME"; difficulty: Difficulty }
-  | { type: "LOAD_PUZZLE"; puzzle: number[][]; solution: number[][]; difficulty: Difficulty; userInput?: (number | null)[][] }
-  | { type: "LOAD_PUZZLE_WITH_STATE"; puzzle: number[][]; solution: number[][]; difficulty: Difficulty; userInput: (number | null)[][]; notes: Set<number>[][] }
+  | { type: "LOAD_PUZZLE"; puzzle: number[][]; solution: number[][] | null; difficulty: Difficulty; userInput?: (number | null)[][] }
+  | { type: "LOAD_PUZZLE_WITH_STATE"; puzzle: number[][]; solution: number[][] | null; difficulty: Difficulty; userInput: (number | null)[][]; notes: Set<number>[][] }
   | { type: "SELECT_CELL"; row: number; col: number }
   | { type: "INPUT_NUMBER"; number: number }
   | { type: "CLEAR_CELL" }
@@ -44,6 +47,10 @@ type GameAction =
   | { type: "UNDO" }
   | { type: "USE_HINT" }
   | { type: "RESET_GAME" };
+
+function isSolved(grid: number[][], solution: number[][] | null): boolean {
+  return solution ? isPuzzleComplete(grid, solution) : validateSolution(grid);
+}
 
 function createEmptyNotes(): Set<number>[][] {
   return Array(9)
@@ -176,7 +183,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const isError = hasConflict(currentGrid, row, col, action.number);
       const newErrors = isError ? state.errors + 1 : state.errors;
 
-      const complete = isPuzzleComplete(currentGrid, state.solution);
+      const complete = isSolved(currentGrid, state.solution);
 
       return {
         ...state,
@@ -270,7 +277,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case "USE_HINT": {
-      if (!state.selectedCell) return state;
+      if (!state.selectedCell || !state.solution) return state;
       const [row, col] = state.selectedCell;
 
       if (state.puzzle[row][col] !== 0) return state;
@@ -294,7 +301,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         )
       );
 
-      const complete = isPuzzleComplete(currentGrid, state.solution);
+      const complete = isSolved(currentGrid, state.solution);
 
       return {
         ...state,
@@ -322,7 +329,7 @@ export function useGame() {
 
   const loadPuzzle = useCallback((
     puzzle: number[][],
-    solution: number[][],
+    solution: number[][] | null,
     difficulty: Difficulty,
     userInput?: (number | null)[][]
   ) => {
@@ -331,7 +338,7 @@ export function useGame() {
 
   const loadPuzzleWithState = useCallback((
     puzzle: number[][],
-    solution: number[][],
+    solution: number[][] | null,
     difficulty: Difficulty,
     userInput: (number | null)[][],
     notes: Set<number>[][]
@@ -372,7 +379,7 @@ export function useGame() {
   }, []);
 
   const useHint = useCallback((): boolean => {
-    if (!state.selectedCell) return false;
+    if (!state.selectedCell || !state.solution) return false;
     const [row, col] = state.selectedCell;
     if (state.puzzle[row][col] !== 0) return false;
     if (state.userInput[row][col] === state.solution[row][col]) return false;
@@ -387,7 +394,9 @@ export function useGame() {
     const currentGrid = state.puzzle.map((row, r) =>
       row.map((cell, c) => (cell !== 0 ? cell : state.userInput[r][c] || 0))
     );
-    return calculateProgress(currentGrid, state.solution, state.puzzle);
+    return state.solution
+      ? calculateProgress(currentGrid, state.solution, state.puzzle)
+      : calculateFillProgress(currentGrid, state.puzzle);
   }, [state.puzzle, state.userInput, state.solution, state.isStarted]);
 
   return {

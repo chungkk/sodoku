@@ -1,29 +1,28 @@
 # sudoku Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2025-12-02
-
 ## Active Technologies
 
-- TypeScript 5.x, Node.js 20.x + React 18, Socket.io, Tailwind CSS, Framer Motion (animations) (003-sudoku-game)
+Next.js 16, React 19, TypeScript 5, Socket.IO, Tailwind CSS, Framer Motion, SQLite (`node:sqlite`, Node >= 22.5).
 
 ## Project Structure
 
 ```text
-src/
-tests/
+server.ts      custom server: Next + Socket.IO, giới hạn request /api
+src/app/       trang và API route
+src/server/    xử lý sự kiện Socket.IO
+src/models/    truy cập SQLite (đồng bộ)
+src/lib/       logic dùng chung
 ```
 
 ## Commands
 
 npm test && npm run lint
 
-## Code Style
+## Rules
 
-TypeScript 5.x, Node.js 20.x: Follow standard conventions
-
-## Recent Changes
-
-- 003-sudoku-game: Added TypeScript 5.x, Node.js 20.x + React 18, Socket.io, Tailwind CSS, Framer Motion (animations)
+- Không có `await` giữa lúc đọc phòng và `save()`: đó là cách chống mất dữ liệu.
+- Không gửi lời giải Sudoku của ván đối kháng cho client; server kiểm tra bài bằng `isSolutionOf`.
+- Người chơi là khách, xác thực bằng token ký từ server (`src/lib/player-token.ts`).
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

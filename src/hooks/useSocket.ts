@@ -40,7 +40,8 @@ export function useSocket({
       path: "/api/socketio",
       auth: { visitorId, name, token },
       reconnection: true,
-      reconnectionAttempts: 5,
+      // Vắng mặt quá lâu sẽ bị xử thua, nên phải thử kết nối lại tới khi được
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       transports: ["websocket", "polling"],

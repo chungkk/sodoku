@@ -6,7 +6,7 @@ import { denyUnlessPlayer } from "@/lib/player-auth";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { visitorId, hostName, difficulty, userId } = body;
+    const { visitorId, hostName, difficulty } = body;
 
     if (!visitorId || !hostName) {
       return NextResponse.json(
@@ -29,8 +29,7 @@ export async function POST(request: NextRequest) {
     const room = Room.createRoom(
       visitorId,
       hostName,
-      difficulty || "medium",
-      userId || null
+      difficulty || "medium"
     );
 
     return NextResponse.json({

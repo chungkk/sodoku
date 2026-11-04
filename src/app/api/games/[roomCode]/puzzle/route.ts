@@ -44,7 +44,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({
       puzzle: puzzle.grid,
-      solution: puzzle.solution,
       difficulty: room.difficulty,
       startedAt: room.startedAt,
     });

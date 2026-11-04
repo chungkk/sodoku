@@ -16,7 +16,7 @@ import { usePlayer } from "@/contexts/PlayerContext";
 import { useSocket } from "@/hooks/useSocket";
 import { useGame } from "@/hooks/useGame";
 import { useTimer } from "@/hooks/useTimer";
-import { calculateProgress, findConflicts, isPuzzleComplete } from "@/lib/sudoku";
+import { calculateFillProgress, validateSolution } from "@/lib/sudoku";
 import { apiFetch } from "@/lib/api-client";
 
 const GAME_STATE_KEY = "sudoku_game_state_";
@@ -34,7 +34,6 @@ interface PlayerProgress {
 
 interface GameData {
   puzzle: number[][];
-  solution: number[][];
   difficulty: string;
   startedAt: string;
 }
@@ -54,9 +53,10 @@ export default function GamePlayPage() {
   const [loading, setLoading] = useState(true);
   const [pausedBy, setPausedBy] = useState<{ visitorId: string; name: string } | null>(null);
   const [stateLoaded, setStateLoaded] = useState(false);
-  const [hintsRemaining, setHintsRemaining] = useState(3);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSaveRef = useRef<number>(0);
+  // Đã nộp bài: không nộp lại và không lưu tiến độ nữa, vì server sẽ từ chối
+  const submittedRef = useRef(false);
 
   const game = useGame();
   const timer = useTimer();
@@ -122,7 +122,7 @@ export default function GamePlayPage() {
   }, [code, player]);
 
   const saveGameState = useCallback(() => {
-    if (!stateLoaded || gameEnded || !player) return;
+    if (!stateLoaded || gameEnded || !player || submittedRef.current) return;
 
     const now = Date.now();
     if (now - lastSaveRef.current < 1000) {
@@ -202,7 +202,7 @@ export default function GamePlayPage() {
 
           game.loadPuzzleWithState(
             puzzleData.puzzle,
-            puzzleData.solution,
+            null,
             puzzleData.difficulty,
             userInput,
             notes
@@ -212,7 +212,7 @@ export default function GamePlayPage() {
         } else {
           game.loadPuzzle(
             puzzleData.puzzle,
-            puzzleData.solution,
+            null,
             puzzleData.difficulty
           );
           timer.start();
@@ -380,7 +380,7 @@ export default function GamePlayPage() {
           )
         );
 
-        const progress = calculateProgress(currentGrid, game.solution, game.puzzle);
+        const progress = calculateFillProgress(currentGrid, game.puzzle);
 
         emit("progress_update", {
           roomCode: code,
@@ -388,19 +388,6 @@ export default function GamePlayPage() {
           errors: game.errors,
         });
 
-        if (game.selectedCell) {
-          const [row, col] = game.selectedCell;
-          const conflicts = findConflicts(currentGrid, row, col, num);
-
-          emit("cell_update", {
-            roomCode: code,
-            row,
-            col,
-            value: num,
-            valid: conflicts.length === 0,
-            conflicts,
-          });
-        }
       }
     },
     [game, gameEnded, player, code, emit]
@@ -416,14 +403,6 @@ export default function GamePlayPage() {
     game.undo();
   }, [game, gameEnded, timer.isPaused]);
 
-  const handleHint = useCallback(() => {
-    if (gameEnded || timer.isPaused || hintsRemaining === 0) return;
-    const used = game.useHint();
-    if (used) {
-      setHintsRemaining((prev) => prev - 1);
-    }
-  }, [game, gameEnded, timer.isPaused, hintsRemaining]);
-
   const handleComplete = useCallback(async () => {
     if (!player || gameEnded) return;
 
@@ -431,7 +410,8 @@ export default function GamePlayPage() {
       row.map((cell, c) => (cell !== 0 ? cell : game.userInput[r][c] || 0))
     );
 
-    if (!isPuzzleComplete(currentGrid, game.solution)) return;
+    if (submittedRef.current || !validateSolution(currentGrid)) return;
+    submittedRef.current = true;
 
     try {
       const response = await apiFetch(`/api/games/${code}/complete`, {
@@ -440,7 +420,6 @@ export default function GamePlayPage() {
         body: JSON.stringify({
           visitorId: player.visitorId,
           grid: currentGrid,
-          time: timer.seconds,
         }),
       });
 
@@ -453,8 +432,11 @@ export default function GamePlayPage() {
           setWinnerId(data.winnerId);
           setShowResultsModal(true);
         }
+      } else {
+        submittedRef.current = false;
       }
     } catch (error) {
+      submittedRef.current = false;
       console.error("Complete game error:", error);
     }
   }, [player, game, code, timer, gameEnded]);

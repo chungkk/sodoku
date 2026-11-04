@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import CaroRoom from "@/models/CaroRoom";
 import { createEmptyBoard } from "@/lib/caro";
 import { denyUnlessPlayer } from "@/lib/player-auth";
+import { caroTurnStarted } from "@/lib/realtime";
 
 export async function POST(
   request: NextRequest,
@@ -61,6 +62,7 @@ export async function POST(
     room.moves = [];
 
     room.save();
+    caroTurnStarted(room.code);
 
     return NextResponse.json({
       success: true,

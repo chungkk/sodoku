@@ -26,6 +26,7 @@ export async function GET(
       startedAt: room.startedAt,
       finishedAt: room.finishedAt,
       turnStartedAt: room.turnStartedAt,
+      pausedBy: room.pausedBy,
     });
   } catch (error) {
     console.error("Failed to fetch caro room:", error);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Room from "@/models/Room";
 import { denyUnlessPlayer } from "@/lib/player-auth";
+import { clientProgress, isCount, isNotes, isPlayerGrid } from "@/lib/validation";
 
 interface RouteParams {
   params: Promise<{ roomCode: string }>;
@@ -74,6 +75,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const denied = denyUnlessPlayer(request, visitorId);
     if (denied) return denied;
 
+    const storedProgress = progress === undefined ? undefined : clientProgress(progress);
+    if (
+      storedProgress === null ||
+      (currentGrid !== undefined && !isPlayerGrid(currentGrid)) ||
+      (notes !== undefined && !isNotes(notes)) ||
+      (elapsedTime !== undefined && !isCount(elapsedTime)) ||
+      (errors !== undefined && !isCount(errors))
+    ) {
+      return NextResponse.json({ error: "Invalid game state" }, { status: 400 });
+    }
+
     const room = Room.findByCode(roomCode.toUpperCase());
 
     if (!room) {
@@ -106,7 +118,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     if (currentGrid !== undefined) {
-      player.currentGrid = currentGrid;
+      player.currentGrid = currentGrid as number[][];
     }
     if (notes !== undefined) {
       player.notes = notes;
@@ -117,8 +129,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (errors !== undefined) {
       player.errors = errors;
     }
-    if (progress !== undefined) {
-      player.progress = progress;
+    if (storedProgress !== undefined) {
+      player.progress = storedProgress;
     }
     player.lastSeen = new Date();
 

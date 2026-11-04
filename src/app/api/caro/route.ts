@@ -3,14 +3,16 @@ import CaroRoom from "@/models/CaroRoom";
 import { v4 as uuidv4 } from "uuid";
 import { createEmptyBoard } from "@/lib/caro";
 import { denyUnlessPlayer } from "@/lib/player-auth";
+import { cleanPlayerName } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
-    const { visitorId, name } = await request.json();
+    const { visitorId, name: rawName } = await request.json();
+    const name = cleanPlayerName(rawName);
 
     if (!visitorId || !name) {
       return NextResponse.json(
-        { error: "Missing visitorId or name" },
+        { error: "Missing visitorId or invalid name" },
         { status: 400 }
       );
     }

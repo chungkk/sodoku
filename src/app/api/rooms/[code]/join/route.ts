@@ -10,7 +10,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { code } = await params;
     const body = await request.json();
-    const { visitorId, name, userId } = body;
+    const { visitorId, name } = body;
 
     if (!code || code.length !== 6) {
       return NextResponse.json(
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       });
     }
 
-    const added = room.addPlayer(visitorId, name, userId || null);
+    const added = room.addPlayer(visitorId, name);
     if (!added) {
       return NextResponse.json(
         { error: "Failed to join room" },

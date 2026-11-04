@@ -3,6 +3,9 @@ export type Board = CellValue[][];
 
 export const BOARD_SIZE = 15;
 export const WIN_CONDITION = 5;
+export const TURN_TIMEOUT_MS = 5 * 60 * 1000;
+/** Tổng thời gian mỗi người được tạm dừng trong một ván; hết quỹ thì ván tự chạy tiếp. */
+export const MAX_PAUSE_MS_PER_PLAYER = 3 * 60 * 1000;
 
 export function createEmptyBoard(): Board {
   return Array(BOARD_SIZE)

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import CaroRoom from "@/models/CaroRoom";
-import { checkWinner, isValidMove, isBoardFull } from "@/lib/caro";
+import { checkWinner, isValidMove, isBoardFull, TURN_TIMEOUT_MS } from "@/lib/caro";
 import { denyUnlessPlayer } from "@/lib/player-auth";
 import { broadcast, caroSocketRoom, caroTurnEnded, caroTurnStarted } from "@/lib/realtime";
 
@@ -35,6 +35,10 @@ export async function POST(
       );
     }
 
+    if (room.pausedBy) {
+      return NextResponse.json({ error: "Game is paused" }, { status: 400 });
+    }
+
     const player = room.players.find((p) => p.visitorId === visitorId);
     if (!player) {
       return NextResponse.json({ error: "Player not found" }, { status: 404 });
@@ -54,11 +58,10 @@ export async function POST(
       );
     }
 
-    // Check if turn timeout (5 minutes = 300000ms)
-    const TURN_TIMEOUT = 5 * 60 * 1000;
+    // Mốc đầu lượt đã được lùi theo thời gian tạm dừng, nên lúc dừng không bị tính vào đây
     if (room.turnStartedAt) {
       const elapsed = Date.now() - room.turnStartedAt.getTime();
-      if (elapsed > TURN_TIMEOUT) {
+      if (elapsed > TURN_TIMEOUT_MS) {
         // Current player loses due to timeout
         const opponent = room.players.find((p) => p.visitorId !== visitorId);
         room.status = "finished";

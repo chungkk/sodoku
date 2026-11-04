@@ -85,7 +85,6 @@ export function CreateRoomForm({ onCancel, gameType = "sudoku" }: CreateRoomForm
             visitorId: player.visitorId,
             hostName: player.name,
             difficulty,
-            userId: player.oderId || null,
           }),
         });
 
