@@ -18,6 +18,7 @@ const NumberPad = memo(function NumberPad({ onNumberClick, onErase, selectedNumb
       {NUMBERS.map((num) => (
         <button
           key={num}
+          type="button"
           onClick={() => onNumberClick(num)}
           disabled={disabled}
           aria-label={`Số ${num}`}
@@ -26,7 +27,7 @@ const NumberPad = memo(function NumberPad({ onNumberClick, onErase, selectedNumb
           {num}
         </button>
       ))}
-      <button onClick={onErase} disabled={disabled} aria-label="Xóa ô đang chọn" className="number-candy !bg-gum lg:col-start-2">
+      <button type="button" onClick={onErase} disabled={disabled} aria-label="Xóa ô đang chọn" className="number-candy !bg-gum lg:col-start-2">
         <EraseIcon />
       </button>
     </div>

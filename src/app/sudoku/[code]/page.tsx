@@ -53,16 +53,12 @@ export default function RoomPage() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const hasJoined = useRef(false);
 
-  const { isConnected, emit, on, off, error: socketError } = useSocket({
+  const { isConnected, emit, on, off } = useSocket({
     visitorId: player?.visitorId || "",
     name: player?.name || "",
     token: player?.token,
     autoConnect: !!player,
   });
-
-  useEffect(() => {
-    console.log("Socket status:", { isConnected, socketError, hasPlayer: !!player });
-  }, [isConnected, socketError, player]);
 
   const fetchRoom = useCallback(async () => {
     try {
@@ -89,7 +85,6 @@ export default function RoomPage() {
 
     if (!isAlreadyInRoom) {
       try {
-        console.log("Joining room via API:", code, player.visitorId);
         const response = await apiFetch(`/api/rooms/${code}/join`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -112,7 +107,6 @@ export default function RoomPage() {
       }
     }
 
-    console.log("Emitting join_room for", code);
     emit("join_room", { roomCode: code });
     setTimeout(() => fetchRoom(), 500);
   }, [player, code, emit, fetchRoom]);
@@ -145,7 +139,6 @@ export default function RoomPage() {
     });
 
     on<{ visitorId: string; ready: boolean }>("player_ready", (data) => {
-      console.log("Received player_ready:", data);
       setRoom(prev => {
         if (!prev) return prev;
         return {
@@ -223,7 +216,6 @@ export default function RoomPage() {
   const handleReadyToggle = useCallback(() => {
     if (!player) return;
     const newReady = !isReady;
-    console.log("Setting ready:", newReady, "for room", code);
     setIsReady(newReady);
     emit("set_ready", { roomCode: code, ready: newReady });
   }, [player, isReady, code, emit]);

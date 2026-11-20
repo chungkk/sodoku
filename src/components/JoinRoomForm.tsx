@@ -23,7 +23,7 @@ const GAMES: Record<GameType, { path: string; maxPlayers: number }> = {
 
 export function JoinRoomForm({ onCancel, initialCode = "", gameType = "sudoku" }: JoinRoomFormProps) {
   const router = useRouter();
-  const { player, setGuestName } = usePlayer();
+  const { player, setGuestName, clearSession } = usePlayer();
   const [roomCode, setRoomCode] = useState(initialCode);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +67,16 @@ export function JoinRoomForm({ onCancel, initialCode = "", gameType = "sudoku" }
 
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || "Không thể vào phòng");
+
+          const isAlreadyInRoom =
+            Array.isArray(data.players) &&
+            data.players.some((p: { visitorId?: string }) => p.visitorId === player?.visitorId);
+
+          if (isAlreadyInRoom) {
+            router.push(data.status === "waiting" ? `/${game}/${code}` : `/${game}/${code}/play`);
+            return;
+          }
+
           if (data.status !== "waiting") throw new Error("Ván này đã bắt đầu, không vào được nữa");
           if (data.players.length >= GAMES[game].maxPlayers) {
             throw new Error(`Phòng đã đủ ${GAMES[game].maxPlayers} người`);
@@ -82,7 +92,7 @@ export function JoinRoomForm({ onCancel, initialCode = "", gameType = "sudoku" }
         setIsLoading(false);
       }
     },
-    [roomCode, gameType, router]
+    [roomCode, gameType, player?.visitorId, router]
   );
 
   if (!player) {
@@ -124,7 +134,16 @@ export function JoinRoomForm({ onCancel, initialCode = "", gameType = "sudoku" }
         Vào phòng
       </Button>
 
-      <p className="text-center font-semibold text-ink-soft">Bạn chơi với tên {player.name}</p>
+      <p className="text-center font-semibold text-ink-soft">
+        Bạn chơi với tên <span className="text-ink">{player.name}</span>{" "}
+        <button
+          type="button"
+          onClick={clearSession}
+          className="underline decoration-2 underline-offset-2 hover:text-cherry"
+        >
+          Đổi tên
+        </button>
+      </p>
       {onCancel && <Button variant="ghost" fullWidth onClick={onCancel}>Hủy</Button>}
     </form>
   );

@@ -52,10 +52,8 @@ type GameAction =
   | { type: "SELECT_CELL"; row: number; col: number }
   | { type: "INPUT_NUMBER"; number: number }
   | { type: "CLEAR_CELL" }
-  | { type: "TOGGLE_NOTE"; number: number }
   | { type: "SET_MODE"; mode: InputMode }
   | { type: "UNDO" }
-  | { type: "USE_HINT" }
   | { type: "RESET_GAME" };
 
 function isSolved(grid: number[][], solution: number[][] | null): boolean {
@@ -170,6 +168,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
 
       if (state.mode === "note") {
+        if (state.userInput[row][col] !== null) return state;
         const newNotes = state.notes.map((r, ri) =>
           r.map((cellNotes, ci) => {
             if (ri === row && ci === col) {
@@ -248,38 +247,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, userInput: newUserInput, notes: newNotes, history: [...state.history, historyEntry] };
     }
 
-    case "TOGGLE_NOTE": {
-      if (!state.selectedCell) return highlightNumber(state, action.number);
-      const [row, col] = state.selectedCell;
-
-      if (state.puzzle[row][col] !== 0) return highlightNumber(state, action.number);
-      if (state.userInput[row][col] !== null) return state;
-
-      const historyEntry: HistoryEntry = {
-        row,
-        col,
-        prevValue: state.userInput[row][col],
-        prevNotes: new Set(state.notes[row][col]),
-      };
-
-      const newNotes = state.notes.map((r, ri) =>
-        r.map((cellNotes, ci) => {
-          if (ri === row && ci === col) {
-            const updated = new Set(cellNotes);
-            if (updated.has(action.number)) {
-              updated.delete(action.number);
-            } else {
-              updated.add(action.number);
-            }
-            return updated;
-          }
-          return cellNotes;
-        })
-      );
-
-      return { ...state, notes: newNotes, history: [...state.history, historyEntry] };
-    }
-
     case "SET_MODE": {
       return { ...state, mode: action.mode };
     }
@@ -307,41 +274,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         history: state.history.slice(0, -1),
         selectedCell: [row, col],
         highlightedNumber: null,
-      };
-    }
-
-    case "USE_HINT": {
-      if (!state.selectedCell || !state.solution) return state;
-      const [row, col] = state.selectedCell;
-
-      if (state.puzzle[row][col] !== 0) return state;
-      if (state.userInput[row][col] === state.solution[row][col]) return state;
-
-      const correctValue = state.solution[row][col];
-
-      const newUserInput = state.userInput.map((r, ri) =>
-        r.map((cell, ci) => (ri === row && ci === col ? correctValue : cell))
-      );
-
-      const newNotes = state.notes.map((r, ri) =>
-        r.map((cellNotes, ci) =>
-          ri === row && ci === col ? new Set<number>() : cellNotes
-        )
-      );
-
-      const currentGrid = state.puzzle.map((puzzleRow, r) =>
-        puzzleRow.map((cell, c) =>
-          cell !== 0 ? cell : newUserInput[r][c] || 0
-        )
-      );
-
-      const complete = isSolved(currentGrid, state.solution);
-
-      return {
-        ...state,
-        userInput: newUserInput,
-        notes: newNotes,
-        isComplete: complete,
       };
     }
 
@@ -402,10 +334,6 @@ export function useGame() {
     dispatch({ type: "CLEAR_CELL" });
   }, []);
 
-  const toggleNote = useCallback((number: number) => {
-    dispatch({ type: "TOGGLE_NOTE", number });
-  }, []);
-
   const setMode = useCallback((mode: InputMode) => {
     dispatch({ type: "SET_MODE", mode });
   }, []);
@@ -421,15 +349,6 @@ export function useGame() {
   const undo = useCallback(() => {
     dispatch({ type: "UNDO" });
   }, []);
-
-  const useHint = useCallback((): boolean => {
-    if (!state.selectedCell || !state.solution) return false;
-    const [row, col] = state.selectedCell;
-    if (state.puzzle[row][col] !== 0) return false;
-    if (state.userInput[row][col] === state.solution[row][col]) return false;
-    dispatch({ type: "USE_HINT" });
-    return true;
-  }, [state.selectedCell, state.puzzle, state.userInput, state.solution]);
 
   const canUndo = state.history.length > 0;
 
@@ -453,12 +372,10 @@ export function useGame() {
     selectCell,
     inputNumber,
     clearCell,
-    toggleNote,
     setMode,
     toggleMode,
     resetGame,
     undo,
-    useHint,
   };
 }
 

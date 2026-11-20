@@ -38,17 +38,6 @@ const SCHEMA = `
     data TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS caro_rooms_status ON caro_rooms (status, created_at);
-
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    display_name TEXT NOT NULL,
-    stats TEXT NOT NULL,
-    game_history TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
-  );
 `;
 
 // Next nạp mỗi route thành một bundle riêng, nên giữ kết nối ở globalThis để cả process dùng chung một cái.

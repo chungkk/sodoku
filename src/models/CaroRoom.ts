@@ -128,18 +128,6 @@ export default class CaroRoom {
     return rows.map((row) => new CaroRoom(row as unknown as CaroRow));
   }
 
-  /** Các phòng đang chờ, mới có một người, tạo sau thời điểm `since` (mới nhất trước). */
-  static findOpen(since: Date, limit: number): CaroRoom[] {
-    const rows = getDb()
-      .prepare(
-        `SELECT * FROM caro_rooms
-         WHERE status = 'waiting' AND created_at >= ? AND json_array_length(data, '$.players') < 2
-         ORDER BY created_at DESC LIMIT ?`
-      )
-      .all(since.toISOString(), limit);
-    return rows.map((row) => new CaroRoom(row as unknown as CaroRow));
-  }
-
   static findPlaying(): CaroRoom[] {
     const rows = getDb().prepare("SELECT * FROM caro_rooms WHERE status = 'playing'").all();
     return rows.map((row) => new CaroRoom(row as unknown as CaroRow));

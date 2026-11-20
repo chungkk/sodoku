@@ -31,19 +31,12 @@ interface PlayerProgress {
   time: number | null;
 }
 
-interface GameData {
-  puzzle: number[][];
-  difficulty: string;
-  startedAt: string;
-}
-
 export default function GamePlayPage() {
   const params = useParams();
   const code = params.code as string;
   const router = useRouter();
   const { player } = usePlayer();
 
-  const [gameData, setGameData] = useState<GameData | null>(null);
   const [playersProgress, setPlayersProgress] = useState<PlayerProgress[]>([]);
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [showGiveUpConfirm, setShowGiveUpConfirm] = useState(false);
@@ -124,28 +117,13 @@ export default function GamePlayPage() {
     }
   }, [code, player]);
 
-  const saveGameState = useCallback(() => {
+  const flushSaveState = useCallback(() => {
     if (!stateLoaded || gameEnded || !player || submittedRef.current) return;
-
-    const now = Date.now();
-    if (now - lastSaveRef.current < 1000) {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-      saveTimeoutRef.current = setTimeout(() => {
-        saveGameState();
-      }, 1000);
-      return;
-    }
-    lastSaveRef.current = now;
-
-    const notesArray = game.notes.map(row =>
-      row.map(cellNotes => Array.from(cellNotes))
-    );
+    lastSaveRef.current = Date.now();
 
     const state = {
       currentGrid: game.userInput,
-      notes: notesArray,
+      notes: game.notes.map((row) => row.map((cellNotes) => Array.from(cellNotes))),
       elapsedTime: timer.seconds,
       errors: game.errors,
       progress: game.progress,
@@ -154,6 +132,24 @@ export default function GamePlayPage() {
     saveLocalState(state);
     saveStateToServer(state);
   }, [stateLoaded, gameEnded, player, game.userInput, game.notes, game.errors, game.progress, timer.seconds, saveLocalState, saveStateToServer]);
+
+  const flushSaveRef = useRef(flushSaveState);
+  useEffect(() => {
+    flushSaveRef.current = flushSaveState;
+  }, [flushSaveState]);
+
+  const saveGameState = useCallback(() => {
+    if (!stateLoaded || gameEnded || !player || submittedRef.current) return;
+
+    if (Date.now() - lastSaveRef.current < 1000) {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = setTimeout(() => {
+        flushSaveRef.current();
+      }, 1000);
+      return;
+    }
+    flushSaveState();
+  }, [stateLoaded, gameEnded, player, flushSaveState]);
 
   const fetchGameData = useCallback(async () => {
     try {
@@ -419,13 +415,8 @@ export default function GamePlayPage() {
   const handleNumberClick = useCallback(
     (num: number) => {
       if (gameEnded || !player || timer.isPaused) return;
-
-      if (game.mode === "note") {
-        game.toggleNote(num);
-      } else {
-        setCheckResult(null);
-        game.inputNumber(num);
-      }
+      if (game.mode !== "note") setCheckResult(null);
+      game.inputNumber(num);
     },
     [game, gameEnded, player, timer.isPaused]
   );
@@ -665,10 +656,12 @@ export default function GamePlayPage() {
                   : "happy"
         }
         badge={`Phòng ${code}`}
+        toolbarColumns={4}
         progress={<VersusProgressBar players={playersProgress} currentPlayerId={player.visitorId} />}
         action={
           <>
             <button
+              type="button"
               onClick={handleCheckBoard}
               disabled={timer.isPaused || gameEnded || game.isComplete || checking || checksRemaining <= 0}
               className={toolButtonClass}
@@ -677,6 +670,7 @@ export default function GamePlayPage() {
               <CheckIcon /> Kiểm tra ({checksRemaining})
             </button>
             <button
+              type="button"
               onClick={() => setShowGiveUpConfirm(true)}
               disabled={timer.isPaused || gameEnded}
               className={toolButtonClass}

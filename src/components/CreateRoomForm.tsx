@@ -21,7 +21,7 @@ interface CreateRoomFormProps {
 
 export function CreateRoomForm({ onCancel, gameType = "sudoku" }: CreateRoomFormProps) {
   const router = useRouter();
-  const { player, setGuestName } = usePlayer();
+  const { player, setGuestName, clearSession } = usePlayer();
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +118,16 @@ export function CreateRoomForm({ onCancel, gameType = "sudoku" }: CreateRoomForm
         Tạo phòng
       </Button>
 
-      <p className="text-center font-semibold text-ink-soft">Bạn chơi với tên {player.name}</p>
+      <p className="text-center font-semibold text-ink-soft">
+        Bạn chơi với tên <span className="text-ink">{player.name}</span>{" "}
+        <button
+          type="button"
+          onClick={clearSession}
+          className="underline decoration-2 underline-offset-2 hover:text-cherry"
+        >
+          Đổi tên
+        </button>
+      </p>
       {onCancel && <Button variant="ghost" fullWidth onClick={onCancel}>Hủy</Button>}
     </div>
   );

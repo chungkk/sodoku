@@ -29,9 +29,9 @@ export function VersusProgressBar({ players, currentPlayerId }: VersusProgressBa
         const note = player.gaveUp ? "bỏ cuộc" : player.isConnected === false ? "mất mạng" : `${Math.max(0, player.progress)}%`;
         return (
           <li key={player.visitorId} className={`flex items-center gap-2 ${player.gaveUp ? "opacity-60" : ""}`}>
-            <span className="w-16 truncate font-bold leading-tight">{name}</span>
+            <span className="w-16 shrink-0 truncate font-bold leading-tight">{name}</span>
             <CandyBar value={player.progress} rival={!isMe} label={`Tiến độ của ${name}`} />
-            <span className="w-14 text-right font-bold tabular-nums leading-tight">{note}</span>
+            <span className="min-w-[4.5rem] shrink-0 whitespace-nowrap text-right font-bold tabular-nums leading-tight">{note}</span>
           </li>
         );
       })}

@@ -36,8 +36,6 @@ function PracticeContent() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(initialDifficulty);
   const [showVictoryModal, setShowVictoryModal] = useState(false);
   const [showNewGameModal, setShowNewGameModal] = useState(false);
-  const [hintsRemaining, setHintsRemaining] = useState(3);
-  const [score, setScore] = useState(0);
 
   const game = useGame();
   const timer = useTimer();
@@ -62,11 +60,7 @@ function PracticeContent() {
 
   const handleNumberClick = (num: number) => {
     if (timer.isPaused) return;
-    if (game.mode === "note") {
-      game.toggleNote(num);
-    } else {
-      game.inputNumber(num);
-    }
+    game.inputNumber(num);
   };
 
   const handleClear = () => {
@@ -79,20 +73,10 @@ function PracticeContent() {
     game.undo();
   };
 
-  const handleHint = () => {
-    if (timer.isPaused || hintsRemaining === 0) return;
-    const used = game.useHint();
-    if (used) {
-      setHintsRemaining((prev) => prev - 1);
-    }
-  };
-
   const handleNewGame = () => {
     game.startGame(selectedDifficulty);
     timer.reset(0);
     timer.start();
-    setHintsRemaining(3);
-    setScore(0);
     setShowNewGameModal(false);
     setShowVictoryModal(false);
   };
@@ -102,8 +86,6 @@ function PracticeContent() {
     game.startGame(diff);
     timer.reset(0);
     timer.start();
-    setHintsRemaining(3);
-    setScore(0);
   };
 
   const handlePlayAgain = () => {
@@ -177,11 +159,13 @@ function PracticeContent() {
         mood={timer.isPaused ? "sleep" : game.selectedCell ? "think" : "happy"}
         badge={difficultyLabels[game.difficulty]}
         badgeMobileOnly
+        backHref="/"
         progress={
           <div className="hidden flex-wrap gap-1.5 lg:flex" role="group" aria-label="Độ khó">
             {difficultyOptions.map((opt) => (
               <button
                 key={opt.value}
+                type="button"
                 aria-pressed={game.difficulty === opt.value}
                 onClick={() => handleDifficultyChange(opt.value)}
                 className={`min-h-10 rounded-full border-[3px] border-ink px-3 font-bold transition-colors ${
@@ -194,7 +178,7 @@ function PracticeContent() {
           </div>
         }
         action={
-          <button onClick={() => setShowNewGameModal(true)} className={toolButtonClass}>
+          <button type="button" onClick={() => setShowNewGameModal(true)} className={toolButtonClass}>
             <RefreshIcon /> Ván mới
           </button>
         }

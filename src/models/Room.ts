@@ -141,18 +141,6 @@ export default class Room {
     return row ? new Room(row as unknown as RoomRow) : null;
   }
 
-  /** Các phòng đang chờ, mới có một người, tạo sau thời điểm `since` (mới nhất trước). */
-  static findOpen(since: Date, limit: number): Room[] {
-    const rows = getDb()
-      .prepare(
-        `SELECT * FROM rooms
-         WHERE status = 'waiting' AND created_at >= ? AND json_array_length(data, '$.players') < 2
-         ORDER BY created_at DESC LIMIT ?`
-      )
-      .all(since.toISOString(), limit);
-    return rows.map((row) => new Room(row as unknown as RoomRow));
-  }
-
   static createRoom(
     hostId: string,
     hostName: string,

@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { MascotSay } from "@/components/candy";
 import type { MascotMood } from "@/components/Mascot";
 import { GameToolbar } from "@/components/GameToolbar";
-import { PauseIcon, PlayIcon } from "@/components/icons";
+import { BackIcon, PauseIcon, PlayIcon } from "@/components/icons";
 import { NumberPad } from "@/components/NumberPad";
 import { SudokuBoard } from "@/components/SudokuBoard";
 import { formatTime } from "@/components/Timer";
@@ -20,6 +21,10 @@ interface SudokuStageProps {
   frozen?: boolean;
   /** Ẩn nhãn trên máy tính khi độ khó đã có bộ chọn riêng */
   badgeMobileOnly?: boolean;
+  /** Nút quay lại trang chủ hiển thị trên điện thoại khi Header bị ẩn */
+  backHref?: string;
+  /** Số cột thanh công cụ (4 nút dùng lưới 2x2 cân đối) */
+  toolbarColumns?: 3 | 4;
   /** Hiện biểu tượng chạy tiếp thay vì tạm dừng */
   paused: boolean;
   pauseDisabled?: boolean;
@@ -43,6 +48,8 @@ export function SudokuStage({
   lockedLabel,
   frozen = false,
   badgeMobileOnly = false,
+  backHref,
+  toolbarColumns = 3,
   paused,
   pauseDisabled = false,
   onPauseToggle,
@@ -87,11 +94,23 @@ export function SudokuStage({
 
       <div className="sudoku-stage-info flex flex-col gap-1.5">
         <div className="flex items-center justify-between gap-2">
-          <span className={`min-w-0 truncate rounded-full border-[3px] border-ink bg-milk px-3 py-0.5 font-bold ${badgeMobileOnly ? "lg:hidden" : ""}`}>{badge}</span>
+          <div className="flex min-w-0 items-center gap-1.5">
+            {backHref && (
+              <Link
+                href={backHref}
+                aria-label="Về trang chủ"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[3px] border-ink bg-milk text-ink transition-colors hover:bg-lemon-pale lg:hidden"
+              >
+                <BackIcon />
+              </Link>
+            )}
+            <span className={`min-w-0 truncate rounded-full border-[3px] border-ink bg-milk px-3 py-0.5 font-bold ${badgeMobileOnly ? "lg:hidden" : ""}`}>{badge}</span>
+          </div>
           <span className="whitespace-nowrap rounded-full border-[3px] border-ink bg-milk px-3 py-0.5 font-bold tabular-nums">{game.errors} lỗi</span>
           <span className="flex items-center gap-1 rounded-full border-[3px] border-ink bg-milk py-0.5 pl-3 pr-0.5 font-bold tabular-nums">
             {formatTime(seconds)}
             <button
+              type="button"
               onClick={onPauseToggle}
               disabled={pauseDisabled}
               aria-label={paused ? "Chạy tiếp" : "Tạm dừng"}
@@ -124,6 +143,7 @@ export function SudokuStage({
           isNotesMode={game.mode === "note"}
           canUndo={game.canUndo}
           disabled={locked}
+          columns={toolbarColumns}
           action={action}
         />
       </div>

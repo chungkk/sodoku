@@ -67,19 +67,21 @@ const SudokuBoard = memo(function SudokuBoard({
     [activeNumber, getCellValue]
   );
 
+  const currentGrid = useMemo(
+    () =>
+      puzzle.map((puzzleRow, r) =>
+        puzzleRow.map((cell, c) => (cell !== 0 ? cell : userInput[r][c] || 0))
+      ),
+    [puzzle, userInput]
+  );
+
   const hasConflict = useCallback(
     (row: number, col: number): boolean => {
       const value = getCellValue(row, col);
-      if (!value || puzzle[row][col] !== 0) return false;
-
-      const currentGrid = puzzle.map((puzzleRow, r) =>
-        puzzleRow.map((cell, c) => (cell !== 0 ? cell : userInput[r][c] || 0))
-      );
-
-      const conflicts = findConflicts(currentGrid, row, col, value);
-      return conflicts.length > 0;
+      if (!value) return false;
+      return findConflicts(currentGrid, row, col, value).length > 0;
     },
-    [puzzle, userInput, getCellValue]
+    [currentGrid, getCellValue]
   );
 
   if (isPaused) {

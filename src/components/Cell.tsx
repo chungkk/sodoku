@@ -36,13 +36,16 @@ const Cell = memo(function Cell({
   const isTinted = (Math.floor(row / 3) + Math.floor(col / 3)) % 2 === 1;
 
   if (isSelected) classes.push("sudoku-cell-selected");
-  else if (hasConflict && !isGiven) classes.push("sudoku-cell-conflict-bg");
+  else if (hasConflict) classes.push("sudoku-cell-conflict-bg");
   else if (isSameNumber && value) classes.push("sudoku-cell-same-number");
   else if (isHighlighted) classes.push("sudoku-cell-highlighted");
   else if (isTinted) classes.push("sudoku-cell-tint");
 
+  if (hasConflict && isGiven) classes.push("text-cherry");
+
   return (
     <button
+      type="button"
       onClick={onClick}
       className={classes.join(" ")}
       aria-label={`Ô hàng ${row + 1}, cột ${col + 1}${value ? `, số ${value}` : ", trống"}${isGiven ? ", số đề bài" : ""}${hasConflict ? ", bị trùng" : ""}`}
