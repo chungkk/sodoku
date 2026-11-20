@@ -1,26 +1,70 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
+import { QRCodeSVG } from "qrcode.react";
 import { Mascot } from "@/components/Mascot";
-import { CheckIcon, CopyIcon, CrownIcon } from "@/components/icons";
+import { CheckIcon, CopyIcon, CrownIcon, LinkIcon, QrCodeIcon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-/** Mã phòng từng ký tự trên một viên kẹo, kèm nút chép */
-export function RoomCode({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      setCopied(false);
+async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
     }
+  } catch {
+    // Fallback phía dưới cho môi trường HTTP nội bộ (LAN)
+  }
+
+  try {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+/** Mã phòng từng ký tự trên một viên kẹo, kèm nút chép mã, chép link và hiện mã QR */
+export function RoomCode({ code, sharePath }: { code: string; sharePath?: string }) {
+  const [copied, setCopied] = useState<"code" | "link" | null>(null);
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    };
+  }, []);
+
+  const getShareUrl = () => {
+    const path = sharePath ?? window.location.pathname;
+    return `${window.location.origin}${path}`;
+  };
+
+  const handleCopy = async (kind: "code" | "link") => {
+    const value = kind === "code" ? code : getShareUrl();
+    const ok = await copyText(value);
+    if (!ok) {
+      setCopied(null);
+      return;
+    }
+    setCopied(kind);
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    resetTimerRef.current = setTimeout(() => setCopied(null), 1800);
   };
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-2.5">
       <p className="sr-only">Mã phòng {code.split("").join(" ")}</p>
       <div aria-hidden="true" className="flex gap-1">
         {code.split("").map((char, i) => (
@@ -32,13 +76,70 @@ export function RoomCode({ code }: { code: string }) {
           </span>
         ))}
       </div>
-      <button
-        onClick={copy}
-        className="inline-flex min-h-10 items-center gap-1.5 rounded-full border-[3px] border-ink bg-milk px-4 font-bold transition-colors hover:bg-lemon-pale"
-      >
-        {copied ? <CheckIcon /> : <CopyIcon />}
-        <span aria-live="polite">{copied ? "Đã chép mã" : "Chép mã"}</span>
-      </button>
+
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <button
+          type="button"
+          onClick={() => handleCopy("code")}
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-full border-[3px] border-ink bg-milk px-3.5 text-sm font-bold transition-colors hover:bg-lemon-pale sm:text-base"
+        >
+          {copied === "code" ? <CheckIcon /> : <CopyIcon />}
+          <span aria-live="polite">{copied === "code" ? "Đã chép mã" : "Chép mã"}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleCopy("link")}
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-full border-[3px] border-ink bg-milk px-3.5 text-sm font-bold transition-colors hover:bg-lemon-pale sm:text-base"
+        >
+          {copied === "link" ? <CheckIcon /> : <LinkIcon />}
+          <span aria-live="polite">{copied === "link" ? "Đã chép link" : "Chép link"}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setQrUrl(getShareUrl())}
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-full border-[3px] border-ink bg-lemon-pale px-3.5 text-sm font-bold transition-colors hover:bg-lemon sm:text-base"
+        >
+          <QrCodeIcon />
+          <span>Mã QR</span>
+        </button>
+      </div>
+
+      <Dialog open={qrUrl !== null} onClose={() => setQrUrl(null)}>
+        <DialogHeader>
+          <DialogTitle>Quét mã để vào phòng</DialogTitle>
+        </DialogHeader>
+        <DialogContent className="flex flex-col items-center gap-3 text-center">
+          <p className="text-base font-semibold text-ink-soft">
+            Mở camera trên điện thoại để vào phòng <span className="font-display text-ink">{code}</span> ngay.
+          </p>
+          {qrUrl && (
+            <div className="rounded-[1.25rem] border-4 border-ink bg-white p-4">
+              <QRCodeSVG
+                value={qrUrl}
+                size={220}
+                bgColor="#ffffff"
+                fgColor="#55303f"
+                level="M"
+                title={`Mã QR vào phòng ${code}`}
+              />
+            </div>
+          )}
+          {qrUrl && (
+            <p className="w-full break-all rounded-2xl border-[3px] border-ink/25 bg-milk px-3 py-2 text-sm font-semibold text-ink-soft">
+              {qrUrl}
+            </p>
+          )}
+        </DialogContent>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => handleCopy("link")}>
+            {copied === "link" ? <CheckIcon /> : <LinkIcon />}
+            <span>{copied === "link" ? "Đã chép link" : "Chép link"}</span>
+          </Button>
+          <Button onClick={() => setQrUrl(null)}>Đóng</Button>
+        </DialogFooter>
+      </Dialog>
     </div>
   );
 }

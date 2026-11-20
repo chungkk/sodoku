@@ -45,8 +45,9 @@
 - **Sudoku**:
   - `/` (homepage)
   - `/practice`
-  - `/room/[code]`
-  - `/room/[code]/play`
+  - `/sudoku`
+  - `/sudoku/[code]`
+  - `/sudoku/[code]/play`
   
 - **Caro**:
   - `/caro`
@@ -114,7 +115,7 @@ const roomPlayers = new Map<string, Set<string>>();
 1. ✅ **Socket events riêng**: Sudoku lắng nghe `join_room`, Caro lắng nghe `caro_join_room`
 2. ✅ **API routes riêng**: `/api/rooms` vs `/api/caro`
 3. ✅ **Database models riêng**: `Room` vs `CaroRoom`
-4. ✅ **Pages riêng**: `/room/[code]` vs `/caro/[code]`
+4. ✅ **Pages riêng**: `/sudoku/[code]` vs `/caro/[code]`
 5. ✅ **Disconnection handling**: Cả hai đều handle disconnect event, không conflict
 
 ### User Experience:
@@ -205,7 +206,7 @@ io.to(`caro:${roomCode}`).emit("caro_event", data);
 1. ✅ Events tách biệt hoàn toàn (prefix `caro_`)
 2. ✅ API routes tách biệt (`/api/caro` vs `/api/rooms`)
 3. ✅ Database models tách biệt (`CaroRoom` vs `Room`)
-4. ✅ Frontend pages tách biệt (`/caro/*` vs `/room/*`)
+4. ✅ Frontend pages tách biệt (`/caro/*` vs `/sudoku/*`)
 5. ✅ **Socket rooms tách biệt với prefix** (`sudoku:` vs `caro:`)
 6. ✅ Shared state được handle đúng (auto-leave old room)
 

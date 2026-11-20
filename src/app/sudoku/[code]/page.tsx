@@ -309,7 +309,7 @@ export default function RoomPage() {
       <MascotSay mascotClassName="w-20" mood={canStart || isReady ? "cheer" : "happy"}>{say}</MascotSay>
 
       <div className="tray flex flex-col gap-4 p-4">
-        <RoomCode code={code} />
+        <RoomCode code={code} sharePath={`/sudoku/${code}`} />
 
         {error && <p role="alert" className="rounded-2xl border-[3px] border-cherry bg-cherry-pale px-3 py-2 font-semibold">{error}</p>}
 

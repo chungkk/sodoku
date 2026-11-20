@@ -245,7 +245,7 @@ export default function CaroRoomPage() {
       <MascotSay mascotClassName="w-20" mood={allReady ? "cheer" : "happy"}>{say}</MascotSay>
 
       <div className="tray flex flex-col gap-4 p-4">
-        <RoomCode code={code} />
+        <RoomCode code={code} sharePath={`/caro/${code}`} />
 
         <ul className="flex flex-col gap-2" aria-label={`Người chơi ${room.players.length} trên 2`}>
           {room.players.map((p, index) => (
