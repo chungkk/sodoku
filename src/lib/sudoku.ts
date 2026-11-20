@@ -1,5 +1,7 @@
 /** Tổng thời gian mỗi người được tạm dừng trong một ván đối kháng; hết quỹ thì ván tự chạy tiếp. */
 export const MAX_PAUSE_MS_PER_PLAYER = 3 * 60 * 1000;
+/** Số lần tối đa mỗi người được hỏi server đếm số ô đang sai trong một ván đối kháng. */
+export const MAX_CHECKS_PER_GAME = 2;
 
 export type Difficulty = "easy" | "medium" | "hard" | "expert" | "master" | "extreme";
 
@@ -92,27 +94,45 @@ function solveSudoku(grid: number[][]): boolean {
 function countSolutions(grid: number[][], limit = 2): number {
   let count = 0;
 
-  function solve(): boolean {
+  function solve(): void {
+    if (count >= limit) return;
+
+    // Chọn ô trống có ít ứng viên nhất (MRV) để kiểm tra nghiệm duy nhất nhanh hơn nhiều lần
+    let bestRow = -1;
+    let bestCol = -1;
+    let bestCandidates: number[] | null = null;
+
     for (let row = 0; row < 9; row++) {
       for (let col = 0; col < 9; col++) {
-        if (grid[row][col] === 0) {
-          for (let num = 1; num <= 9; num++) {
-            if (isValidPlacement(grid, row, col, num)) {
-              grid[row][col] = num;
-              if (solve()) {
-                grid[row][col] = 0;
-                count++;
-                if (count >= limit) return true;
-              } else {
-                grid[row][col] = 0;
-              }
-            }
+        if (grid[row][col] !== 0) continue;
+        const candidates: number[] = [];
+        for (let num = 1; num <= 9; num++) {
+          if (isValidPlacement(grid, row, col, num)) {
+            candidates.push(num);
           }
-          return false;
+        }
+        if (candidates.length === 0) return;
+        if (!bestCandidates || candidates.length < bestCandidates.length) {
+          bestRow = row;
+          bestCol = col;
+          bestCandidates = candidates;
+          if (candidates.length === 1) break;
         }
       }
+      if (bestCandidates && bestCandidates.length === 1) break;
     }
-    return true;
+
+    if (bestRow === -1) {
+      count++;
+      return;
+    }
+
+    for (const num of bestCandidates!) {
+      grid[bestRow][bestCol] = num;
+      solve();
+      grid[bestRow][bestCol] = 0;
+      if (count >= limit) return;
+    }
   }
 
   solve();
@@ -126,7 +146,6 @@ function generateSolution(): number[][] {
 }
 
 function removeCells(solution: number[][], difficulty: Difficulty): number[][] {
-  const grid = deepCopyGrid(solution);
   const { min, max } = DIFFICULTY_RANGES[difficulty];
   const targetGiven = Math.floor(Math.random() * (max - min + 1)) + min;
   const cellsToRemove = 81 - targetGiven;
@@ -138,24 +157,37 @@ function removeCells(solution: number[][], difficulty: Difficulty): number[][] {
     }
   }
 
-  const shuffledPositions = shuffleArray(positions);
-  let removed = 0;
+  const maxAttempts = difficulty === "extreme" || difficulty === "master" ? 8 : 3;
+  let bestGrid = deepCopyGrid(solution);
+  let bestGiven = 81;
 
-  for (const [row, col] of shuffledPositions) {
-    if (removed >= cellsToRemove) break;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const grid = deepCopyGrid(solution);
+    const shuffledPositions = shuffleArray(positions);
+    let removed = 0;
 
-    const backup = grid[row][col];
-    grid[row][col] = 0;
+    for (const [row, col] of shuffledPositions) {
+      if (removed >= cellsToRemove) break;
 
-    const testGrid = deepCopyGrid(grid);
-    if (countSolutions(testGrid) === 1) {
-      removed++;
-    } else {
-      grid[row][col] = backup;
+      const backup = grid[row][col];
+      grid[row][col] = 0;
+
+      if (countSolutions(grid) === 1) {
+        removed++;
+      } else {
+        grid[row][col] = backup;
+      }
     }
+
+    const given = 81 - removed;
+    if (given < bestGiven) {
+      bestGiven = given;
+      bestGrid = grid;
+    }
+    if (given <= max) break;
   }
 
-  return grid;
+  return bestGrid;
 }
 
 export function generatePuzzle(difficulty: Difficulty): SudokuPuzzle {
@@ -263,22 +295,42 @@ export function calculateProgress(grid: number[][], solution: number[][], puzzle
 }
 
 /**
- * Tiến độ khi client không có lời giải: tỉ lệ ô đã điền. Chỉ đạt 100 khi bàn đã giải đúng,
- * nên không cho biết từng ô đúng hay sai.
+ * Tiến độ khi client không có lời giải: tỉ lệ ô đã điền hợp lệ (không bị trùng theo luật Sudoku).
+ * Chỉ đạt 100 khi bàn đã giải đúng, nên không cho biết từng ô đúng hay sai theo đáp án.
  */
 export function calculateFillProgress(grid: number[][], puzzle: number[][]): number {
-  let filled = 0;
+  let validFilled = 0;
   let total = 0;
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
       if (puzzle[r][c] === 0) {
         total++;
-        if (grid[r][c]) filled++;
+        const value = grid[r][c];
+        if (value && !hasConflict(grid, r, c, value)) {
+          validFilled++;
+        }
       }
     }
   }
   if (total === 0 || validateSolution(grid)) return 100;
-  return Math.min(99, Math.round((filled / total) * 100));
+  return Math.min(99, Math.round((validFilled / total) * 100));
+}
+
+/** Đếm số ô người chơi đã điền nhưng khác đáp án (bỏ qua ô trống và ô đề bài). */
+export function countWrongCells(
+  grid: number[][],
+  puzzle: number[][],
+  solution: number[][]
+): number {
+  let wrong = 0;
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      if (puzzle[r][c] === 0 && grid[r][c] !== 0 && grid[r][c] !== solution[r][c]) {
+        wrong++;
+      }
+    }
+  }
+  return wrong;
 }
 
 /** Bàn đã điền đủ, đúng luật Sudoku và giữ nguyên các ô đề bài. */

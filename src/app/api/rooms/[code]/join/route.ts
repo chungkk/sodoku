@@ -45,13 +45,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    if (room.players.length >= 4) {
-      return NextResponse.json(
-        { error: "Room is full", code: "ROOM_FULL" },
-        { status: 400 }
-      );
-    }
-
     const existingPlayer = room.players.find((p) => p.visitorId === visitorId);
     if (existingPlayer) {
       existingPlayer.isConnected = true;
@@ -69,6 +62,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           status: room.status,
         },
       });
+    }
+
+    if (room.players.length >= 4) {
+      return NextResponse.json(
+        { error: "Room is full", code: "ROOM_FULL" },
+        { status: 400 }
+      );
     }
 
     const added = room.addPlayer(visitorId, name);

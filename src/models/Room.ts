@@ -20,6 +20,7 @@ export interface IPlayer {
   currentGrid: number[][];
   notes: number[][][];
   elapsedTime: number;
+  checksUsed?: number;
   finishedAt: Date | null;
   lastSeen: Date;
 }

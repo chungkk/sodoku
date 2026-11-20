@@ -55,12 +55,13 @@ export function SudokuStage({
   progress,
   action,
 }: SudokuStageProps) {
-  const { puzzle, userInput, selectedCell } = game;
+  const { puzzle, userInput, selectedCell, highlightedNumber } = game;
   const selectedValue = selectedCell
     ? puzzle[selectedCell[0]][selectedCell[1]] !== 0
       ? puzzle[selectedCell[0]][selectedCell[1]]
       : userInput[selectedCell[0]][selectedCell[1]]
     : null;
+  const activeNumber = highlightedNumber ?? selectedValue;
   // Mắt tắc kè nhìn theo ô đang chọn
   const look = selectedCell ? { x: (selectedCell[1] - 4) / 4, y: (selectedCell[0] - 4) / 4 } : null;
 
@@ -109,6 +110,7 @@ export function SudokuStage({
           userInput={userInput}
           notes={game.notes}
           selectedCell={selectedCell}
+          highlightedNumber={highlightedNumber}
           onCellClick={game.selectCell}
           isPaused={locked && !frozen}
           pausedLabel={lockedLabel}
@@ -127,7 +129,7 @@ export function SudokuStage({
       </div>
 
       <div className="sudoku-stage-pad">
-        <NumberPad onNumberClick={onNumber} onErase={onClear} selectedNumber={selectedValue} disabled={locked} />
+        <NumberPad onNumberClick={onNumber} onErase={onClear} selectedNumber={activeNumber} disabled={locked} />
       </div>
     </div>
   );

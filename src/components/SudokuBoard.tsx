@@ -10,6 +10,7 @@ interface SudokuBoardProps {
   userInput: (number | null)[][];
   notes: Set<number>[][];
   selectedCell: [number, number] | null;
+  highlightedNumber?: number | null;
   onCellClick: (row: number, col: number) => void;
   isPaused?: boolean;
   pausedLabel?: string;
@@ -20,6 +21,7 @@ const SudokuBoard = memo(function SudokuBoard({
   userInput,
   notes,
   selectedCell,
+  highlightedNumber = null,
   onCellClick,
   isPaused = false,
   pausedLabel = "Đang tạm dừng",
@@ -36,6 +38,8 @@ const SudokuBoard = memo(function SudokuBoard({
     if (!selectedCell) return null;
     return getCellValue(selectedCell[0], selectedCell[1]);
   }, [selectedCell, getCellValue]);
+
+  const activeNumber = highlightedNumber ?? selectedValue;
 
   const isHighlighted = useCallback(
     (row: number, col: number): boolean => {
@@ -56,11 +60,11 @@ const SudokuBoard = memo(function SudokuBoard({
 
   const isSameNumber = useCallback(
     (row: number, col: number): boolean => {
-      if (!selectedValue) return false;
+      if (!activeNumber) return false;
       const cellValue = getCellValue(row, col);
-      return cellValue === selectedValue;
+      return cellValue === activeNumber;
     },
-    [selectedValue, getCellValue]
+    [activeNumber, getCellValue]
   );
 
   const hasConflict = useCallback(

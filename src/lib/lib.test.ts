@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { pickWinnerId } from "./ranking";
 import { RateLimiter } from "./rate-limit";
-import { calculateFillProgress, generatePuzzle, isSolutionOf } from "./sudoku";
+import { calculateFillProgress, countWrongCells, generatePuzzle, isSolutionOf } from "./sudoku";
 import { clientProgress, cleanPlayerName, isNotes, isNumberGrid, isPlayerGrid } from "./validation";
 
 const player = (visitorId: string, progress: number, finishedAtMs: number | null, errors = 0) => ({
@@ -40,16 +40,35 @@ test("isSolutionOf chỉ nhận lời giải đúng và giữ nguyên ô đề b
   assert.equal(isSolutionOf(relabeled, grid), false);
 });
 
-test("tiến độ đếm ô đã điền và chỉ đạt 100 khi giải đúng", () => {
+test("tiến độ chỉ đếm ô đã điền không trùng luật và chỉ đạt 100 khi giải đúng", () => {
   const { grid, solution } = generatePuzzle("easy");
   assert.equal(calculateFillProgress(grid, grid), 0);
   assert.equal(calculateFillProgress(solution, grid), 100);
 
-  // Điền đủ nhưng còn sai thì dừng ở 99: đối thủ không thấy "đã xong" khi chưa giải đúng
-  const wrong = solution.map((row) => [...row]);
+  // Điền số bị trùng luật Sudoku thì không được cộng tiến độ
   const empty = grid.flatMap((row, r) => row.map((v, c) => [r, c, v])).find(([, , v]) => v === 0)!;
+  const rowGiven = grid[empty[0]].find((v) => v !== 0)!;
+  const conflicted = grid.map((row) => [...row]);
+  conflicted[empty[0]][empty[1]] = rowGiven;
+  assert.equal(calculateFillProgress(conflicted, grid), 0);
+
+  // Điền đủ nhưng còn sai thì không đạt 100 và trừ các ô bị trùng
+  const wrong = solution.map((row) => [...row]);
   wrong[empty[0]][empty[1]] = (wrong[empty[0]][empty[1]] % 9) + 1;
-  assert.equal(calculateFillProgress(wrong, grid), 99);
+  assert.ok(calculateFillProgress(wrong, grid) < 100);
+});
+
+test("countWrongCells chỉ đếm ô người chơi điền sai, bỏ qua ô trống và đề bài", () => {
+  const { grid, solution } = generatePuzzle("easy");
+  assert.equal(countWrongCells(grid, grid, solution), 0);
+  assert.equal(countWrongCells(solution, grid, solution), 0);
+
+  const empties = grid.flatMap((row, r) => row.map((v, c) => [r, c, v])).filter(([, , v]) => v === 0);
+  const partial = grid.map((row) => [...row]);
+  partial[empties[0][0]][empties[0][1]] = solution[empties[0][0]][empties[0][1]];
+  partial[empties[1][0]][empties[1][1]] = (solution[empties[1][0]][empties[1][1]] % 9) + 1;
+  partial[empties[2][0]][empties[2][1]] = (solution[empties[2][0]][empties[2][1]] % 9) + 1;
+  assert.equal(countWrongCells(partial, grid, solution), 2);
 });
 
 test("kiểm tra dữ liệu client gửi lên", () => {

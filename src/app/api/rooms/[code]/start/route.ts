@@ -85,6 +85,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     room.players.forEach((player) => {
       player.progress = 0;
       player.errors = 0;
+      player.checksUsed = 0;
       player.currentGrid = puzzleGrid.map((row: number[]) => [...row]);
       player.finishedAt = null;
     });

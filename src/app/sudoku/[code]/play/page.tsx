@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { CandyLoader, WrapperRain } from "@/components/candy";
 import { toolButtonClass } from "@/components/GameToolbar";
-import { FlagIcon } from "@/components/icons";
+import { CheckIcon, FlagIcon } from "@/components/icons";
 import { Leaderboard } from "@/components/Leaderboard";
 import { Mascot } from "@/components/Mascot";
 import { SudokuStage } from "@/components/SudokuStage";
@@ -15,7 +15,7 @@ import { usePlayer } from "@/contexts/PlayerContext";
 import { useSocket } from "@/hooks/useSocket";
 import { useGame } from "@/hooks/useGame";
 import { useTimer } from "@/hooks/useTimer";
-import { calculateFillProgress, validateSolution } from "@/lib/sudoku";
+import { MAX_CHECKS_PER_GAME, validateSolution } from "@/lib/sudoku";
 import { apiFetch } from "@/lib/api-client";
 
 const GAME_STATE_KEY = "sudoku_game_state_";
@@ -52,8 +52,12 @@ export default function GamePlayPage() {
   const [loading, setLoading] = useState(true);
   const [pausedBy, setPausedBy] = useState<{ visitorId: string; name: string } | null>(null);
   const [stateLoaded, setStateLoaded] = useState(false);
+  const [checksRemaining, setChecksRemaining] = useState(MAX_CHECKS_PER_GAME);
+  const [checking, setChecking] = useState(false);
+  const [checkResult, setCheckResult] = useState<{ wrongCount: number; checksRemaining: number } | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSaveRef = useRef<number>(0);
+  const lastEmittedRef = useRef<{ progress: number; errors: number } | null>(null);
   // Đã nộp bài: không nộp lại và không lưu tiến độ nữa, vì server sẽ từ chối
   const submittedRef = useRef(false);
 
@@ -179,6 +183,9 @@ export default function GamePlayPage() {
 
         if (stateRes && stateRes.ok) {
           const serverState = await stateRes.json();
+          if (typeof serverState.checksRemaining === "number") {
+            setChecksRemaining(serverState.checksRemaining);
+          }
           if (serverState.hasState) {
             savedState = serverState;
           }
@@ -186,6 +193,22 @@ export default function GamePlayPage() {
 
         if (!savedState) {
           savedState = loadLocalState();
+        }
+
+        const meInRoom = roomData.players?.find(
+          (p: { visitorId: string; progress?: number; finishedAt?: string | null }) =>
+            p.visitorId === player?.visitorId
+        );
+        const alreadyFinished =
+          savedState?.finished === true ||
+          Boolean(meInRoom?.finishedAt) ||
+          meInRoom?.progress === 100 ||
+          meInRoom?.progress === -1;
+        const alreadySolved =
+          alreadyFinished && savedState?.gaveUp !== true && meInRoom?.progress !== -1;
+
+        if (alreadyFinished) {
+          submittedRef.current = true;
         }
 
         if (savedState && savedState.currentGrid && savedState.currentGrid.length > 0) {
@@ -204,17 +227,25 @@ export default function GamePlayPage() {
             null,
             puzzleData.difficulty,
             userInput,
-            notes
+            notes,
+            {
+              errors: savedState.errors || 0,
+              isComplete: alreadySolved,
+            }
           );
           timer.reset(savedState.elapsedTime || 0);
-          timer.start();
+          if (!alreadyFinished && roomData.status === "playing") {
+            timer.start();
+          }
         } else {
           game.loadPuzzle(
             puzzleData.puzzle,
             null,
             puzzleData.difficulty
           );
-          timer.start();
+          if (!alreadyFinished && roomData.status === "playing") {
+            timer.start();
+          }
         }
 
         setStateLoaded(true);
@@ -372,45 +403,115 @@ export default function GamePlayPage() {
     };
   }, [isConnected, on, off, timer]);
 
+  // Đồng bộ tiến trình và số lỗi ngay lập tức cho đối thủ mỗi khi điền, xóa hoặc hoàn tác
+  useEffect(() => {
+    if (!stateLoaded || !isConnected || gameEnded || submittedRef.current) return;
+    const prev = lastEmittedRef.current;
+    if (prev && prev.progress === game.progress && prev.errors === game.errors) return;
+    lastEmittedRef.current = { progress: game.progress, errors: game.errors };
+    emit("progress_update", {
+      roomCode: code,
+      progress: game.progress,
+      errors: game.errors,
+    });
+  }, [stateLoaded, isConnected, gameEnded, game.progress, game.errors, code, emit]);
+
   const handleNumberClick = useCallback(
     (num: number) => {
-      if (gameEnded || !player) return;
+      if (gameEnded || !player || timer.isPaused) return;
 
       if (game.mode === "note") {
         game.toggleNote(num);
       } else {
+        setCheckResult(null);
         game.inputNumber(num);
-
-        const currentGrid = game.puzzle.map((row, r) =>
-          row.map((cell, c) =>
-            cell !== 0 ? cell : r === game.selectedCell?.[0] && c === game.selectedCell?.[1]
-              ? num
-              : game.userInput[r][c] || 0
-          )
-        );
-
-        const progress = calculateFillProgress(currentGrid, game.puzzle);
-
-        emit("progress_update", {
-          roomCode: code,
-          progress,
-          errors: game.errors,
-        });
-
       }
     },
-    [game, gameEnded, player, code, emit]
+    [game, gameEnded, player, timer.isPaused]
   );
 
   const handleClear = useCallback(() => {
     if (gameEnded || timer.isPaused) return;
+    setCheckResult(null);
     game.clearCell();
   }, [game, gameEnded, timer.isPaused]);
 
   const handleUndo = useCallback(() => {
     if (gameEnded || timer.isPaused) return;
+    setCheckResult(null);
     game.undo();
   }, [game, gameEnded, timer.isPaused]);
+
+  const handleCheckBoard = useCallback(async () => {
+    if (!player || gameEnded || timer.isPaused || game.isComplete || checking || checksRemaining <= 0) {
+      return;
+    }
+
+    const currentGrid = game.puzzle.map((row, r) =>
+      row.map((cell, c) => (cell !== 0 ? cell : game.userInput[r][c] || 0))
+    );
+
+    setChecking(true);
+    try {
+      const response = await apiFetch(`/api/games/${code}/check`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          visitorId: player.visitorId,
+          grid: currentGrid,
+        }),
+      });
+      const data = await response.json();
+      if (typeof data.checksRemaining === "number") {
+        setChecksRemaining(data.checksRemaining);
+      }
+      if (response.ok && typeof data.wrongCount === "number") {
+        setCheckResult({
+          wrongCount: data.wrongCount,
+          checksRemaining: data.checksRemaining,
+        });
+      }
+    } catch (error) {
+      console.error("Check board error:", error);
+    } finally {
+      setChecking(false);
+    }
+  }, [player, gameEnded, timer.isPaused, game.isComplete, game.puzzle, game.userInput, checking, checksRemaining, code]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameEnded || pausedBy || game.isComplete || showGiveUpConfirm || showResultsModal) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT")) {
+        return;
+      }
+
+      if (e.key >= "1" && e.key <= "9") {
+        handleNumberClick(parseInt(e.key, 10));
+      } else if (e.key === "Backspace" || e.key === "Delete") {
+        handleClear();
+      } else if (e.key === "n" || e.key === "N") {
+        game.toggleMode();
+      } else if (e.key.toLowerCase() === "z" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        handleUndo();
+      } else if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        e.preventDefault();
+        if (!game.selectedCell) {
+          game.selectCell(0, 0);
+          return;
+        }
+        const [row, col] = game.selectedCell;
+        if (e.key === "ArrowUp" && row > 0) game.selectCell(row - 1, col);
+        else if (e.key === "ArrowDown" && row < 8) game.selectCell(row + 1, col);
+        else if (e.key === "ArrowLeft" && col > 0) game.selectCell(row, col - 1);
+        else if (e.key === "ArrowRight" && col < 8) game.selectCell(row, col + 1);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [game, gameEnded, pausedBy, showGiveUpConfirm, showResultsModal, handleNumberClick, handleClear, handleUndo]);
 
   const handleComplete = useCallback(async () => {
     if (!player || gameEnded) return;
@@ -525,11 +626,15 @@ export default function GamePlayPage() {
         ? "Bấm nút chạy tiếp khi sẵn sàng nhé."
         : pausedBy
           ? `Chờ ${pausedBy.name} quay lại một chút nhé.`
-          : game.mode === "note"
-            ? "Chạm số để ghi chú vào ô nhé."
-            : game.selectedCell
-              ? "Chọn số để thả vào ô nào!"
-              : "Chạm một ô trống đi nào!";
+          : checkResult
+            ? checkResult.wrongCount === 0
+              ? `Các ô đã điền đều đúng! (còn ${checkResult.checksRemaining} lượt)`
+              : `Đang có ${checkResult.wrongCount} ô sai! (còn ${checkResult.checksRemaining} lượt)`
+            : game.mode === "note"
+              ? "Chạm số để ghi chú vào ô nhé."
+              : game.selectedCell
+                ? "Chọn số để thả vào ô nào!"
+                : "Chạm một ô trống đi nào!";
 
   return (
     <>
@@ -546,17 +651,39 @@ export default function GamePlayPage() {
         onClear={handleClear}
         onUndo={handleUndo}
         say={say}
-        mood={pausedBy ? "sleep" : finishedWaiting ? "cheer" : game.selectedCell ? "think" : "happy"}
+        mood={
+          pausedBy
+            ? "sleep"
+            : finishedWaiting
+              ? "cheer"
+              : checkResult
+                ? checkResult.wrongCount === 0
+                  ? "cheer"
+                  : "wow"
+                : game.selectedCell
+                  ? "think"
+                  : "happy"
+        }
         badge={`Phòng ${code}`}
         progress={<VersusProgressBar players={playersProgress} currentPlayerId={player.visitorId} />}
         action={
-          <button
-            onClick={() => setShowGiveUpConfirm(true)}
-            disabled={timer.isPaused || gameEnded}
-            className={toolButtonClass}
-          >
-            <FlagIcon /> Bỏ cuộc
-          </button>
+          <>
+            <button
+              onClick={handleCheckBoard}
+              disabled={timer.isPaused || gameEnded || game.isComplete || checking || checksRemaining <= 0}
+              className={toolButtonClass}
+              title={`Kiểm tra số ô đang sai (còn ${checksRemaining}/${MAX_CHECKS_PER_GAME} lượt)`}
+            >
+              <CheckIcon /> Kiểm tra ({checksRemaining})
+            </button>
+            <button
+              onClick={() => setShowGiveUpConfirm(true)}
+              disabled={timer.isPaused || gameEnded}
+              className={toolButtonClass}
+            >
+              <FlagIcon /> Bỏ cuộc
+            </button>
+          </>
         }
       />
 

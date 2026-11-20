@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Room from "@/models/Room";
 import { denyUnlessPlayer } from "@/lib/player-auth";
+import { broadcast, sudokuSocketRoom } from "@/lib/realtime";
 
 interface RouteParams {
   params: Promise<{ code: string }>;
@@ -38,6 +39,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    if (room.status !== "waiting") {
+      return NextResponse.json(
+        { error: "Cannot leave a game in progress", code: "GAME_ALREADY_STARTED" },
+        { status: 400 }
+      );
+    }
+
     const playerIndex = room.players.findIndex((p) => p.visitorId === visitorId);
     if (playerIndex === -1) {
       return NextResponse.json(
@@ -46,7 +54,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const wasHost = room.players[playerIndex].isHost;
+    const leavingPlayer = room.players[playerIndex];
+    const wasHost = leavingPlayer.isHost;
     room.removePlayer(visitorId);
 
     if (room.players.length === 0) {
@@ -58,6 +67,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     room.save();
+    broadcast(sudokuSocketRoom(room.code), "player_left", {
+      visitorId,
+      name: leavingPlayer.name,
+    });
 
     return NextResponse.json({
       success: true,

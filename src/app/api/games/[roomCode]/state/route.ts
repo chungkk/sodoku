@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Room from "@/models/Room";
 import { denyUnlessPlayer } from "@/lib/player-auth";
+import { MAX_CHECKS_PER_GAME } from "@/lib/sudoku";
 import { clientProgress, isCount, isNotes, isPlayerGrid } from "@/lib/validation";
 
 interface RouteParams {
@@ -49,6 +50,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       elapsedTime: player.elapsedTime || 0,
       errors: player.errors || 0,
       progress: player.progress || 0,
+      finished: player.finishedAt !== null,
+      gaveUp: player.progress === -1,
+      checksRemaining: Math.max(0, MAX_CHECKS_PER_GAME - (player.checksUsed ?? 0)),
     });
   } catch (error) {
     console.error("Get game state error:", error);

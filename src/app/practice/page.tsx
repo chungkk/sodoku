@@ -117,10 +117,15 @@ function PracticeContent() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (showNewGameModal || showVictoryModal) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT")) {
+        return;
+      }
       if (timer.isPaused && e.key !== " " && e.key !== "Escape") return;
 
       if (e.key >= "1" && e.key <= "9") {
-        handleNumberClick(parseInt(e.key));
+        handleNumberClick(parseInt(e.key, 10));
       } else if (e.key === "Backspace" || e.key === "Delete") {
         handleClear();
       } else if (e.key === " ") {
@@ -128,27 +133,26 @@ function PracticeContent() {
         handlePauseToggle();
       } else if (e.key === "n" || e.key === "N") {
         game.toggleMode();
-      } else if (e.key === "z" && (e.ctrlKey || e.metaKey)) {
+      } else if (e.key.toLowerCase() === "z" && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         handleUndo();
-      } else if (e.key === "ArrowUp" && game.selectedCell) {
+      } else if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        e.preventDefault();
+        if (!game.selectedCell) {
+          game.selectCell(0, 0);
+          return;
+        }
         const [row, col] = game.selectedCell;
-        if (row > 0) game.selectCell(row - 1, col);
-      } else if (e.key === "ArrowDown" && game.selectedCell) {
-        const [row, col] = game.selectedCell;
-        if (row < 8) game.selectCell(row + 1, col);
-      } else if (e.key === "ArrowLeft" && game.selectedCell) {
-        const [row, col] = game.selectedCell;
-        if (col > 0) game.selectCell(row, col - 1);
-      } else if (e.key === "ArrowRight" && game.selectedCell) {
-        const [row, col] = game.selectedCell;
-        if (col < 8) game.selectCell(row, col + 1);
+        if (e.key === "ArrowUp" && row > 0) game.selectCell(row - 1, col);
+        else if (e.key === "ArrowDown" && row < 8) game.selectCell(row + 1, col);
+        else if (e.key === "ArrowLeft" && col > 0) game.selectCell(row, col - 1);
+        else if (e.key === "ArrowRight" && col < 8) game.selectCell(row, col + 1);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [game.selectedCell, timer.isPaused, game.mode]);
+  }, [game.selectedCell, timer.isPaused, game.mode, showNewGameModal, showVictoryModal]);
 
   return (
     <>
