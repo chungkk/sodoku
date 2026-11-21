@@ -2,30 +2,29 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
 import { NameInput } from "@/components/NameInput";
+import { Button } from "@/components/ui/button";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { Difficulty } from "@/lib/sudoku";
+import { apiFetch, requestGuestSession } from "@/lib/api-client";
 
-const difficultyOptions = [
-  { value: "easy", label: "🟢 Dễ" },
-  { value: "medium", label: "🟡 Trung bình" },
-  { value: "hard", label: "🔴 Khó" },
+const difficultyOptions: { value: Difficulty; label: string }[] = [
+  { value: "easy", label: "Dễ" },
+  { value: "medium", label: "Trung bình" },
+  { value: "hard", label: "Khó" },
 ];
 
 interface CreateRoomFormProps {
   onCancel?: () => void;
+  gameType?: "sudoku" | "caro";
 }
 
-export function CreateRoomForm({ onCancel }: CreateRoomFormProps) {
+export function CreateRoomForm({ onCancel, gameType = "sudoku" }: CreateRoomFormProps) {
   const router = useRouter();
-  const { player, setGuestName } = usePlayer();
+  const { player, setGuestName, clearSession } = usePlayer();
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState<"name" | "create">(player ? "create" : "name");
 
   const handleNameSubmit = useCallback(
     async (name: string) => {
@@ -33,20 +32,8 @@ export function CreateRoomForm({ onCancel }: CreateRoomFormProps) {
       setError(null);
 
       try {
-        const response = await fetch("/api/player/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name }),
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || "Failed to create session");
-        }
-
-        const data = await response.json();
-        setGuestName(data.name, data.visitorId);
-        setStep("create");
+        const data = await requestGuestSession(name);
+        setGuestName(data.name, data.visitorId, data.token);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Đã xảy ra lỗi");
       } finally {
@@ -57,12 +44,7 @@ export function CreateRoomForm({ onCancel }: CreateRoomFormProps) {
   );
 
   const handleCreateRoom = useCallback(async () => {
-    if (!player) {
-      setStep("name");
-      return;
-    }
-
-    if (!player.visitorId || !player.name) {
+    if (!player?.visitorId || !player.name) {
       setError("Thông tin người chơi không hợp lệ. Vui lòng thử lại.");
       return;
     }
@@ -71,92 +53,82 @@ export function CreateRoomForm({ onCancel }: CreateRoomFormProps) {
     setError(null);
 
     try {
-      console.log("Creating room with:", { visitorId: player.visitorId, hostName: player.name, difficulty });
-      
-      const response = await fetch("/api/rooms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          visitorId: player.visitorId,
-          hostName: player.name,
-          difficulty,
-          userId: player.oderId || null,
-        }),
-      });
-
-      const data = await response.json();
-      
-      if (!response.ok) {
-        console.error("Create room failed:", data);
-        throw new Error(data.details || data.error || "Không thể tạo phòng");
+      if (gameType === "caro") {
+        const response = await apiFetch("/api/caro", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ visitorId: player.visitorId, name: player.name }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Không thể tạo phòng Caro");
+        router.push(`/caro/${data.room.code}`);
+      } else {
+        const response = await apiFetch("/api/rooms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ visitorId: player.visitorId, hostName: player.name, difficulty }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.details || data.error || "Không thể tạo phòng");
+        router.push(`/sudoku/${data.code}`);
       }
-
-      console.log("Room created:", data.code);
-      router.push(`/room/${data.code}`);
     } catch (err) {
       console.error("Create room error:", err);
       setError(err instanceof Error ? err.message : "Đã xảy ra lỗi khi tạo phòng");
       setIsLoading(false);
     }
-  }, [player, difficulty, router]);
+  }, [player, difficulty, gameType, router]);
 
-  if (step === "name") {
+  if (!player) {
     return (
-      <div className="space-y-4">
-        <NameInput
-          onSubmit={handleNameSubmit}
-          buttonText="Tiếp tục"
-          isLoading={isLoading}
-        />
-        {error && (
-          <p className="text-sm text-error-500 text-center">{error}</p>
-        )}
-        {onCancel && (
-          <Button variant="ghost" fullWidth onClick={onCancel}>
-            Hủy
-          </Button>
-        )}
+      <div className="flex flex-col gap-3">
+        <NameInput onSubmit={handleNameSubmit} isLoading={isLoading} />
+        {error && <p role="alert" className="text-center font-semibold text-cherry">{error}</p>}
+        {onCancel && <Button variant="ghost" fullWidth onClick={onCancel}>Hủy</Button>}
       </div>
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
-    >
-      <div className="text-center mb-4">
-        <p className="text-gray-600">
-          Xin chào, <span className="font-semibold">{player?.name}</span>!
-        </p>
-      </div>
-
-      <Select
-        label="Độ khó"
-        options={difficultyOptions}
-        value={difficulty}
-        onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-      />
-
-      {error && (
-        <p className="text-sm text-error-500 text-center">{error}</p>
+    <div className="flex flex-col gap-3">
+      {gameType === "sudoku" && (
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="pb-1.5 text-lg font-bold">Độ khó</legend>
+          <div className="grid grid-cols-3 gap-2">
+            {difficultyOptions.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                aria-pressed={difficulty === opt.value}
+                onClick={() => setDifficulty(opt.value)}
+                className={`min-h-12 rounded-full border-4 border-ink px-1 text-[0.95rem] font-bold leading-none transition-colors ${
+                  difficulty === opt.value ? "bg-lemon" : "bg-white hover:bg-lemon-pale"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
       )}
 
-      <Button
-        onClick={handleCreateRoom}
-        fullWidth
-        size="lg"
-        isLoading={isLoading}
-      >
-        🚀 Tạo phòng
+      {error && <p role="alert" className="text-center font-semibold text-cherry">{error}</p>}
+
+      <Button wrapped fullWidth size="lg" onClick={handleCreateRoom} isLoading={isLoading}>
+        Tạo phòng
       </Button>
 
-      {onCancel && (
-        <Button variant="ghost" fullWidth onClick={onCancel}>
-          Hủy
-        </Button>
-      )}
-    </motion.div>
+      <p className="text-center font-semibold text-ink-soft">
+        Bạn chơi với tên <span className="text-ink">{player.name}</span>{" "}
+        <button
+          type="button"
+          onClick={clearSession}
+          className="underline decoration-2 underline-offset-2 hover:text-cherry"
+        >
+          Đổi tên
+        </button>
+      </p>
+      {onCancel && <Button variant="ghost" fullWidth onClick={onCancel}>Hủy</Button>}
+    </div>
   );
 }

@@ -5,7 +5,7 @@ import {
   Board,
   CellValue,
   createEmptyBoard,
-  checkWinner,
+  findWinningCells,
   isBoardFull,
   isValidMove,
 } from "@/lib/caro";
@@ -19,7 +19,8 @@ interface UseCaroGameReturn {
   lastMove: { row: number; col: number } | null;
   makeMove: (row: number, col: number, player: CellValue) => boolean;
   resetGame: () => void;
-  loadBoard: (board: Board, turn: CellValue) => void;
+  loadBoard: (board: Board, turn: CellValue, lastMove?: { row: number; col: number } | null) => void;
+  applyServerMove: (board: Board, turn: CellValue, row: number, col: number, symbol: CellValue) => void;
   setLastMove: (move: { row: number; col: number } | null) => void;
 }
 
@@ -41,10 +42,9 @@ export function useCaroGame(): UseCaroGameReturn {
       setBoard(newBoard);
       setLastMove({ row, col });
 
-      if (checkWinner(newBoard, row, col, player)) {
+      const cells = findWinningCells(newBoard, row, col, player);
+      if (cells.length > 0) {
         setWinner(player);
-        // Tìm các ô winning để highlight
-        const cells = findWinningCells(newBoard, row, col, player);
         setWinningCells(cells);
         return true;
       }
@@ -69,10 +69,28 @@ export function useCaroGame(): UseCaroGameReturn {
     setLastMove(null);
   }, []);
 
-  const loadBoard = useCallback((board: Board, turn: CellValue) => {
-    setBoard(board);
+  const loadBoard = useCallback((nextBoard: Board, turn: CellValue, nextLastMove?: { row: number; col: number } | null) => {
+    setBoard(nextBoard);
     setCurrentTurn(turn);
+    if (nextLastMove !== undefined) {
+      setLastMove(nextLastMove);
+    }
   }, []);
+
+  // Trạng thái server gửi về là chuẩn, ghi đè cả nước đi hiển thị trước ở máy này
+  const applyServerMove = useCallback(
+    (nextBoard: Board, turn: CellValue, row: number, col: number, symbol: CellValue) => {
+      setBoard(nextBoard);
+      setCurrentTurn(turn);
+      setLastMove({ row, col });
+      const cells = symbol ? findWinningCells(nextBoard, row, col, symbol) : [];
+      if (cells.length > 0) {
+        setWinner(symbol);
+        setWinningCells(cells);
+      }
+    },
+    []
+  );
 
   return {
     board,
@@ -84,64 +102,7 @@ export function useCaroGame(): UseCaroGameReturn {
     makeMove,
     resetGame,
     loadBoard,
+    applyServerMove,
     setLastMove,
   };
-}
-
-function findWinningCells(
-  board: Board,
-  row: number,
-  col: number,
-  player: CellValue
-): { row: number; col: number }[] {
-  if (!player) return [];
-
-  const directions = [
-    [0, 1],
-    [1, 0],
-    [1, 1],
-    [1, -1],
-  ];
-
-  for (const [dx, dy] of directions) {
-    const cells: { row: number; col: number }[] = [{ row, col }];
-
-    // Positive direction
-    for (let i = 1; i < 5; i++) {
-      const newRow = row + dx * i;
-      const newCol = col + dy * i;
-      if (
-        newRow < 0 ||
-        newRow >= board.length ||
-        newCol < 0 ||
-        newCol >= board[0].length ||
-        board[newRow][newCol] !== player
-      ) {
-        break;
-      }
-      cells.push({ row: newRow, col: newCol });
-    }
-
-    // Negative direction
-    for (let i = 1; i < 5; i++) {
-      const newRow = row - dx * i;
-      const newCol = col - dy * i;
-      if (
-        newRow < 0 ||
-        newRow >= board.length ||
-        newCol < 0 ||
-        newCol >= board[0].length ||
-        board[newRow][newCol] !== player
-      ) {
-        break;
-      }
-      cells.push({ row: newRow, col: newCol });
-    }
-
-    if (cells.length >= 5) {
-      return cells;
-    }
-  }
-
-  return [];
 }

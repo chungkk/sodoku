@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import Room from "@/models/Room";
 import Puzzle from "@/models/Puzzle";
 import { generatePuzzle } from "@/lib/sudoku";
+import { denyUnlessPlayer } from "@/lib/player-auth";
 
 interface RouteParams {
   params: Promise<{ code: string }>;
@@ -28,9 +28,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await connectDB();
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
 
-    const room = await Room.findOne({ code: code.toUpperCase() });
+    const room = Room.findByCode(code.toUpperCase());
 
     if (!room) {
       return NextResponse.json(
@@ -61,38 +62,39 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Try to get a pre-generated puzzle first
-    let puzzle = await (Puzzle as any).getRandomByDifficulty(room.difficulty);
-    
+    let puzzle = Puzzle.getRandomByDifficulty(room.difficulty);
+
     // Fallback: generate new puzzle if none available
     if (!puzzle) {
       const { grid, solution } = generatePuzzle(room.difficulty);
-      puzzle = new Puzzle({
+      puzzle = Puzzle.create({
         grid,
         solution,
         difficulty: room.difficulty,
         givenCells: grid.flat().filter((c: number) => c !== 0).length,
         isPregenerated: false,
       });
-      await puzzle.save();
     }
 
-    room.puzzleId = puzzle._id;
+    const { id: puzzleId, grid: puzzleGrid } = puzzle;
+
+    room.puzzleId = puzzleId;
     room.status = "playing";
     room.startedAt = new Date();
-    room.lastActivityAt = new Date();
 
     room.players.forEach((player) => {
       player.progress = 0;
       player.errors = 0;
-      player.currentGrid = puzzle.grid.map((row: number[]) => [...row]);
+      player.checksUsed = 0;
+      player.currentGrid = puzzleGrid.map((row: number[]) => [...row]);
       player.finishedAt = null;
     });
 
-    await room.save();
+    room.save();
 
     return NextResponse.json({
       success: true,
-      puzzle: puzzle.grid,
+      puzzle: puzzleGrid,
       startedAt: room.startedAt,
       players: room.players.map((p) => ({
         visitorId: p.visitorId,

@@ -1,24 +1,14 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+
 export function Footer() {
-  const currentYear = new Date().getFullYear();
+  const pathname = usePathname();
+  if (pathname.endsWith("/play") || pathname === "/practice") return null;
 
   return (
-    <footer className="hidden md:block bg-gray-50 border-t border-gray-100 mt-auto">
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-gray-600">
-            <span className="text-xl">🧩</span>
-            <span className="font-medium">Solo Online</span>
-          </div>
-
-          <div className="flex items-center gap-6 text-sm text-gray-500">
-            <span>Chơi một mình hoặc cùng bạn bè</span>
-          </div>
-
-          <p className="text-sm text-gray-400">
-            &copy; {currentYear} Solo Online. All rights reserved.
-          </p>
-        </div>
-      </div>
+    <footer className="mt-auto px-4 py-5 text-center font-semibold text-ink-soft">
+      Solo Games · Không cần tài khoản, nhập tên là chơi
     </footer>
   );
 }

@@ -1,552 +1,87 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
+import { MascotSay, CandyO, CandyX } from "@/components/candy";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Select } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogHeader, DialogTitle, DialogContent } from "@/components/ui/dialog";
-import { usePlayer } from "@/contexts/PlayerContext";
-import { CreateRoomForm } from "@/components/CreateRoomForm";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { JoinRoomForm } from "@/components/JoinRoomForm";
-import { NameInput } from "@/components/NameInput";
-import { Difficulty } from "@/lib/sudoku";
+import { usePlayer } from "@/contexts/PlayerContext";
 
-const difficultyOptions = [
-  { value: "easy", label: "🟢 Dễ" },
-  { value: "medium", label: "🟡 Trung bình" },
-  { value: "hard", label: "🔴 Khó" },
-];
+const dropIn = (delay: number) => ({
+  initial: { y: -30, scale: 0.7 },
+  animate: { y: 0, scale: 1 },
+  transition: { type: "spring" as const, stiffness: 420, damping: 15, delay },
+});
 
-interface CaroRoom {
-  code: string;
-  status: string;
-  playerCount: number;
-  createdAt: string;
-}
-
-interface SudokuRoom {
-  code: string;
-  status: string;
-  difficulty: string;
-  playerCount: number;
-  createdAt: string;
-}
+const SUDOKU_SAMPLE = [5, 0, 3, 0, 7, 0, 9, 0, 1];
+const CARO_SAMPLE = ["X", "O", "X", "O", "X", "O", "", "O", "X"];
 
 export default function HomePage() {
-  const router = useRouter();
-  const { player, setGuestName } = usePlayer();
-  const [guestNameInput, setGuestNameInput] = useState("");
-  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
-  const [showNameInput, setShowNameInput] = useState(false);
-  const [showCreateRoom, setShowCreateRoom] = useState(false);
-  const [showJoinRoom, setShowJoinRoom] = useState(false);
-
-  // Caro states
-  const [caroRoomCode, setCaroRoomCode] = useState("");
-  const [caroRooms, setCaroRooms] = useState<CaroRoom[]>([]);
-  const [showCaroSuggestions, setShowCaroSuggestions] = useState(false);
-  const [loadingCaroRooms, setLoadingCaroRooms] = useState(false);
-  const [caroLoading, setCaroLoading] = useState(false);
-  const [caroError, setCaroError] = useState<string | null>(null);
-  const [showCaroNameInput, setShowCaroNameInput] = useState(false);
-  const [caroAction, setCaroAction] = useState<"create" | "join" | null>(null);
-  const caroInputRef = useRef<HTMLInputElement>(null);
-  const caroSuggestionsRef = useRef<HTMLDivElement>(null);
-
-  // Sudoku states
-  const [sudokuRoomCode, setSudokuRoomCode] = useState("");
-  const [sudokuRooms, setSudokuRooms] = useState<SudokuRoom[]>([]);
-  const [showSudokuSuggestions, setShowSudokuSuggestions] = useState(false);
-  const [loadingSudokuRooms, setLoadingSudokuRooms] = useState(false);
-  const [sudokuError, setSudokuError] = useState<string | null>(null);
-  const sudokuInputRef = useRef<HTMLInputElement>(null);
-  const sudokuSuggestionsRef = useRef<HTMLDivElement>(null);
-
-  const fetchSudokuRooms = async () => {
-    setLoadingSudokuRooms(true);
-    try {
-      const res = await fetch("/api/rooms");
-      if (res.ok) {
-        const data = await res.json();
-        setSudokuRooms(data.rooms || []);
-      }
-    } catch (err) {
-      console.error("Failed to fetch sudoku rooms:", err);
-    } finally {
-      setLoadingSudokuRooms(false);
-    }
-  };
-
-  const fetchCaroRooms = async () => {
-    setLoadingCaroRooms(true);
-    try {
-      const res = await fetch("/api/caro");
-      if (res.ok) {
-        const data = await res.json();
-        setCaroRooms(data.rooms || []);
-      }
-    } catch (err) {
-      console.error("Failed to fetch caro rooms:", err);
-    } finally {
-      setLoadingCaroRooms(false);
-    }
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        caroSuggestionsRef.current &&
-        !caroSuggestionsRef.current.contains(e.target as Node) &&
-        caroInputRef.current &&
-        !caroInputRef.current.contains(e.target as Node)
-      ) {
-        setShowCaroSuggestions(false);
-      }
-      if (
-        sudokuSuggestionsRef.current &&
-        !sudokuSuggestionsRef.current.contains(e.target as Node) &&
-        sudokuInputRef.current &&
-        !sudokuInputRef.current.contains(e.target as Node)
-      ) {
-        setShowSudokuSuggestions(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const filteredSudokuRooms = sudokuRooms.filter((room) =>
-    room.code.toLowerCase().includes(sudokuRoomCode.toLowerCase())
-  );
-
-  const handleJoinSudokuRoom = () => {
-    if (!player) {
-      setShowJoinRoom(true);
-      return;
-    }
-    if (!sudokuRoomCode.trim()) {
-      setSudokuError("Vui lòng nhập mã phòng");
-      return;
-    }
-    router.push(`/room/${sudokuRoomCode.trim().toUpperCase()}`);
-  };
-
-  const filteredCaroRooms = caroRooms.filter((room) =>
-    room.code.toLowerCase().includes(caroRoomCode.toLowerCase())
-  );
-
-  const handleCreateCaroRoom = async () => {
-    if (!player) {
-      setCaroAction("create");
-      setShowCaroNameInput(true);
-      return;
-    }
-    setCaroLoading(true);
-    setCaroError(null);
-    try {
-      const res = await fetch("/api/caro", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ visitorId: player.visitorId, name: player.name }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        router.push(`/caro/${data.room.code}`);
-      } else {
-        const data = await res.json();
-        setCaroError(data.error || "Không thể tạo phòng");
-      }
-    } catch {
-      setCaroError("Lỗi khi tạo phòng");
-    } finally {
-      setCaroLoading(false);
-    }
-  };
-
-  const handleJoinCaroRoom = () => {
-    if (!player) {
-      setCaroAction("join");
-      setShowCaroNameInput(true);
-      return;
-    }
-    if (!caroRoomCode.trim()) {
-      setCaroError("Vui lòng nhập mã phòng");
-      return;
-    }
-    router.push(`/caro/${caroRoomCode.trim().toUpperCase()}`);
-  };
-
-  const handleCaroNameSubmit = (name: string) => {
-    setGuestName(name);
-    setShowCaroNameInput(false);
-    if (caroAction === "create") {
-      setTimeout(() => handleCreateCaroRoom(), 100);
-    } else if (caroAction === "join" && caroRoomCode.trim()) {
-      router.push(`/caro/${caroRoomCode.trim().toUpperCase()}`);
-    }
-  };
-
-  const handleStartPractice = () => {
-    if (!player) {
-      setShowNameInput(true);
-      return;
-    }
-    window.location.href = `/practice?difficulty=${difficulty}`;
-  };
-
-  const handleGuestSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (guestNameInput.trim().length >= 2) {
-      setGuestName(guestNameInput.trim());
-      window.location.href = `/practice?difficulty=${difficulty}`;
-    }
-  };
+  const { player } = usePlayer();
+  const [showJoin, setShowJoin] = useState(false);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="text-center mb-12"
-      >
-        <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
-          🧩 Solo Online
+    <div className="mx-auto grid w-full max-w-6xl flex-1 content-start gap-x-10 px-4 pb-6 lg:grid-cols-[1fr_31rem] lg:content-center">
+      <div className="flex flex-col items-center lg:items-start">
+        <h1 className="title-candy pt-1 text-center text-[clamp(3.5rem,18vw,4.75rem)] [@media(max-height:740px)]:text-[clamp(3rem,13.5vw,4rem)] lg:text-left lg:text-[5.75rem] lg:[@media(max-height:740px)]:text-[5.75rem]">
+          <span className="block [@media(max-height:740px)]:inline lg:inline">Solo </span>
+          <span className="block [@media(max-height:740px)]:inline lg:inline">Games</span>
         </h1>
-        <p className="text-lg text-gray-600 max-w-xl mx-auto">
-          Rèn luyện tư duy logic với trò chơi Sudoku kinh điển.
-          Chơi một mình hoặc thi đấu cùng bạn bè!
-        </p>
-      </motion.div>
-
-      <div className="grid md:grid-cols-3 gap-6">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <Card variant="elevated" className="h-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="text-2xl">🎯</span>
-                Tập luyện
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-6">
-                Chơi Sudoku một mình với 3 mức độ khó. Hoàn hảo để luyện tập và
-                cải thiện kỹ năng của bạn.
-              </p>
-
-              {showNameInput && !player ? (
-                <form onSubmit={handleGuestSubmit} className="space-y-4">
-                  <Input
-                    label="Tên của bạn"
-                    placeholder="Nhập tên (ít nhất 2 ký tự)"
-                    value={guestNameInput}
-                    onChange={(e) => setGuestNameInput(e.target.value)}
-                    autoFocus
-                  />
-                  <div className="flex gap-2">
-                    <Button type="submit" fullWidth disabled={guestNameInput.trim().length < 2}>
-                      Bắt đầu chơi
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => setShowNameInput(false)}
-                    >
-                      Hủy
-                    </Button>
-                  </div>
-                </form>
-              ) : (
-                <div className="space-y-4">
-                  <Select
-                    label="Độ khó"
-                    options={difficultyOptions}
-                    value={difficulty}
-                    onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-                  />
-                  <Button onClick={handleStartPractice} fullWidth size="lg">
-                    🎮 Bắt đầu chơi
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <Card variant="elevated" className="h-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="text-2xl">🏆</span>
-                Thi đấu Sudoku
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                Tạo phòng và mời bạn bè cùng thi đấu. Ai hoàn thành nhanh nhất sẽ
-                là người chiến thắng!
-              </p>
-
-              {sudokuError && (
-                <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                  {sudokuError}
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <Button 
-                  variant="primary" 
-                  fullWidth 
-                  size="lg"
-                  onClick={() => setShowCreateRoom(true)}
-                >
-                  🚀 Tạo phòng
-                </Button>
-                
-                <div className="relative">
-                  <Input
-                    ref={sudokuInputRef}
-                    placeholder="Nhập mã phòng..."
-                    value={sudokuRoomCode}
-                    onChange={(e) => {
-                      setSudokuRoomCode(e.target.value.toUpperCase());
-                      setSudokuError(null);
-                      setShowSudokuSuggestions(true);
-                    }}
-                    onFocus={() => {
-                      fetchSudokuRooms();
-                      setShowSudokuSuggestions(true);
-                    }}
-                    onKeyPress={(e) => e.key === "Enter" && handleJoinSudokuRoom()}
-                    autoComplete="off"
-                  />
-                  {showSudokuSuggestions && (
-                    <div
-                      ref={sudokuSuggestionsRef}
-                      className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto"
-                    >
-                      {loadingSudokuRooms ? (
-                        <div className="p-3 text-gray-500 text-sm text-center">
-                          Đang tải...
-                        </div>
-                      ) : filteredSudokuRooms.length > 0 ? (
-                        filteredSudokuRooms.map((room) => (
-                          <button
-                            key={room.code}
-                            type="button"
-                            className="w-full px-3 py-2 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
-                            onClick={() => {
-                              setSudokuRoomCode(room.code);
-                              setShowSudokuSuggestions(false);
-                            }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium text-gray-900 text-sm">
-                                {room.code}
-                              </span>
-                              <span
-                                className={`text-xs px-2 py-0.5 rounded-full ${
-                                  room.status === "waiting"
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-orange-100 text-orange-700"
-                                }`}
-                              >
-                                {room.status === "waiting"
-                                  ? `Chờ (${room.playerCount}/2)`
-                                  : "Đang chơi"}
-                              </span>
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              {room.difficulty === "easy" ? "🟢 Dễ" : room.difficulty === "medium" ? "🟡 TB" : "🔴 Khó"}
-                            </div>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="p-3 text-gray-500 text-sm text-center">
-                          {sudokuRoomCode ? "Không tìm thấy" : "Chưa có phòng"}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <Button 
-                  variant="outline" 
-                  fullWidth
-                  onClick={handleJoinSudokuRoom}
-                  disabled={!sudokuRoomCode.trim()}
-                >
-                  🔗 Tham gia phòng
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          <Card variant="elevated" className="h-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="text-2xl">❌⭕</span>
-                Cờ Caro
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                Chơi cờ caro online với bạn bè. Đánh 5 ô liên tiếp để chiến thắng!
-              </p>
-
-              {caroError && (
-                <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                  {caroError}
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <Button 
-                  variant="primary" 
-                  fullWidth 
-                  size="lg"
-                  onClick={handleCreateCaroRoom}
-                  disabled={caroLoading}
-                >
-                  {caroLoading ? "Đang tạo..." : "🚀 Tạo phòng"}
-                </Button>
-                
-                <div className="relative">
-                  <Input
-                    ref={caroInputRef}
-                    placeholder="Nhập mã phòng..."
-                    value={caroRoomCode}
-                    onChange={(e) => {
-                      setCaroRoomCode(e.target.value.toUpperCase());
-                      setCaroError(null);
-                      setShowCaroSuggestions(true);
-                    }}
-                    onFocus={() => {
-                      fetchCaroRooms();
-                      setShowCaroSuggestions(true);
-                    }}
-                    onKeyPress={(e) => e.key === "Enter" && handleJoinCaroRoom()}
-                    autoComplete="off"
-                  />
-                  {showCaroSuggestions && (
-                    <div
-                      ref={caroSuggestionsRef}
-                      className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto"
-                    >
-                      {loadingCaroRooms ? (
-                        <div className="p-3 text-gray-500 text-sm text-center">
-                          Đang tải...
-                        </div>
-                      ) : filteredCaroRooms.length > 0 ? (
-                        filteredCaroRooms.map((room) => (
-                          <button
-                            key={room.code}
-                            type="button"
-                            className="w-full px-3 py-2 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
-                            onClick={() => {
-                              setCaroRoomCode(room.code);
-                              setShowCaroSuggestions(false);
-                            }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium text-gray-900 text-sm">
-                                {room.code}
-                              </span>
-                              <span
-                                className={`text-xs px-2 py-0.5 rounded-full ${
-                                  room.status === "waiting"
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-orange-100 text-orange-700"
-                                }`}
-                              >
-                                {room.status === "waiting"
-                                  ? `Chờ (${room.playerCount}/2)`
-                                  : "Đang chơi"}
-                              </span>
-                            </div>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="p-3 text-gray-500 text-sm text-center">
-                          {caroRoomCode ? "Không tìm thấy" : "Chưa có phòng"}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <Button 
-                  variant="outline" 
-                  fullWidth
-                  onClick={handleJoinCaroRoom}
-                  disabled={!caroRoomCode.trim()}
-                >
-                  🔗 Tham gia phòng
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        <MascotSay followPointer className="my-1 w-full lg:mt-4" mascotClassName="w-40 [@media(max-height:740px)]:w-28 sm:w-48 lg:w-96 lg:[@media(max-height:740px)]:w-72">
+          {player ? `Chào ${player.name}, chọn một khay đi nào!` : "Chọn một khay đi nào!"}
+        </MascotSay>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
-        className="mt-12 text-center"
-      >
-        <Card padding="lg" className="bg-gradient-to-r from-primary-50 to-blue-50">
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">
-            Cách chơi Sudoku
-          </h3>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Điền các số từ 1-9 vào bảng 9x9 sao cho mỗi hàng, mỗi cột và mỗi ô vuông 3x3
-            đều chứa đủ các số từ 1 đến 9, không trùng lặp.
-          </p>
-        </Card>
-      </motion.div>
+      <div className="flex flex-col gap-4 lg:self-center">
+        <div className="tray grid grid-cols-2 gap-2.5 p-2.5">
+          <Link href="/sudoku" className="group flex flex-col rounded-[1.25rem] border-4 border-ink bg-lemon p-3 transition-transform hover:-translate-y-1">
+            <span className="font-display text-[1.75rem] leading-none">Sudoku</span>
+            <span className="mt-2 grid grid-cols-3 gap-1">
+              {SUDOKU_SAMPLE.map((n, i) => (
+                <motion.span
+                  key={i}
+                  {...dropIn(0.12 + i * 0.05)}
+                  className={`flex aspect-square items-center justify-center rounded-full text-lg font-extrabold ${n ? "border-[3px] border-ink bg-milk" : "border-[3px] border-dashed border-ink/40"}`}
+                >
+                  {n || ""}
+                </motion.span>
+              ))}
+            </span>
+            <span className="mt-2 text-[0.95rem] font-semibold leading-tight [text-wrap:balance]">2–4 người, ai giải xong trước thắng</span>
+          </Link>
 
-      <Dialog open={showCreateRoom} onClose={() => setShowCreateRoom(false)}>
+          <Link href="/caro" className="group flex flex-col rounded-[1.25rem] border-4 border-ink bg-gum p-3 transition-transform hover:-translate-y-1">
+            <span className="font-display text-[1.75rem] leading-none">Caro</span>
+            <span className="mt-2 grid grid-cols-3 gap-1">
+              {CARO_SAMPLE.map((c, i) => (
+                <motion.span key={i} {...dropIn(0.3 + i * 0.05)} className="flex aspect-square items-center justify-center">
+                  {c === "X" && <CandyX className="w-full" />}
+                  {c === "O" && <CandyO className="w-full" />}
+                  {!c && <span className="block h-full w-full rounded-full border-[3px] border-dashed border-ink/40" />}
+                </motion.span>
+              ))}
+            </span>
+            <span className="mt-2 text-[0.95rem] font-semibold leading-tight [text-wrap:balance]">2 người, 5 viên liền nhau là thắng</span>
+          </Link>
+        </div>
+
+        <Button wrapped fullWidth size="lg" onClick={() => setShowJoin(true)}>
+          Vào bằng mã phòng
+        </Button>
+
+        <Link href="/practice" className="text-center text-lg font-semibold underline decoration-[3px] underline-offset-4 hover:decoration-cherry">
+          Luyện Sudoku một mình
+        </Link>
+      </div>
+
+      <Dialog open={showJoin} onClose={() => setShowJoin(false)}>
         <DialogHeader>
-          <DialogTitle>Tạo phòng mới</DialogTitle>
+          <DialogTitle>Nhập mã phòng</DialogTitle>
         </DialogHeader>
         <DialogContent>
-          <CreateRoomForm onCancel={() => setShowCreateRoom(false)} />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showJoinRoom} onClose={() => setShowJoinRoom(false)}>
-        <DialogHeader>
-          <DialogTitle>Tham gia phòng</DialogTitle>
-        </DialogHeader>
-        <DialogContent>
-          <JoinRoomForm onCancel={() => setShowJoinRoom(false)} />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showCaroNameInput} onClose={() => setShowCaroNameInput(false)}>
-        <DialogHeader>
-          <DialogTitle>Nhập tên của bạn</DialogTitle>
-        </DialogHeader>
-        <DialogContent>
-          <NameInput onSubmit={handleCaroNameSubmit} />
+          <JoinRoomForm gameType="any" onCancel={() => setShowJoin(false)} />
         </DialogContent>
       </Dialog>
     </div>

@@ -1,8 +1,10 @@
 "use client";
 
-import { memo, useRef, useState, useEffect, useCallback } from "react";
+import { memo, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import type { Board, CellValue } from "@/lib/caro";
+import type { Board } from "@/lib/caro";
+import { CandyO, CandyX } from "@/components/candy";
+import { ExpandIcon, MinusIcon, PlusIcon } from "@/components/icons";
 import { BOARD_SIZE } from "@/lib/caro";
 
 interface CaroBoardProps {
@@ -28,18 +30,9 @@ export const CaroBoard = memo(function CaroBoard({
   const lastTouchDistance = useRef<number | null>(null);
   const lastTap = useRef<number>(0);
   const dragStart = useRef({ x: 0, y: 0 });
-  const baseDimensions = useRef<{ width: number; height: number } | null>(null);
 
   const MIN_SCALE = 1;
   const MAX_SCALE = 3;
-
-  // Lưu kích thước gốc của board khi render lần đầu
-  useEffect(() => {
-    if (boardRef.current && !baseDimensions.current) {
-      const rect = boardRef.current.getBoundingClientRect();
-      baseDimensions.current = { width: rect.width, height: rect.height };
-    }
-  }, []);
 
   const isWinningCell = (row: number, col: number) => {
     return winningCells.some((cell) => cell.row === row && cell.col === col);
@@ -50,13 +43,13 @@ export const CaroBoard = memo(function CaroBoard({
   };
 
   const constrainPosition = useCallback((x: number, y: number, currentScale: number) => {
-    if (!containerRef.current || !baseDimensions.current) return { x, y };
+    if (!containerRef.current || !boardRef.current) return { x, y };
     
     const container = containerRef.current.getBoundingClientRect();
+    const board = boardRef.current.getBoundingClientRect();
     
-    // Sử dụng kích thước gốc đã lưu để tính toán chính xác
-    const scaledWidth = baseDimensions.current.width * currentScale;
-    const scaledHeight = baseDimensions.current.height * currentScale;
+    const scaledWidth = (board.width / scale) * currentScale;
+    const scaledHeight = (board.height / scale) * currentScale;
     
     const maxX = Math.max(0, (scaledWidth - container.width) / 2);
     const maxY = Math.max(0, (scaledHeight - container.height) / 2);
@@ -65,7 +58,7 @@ export const CaroBoard = memo(function CaroBoard({
       x: Math.max(-maxX, Math.min(maxX, x)),
       y: Math.max(-maxY, Math.min(maxY, y))
     };
-  }, []);
+  }, [scale]);
 
   const handleZoom = useCallback((newScale: number, centerX?: number, centerY?: number) => {
     const constrainedScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
@@ -120,16 +113,14 @@ export const CaroBoard = memo(function CaroBoard({
   }, [scale, position, handleZoom]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 2 && lastTouchDistance.current !== null) {
+    if (e.touches.length === 2 && lastTouchDistance.current) {
       e.preventDefault();
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const distance = Math.sqrt(dx * dx + dy * dy);
       
-      // Tránh scale quá nhanh bằng cách giới hạn scaleChange
-      const scaleChange = Math.max(0.5, Math.min(2, distance / lastTouchDistance.current));
-      const newScale = scale * scaleChange;
-      handleZoom(newScale);
+      const scaleChange = distance / lastTouchDistance.current;
+      handleZoom(scale * scaleChange);
       
       lastTouchDistance.current = distance;
     } else if (e.touches.length === 1 && isDragging && scale > MIN_SCALE) {
@@ -152,151 +143,87 @@ export const CaroBoard = memo(function CaroBoard({
     handleZoom(scale * delta);
   }, [scale, handleZoom]);
 
+  const zoomButton = "flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-ink bg-milk text-lg transition-colors hover:bg-lemon-pale disabled:opacity-45";
+
   return (
-    <div className="w-full space-y-3">
-      {/* Zoom Controls for Mobile */}
-      <div className="flex justify-end gap-2 md:hidden">
-        <button
-          onClick={() => handleZoom(scale + 0.3)}
-          disabled={scale >= MAX_SCALE}
-          className="bg-white hover:bg-amber-50 shadow-md rounded-lg p-2.5 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 border border-amber-200"
-        >
-          <svg className="w-5 h-5 text-amber-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+    <div className="caro-board relative w-full">
+      <div className="absolute -top-1 right-1 z-10 flex -translate-y-full gap-1 pb-1 md:hidden">
+        <button type="button" onClick={() => handleZoom(scale + 0.3)} disabled={scale >= MAX_SCALE} aria-label="Phóng to bàn cờ" className={zoomButton}>
+          <PlusIcon />
         </button>
-        <button
-          onClick={() => handleZoom(scale - 0.3)}
-          disabled={scale <= MIN_SCALE}
-          className="bg-white hover:bg-amber-50 shadow-md rounded-lg p-2.5 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 border border-amber-200"
-        >
-          <svg className="w-5 h-5 text-amber-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-          </svg>
+        <button type="button" onClick={() => handleZoom(scale - 0.3)} disabled={scale <= MIN_SCALE} aria-label="Thu nhỏ bàn cờ" className={zoomButton}>
+          <MinusIcon />
         </button>
         {scale > MIN_SCALE && (
-          <button
-            onClick={() => handleZoom(MIN_SCALE)}
-            className="bg-white hover:bg-amber-50 shadow-md rounded-lg p-2.5 transition-all active:scale-95 border border-amber-200"
-          >
-            <svg className="w-5 h-5 text-amber-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-            </svg>
+          <button type="button" onClick={() => handleZoom(MIN_SCALE)} aria-label="Xem toàn bộ bàn cờ" className={zoomButton}>
+            <ExpandIcon />
           </button>
         )}
       </div>
 
-      <div className="relative bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl shadow-lg p-2 md:p-4 w-full">
-      <div 
-        ref={containerRef}
-        className="relative w-full aspect-square overflow-hidden touch-none"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onWheel={handleWheel}
-      >
-      {/* Grid container với background lines */}
-      <div 
-        ref={boardRef}
-        className="relative w-full aspect-square transition-transform duration-200 ease-out"
-        style={{
-          transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-          transformOrigin: 'center center'
-        }}
-      >
-        {/* Horizontal lines */}
-        <div className="absolute inset-0 pointer-events-none">
-          {Array.from({ length: BOARD_SIZE + 1 }).map((_, i) => (
-            <div
-              key={`h-${i}`}
-              className="absolute left-0 right-0 bg-amber-900/30"
-              style={{
-                top: `${(i / BOARD_SIZE) * 100}%`,
-                height: "1px",
-              }}
-            />
-          ))}
-        </div>
-        
-        {/* Vertical lines */}
-        <div className="absolute inset-0 pointer-events-none">
-          {Array.from({ length: BOARD_SIZE + 1 }).map((_, i) => (
-            <div
-              key={`v-${i}`}
-              className="absolute top-0 bottom-0 bg-amber-900/30"
-              style={{
-                left: `${(i / BOARD_SIZE) * 100}%`,
-                width: "1px",
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Game board */}
+      <div className="tray overflow-hidden !rounded-[1.5rem] p-1">
         <div
-          className="absolute inset-0 grid gap-0"
-          style={{
-            gridTemplateColumns: `repeat(${BOARD_SIZE}, 1fr)`,
-            gridTemplateRows: `repeat(${BOARD_SIZE}, 1fr)`,
-          }}
+          ref={containerRef}
+          className="relative aspect-square w-full touch-none overflow-hidden"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onWheel={handleWheel}
         >
-          {board.map((row, rowIndex) =>
-            row.map((cell, colIndex) => {
-              const isWinning = isWinningCell(rowIndex, colIndex);
-              const isLast = isLastMove(rowIndex, colIndex);
+          <div
+            ref={boardRef}
+            className="relative grid aspect-square w-full transition-transform duration-200 ease-out"
+            style={{
+              gridTemplateColumns: `repeat(${BOARD_SIZE}, 1fr)`,
+              gridTemplateRows: `repeat(${BOARD_SIZE}, 1fr)`,
+              transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+              transformOrigin: "center center",
+            }}
+          >
+            {board.map((row, rowIndex) =>
+              row.map((cell, colIndex) => {
+                const isWinning = isWinningCell(rowIndex, colIndex);
+                const isLast = isLastMove(rowIndex, colIndex);
+                const canPlay = !disabled && cell === null;
 
-              return (
-                <button
-                  key={`${rowIndex}-${colIndex}`}
-                  onClick={() => onCellClick(rowIndex, colIndex)}
-                  disabled={disabled || cell !== null}
-                  className={`
-                    relative w-full h-full
-                    flex items-center justify-center
-                    transition-colors
-                    ${!disabled && cell === null ? "hover:bg-amber-100/50 cursor-pointer" : ""}
-                    ${disabled || cell !== null ? "cursor-not-allowed" : ""}
-                    ${isWinning ? "bg-green-200/70" : ""}
-                    ${isLast ? "bg-blue-100/50" : ""}
-                  `}
-                >
-                  {cell && (
-                    <motion.span
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 260,
-                        damping: 20,
-                      }}
-                      className={`
-                        absolute inset-0
-                        flex items-center justify-center
-                        font-bold select-none pointer-events-none
-                        ${cell === "X" ? "text-blue-600" : "text-red-600"}
-                        ${isWinning ? "text-green-700" : ""}
-                      `}
-                      style={{ 
-                        fontSize: "clamp(16px, 3vw, 28px)",
-                        lineHeight: 1,
-                      }}
-                    >
-                      {cell}
-                    </motion.span>
-                  )}
-
-                  {!cell && !disabled && (
-                    <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                      <div className="w-1.5 h-1.5 bg-amber-400 rounded-full" />
-                    </div>
-                  )}
-                </button>
-              );
-            })
-          )}
+                return (
+                  <button
+                    key={`${rowIndex}-${colIndex}`}
+                    type="button"
+                    onClick={() => onCellClick(rowIndex, colIndex)}
+                    disabled={disabled || cell !== null}
+                    aria-label={`Ô hàng ${rowIndex + 1}, cột ${colIndex + 1}, ${cell ? `quân ${cell}` : "trống"}`}
+                    className={`
+                      group relative flex h-full w-full items-center justify-center p-[7%]
+                      ${canPlay ? "cursor-pointer" : "cursor-default"}
+                    `}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`absolute inset-[6%] rounded-[30%] transition-colors ${
+                        isWinning ? "bg-lemon" : isLast ? "bg-lemon-pale ring-2 ring-inset ring-ink/50" : canPlay ? "bg-mint-pale ring-1 ring-inset ring-ink/30 group-hover:bg-lemon-pale" : "bg-mint-pale ring-1 ring-inset ring-ink/30"
+                      }`}
+                    />
+                    {cell && (
+                      <motion.span
+                        className="relative block h-full w-full"
+                        initial={{ y: "-110%", scale: 0.6 }}
+                        animate={isWinning ? { y: [0, "-14%", 0], scale: 1 } : { y: 0, scale: 1 }}
+                        transition={
+                          isWinning
+                            ? { duration: 0.55, repeat: Infinity, ease: "easeInOut" }
+                            : { type: "spring", stiffness: 560, damping: 15 }
+                        }
+                      >
+                        {cell === "X" ? <CandyX className="h-full w-full" /> : <CandyO className="h-full w-full" />}
+                      </motion.span>
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
         </div>
-      </div>
-      </div>
       </div>
     </div>
   );

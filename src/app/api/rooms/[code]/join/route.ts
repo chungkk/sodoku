@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import Room from "@/models/Room";
+import { denyUnlessPlayer } from "@/lib/player-auth";
 
 interface RouteParams {
   params: Promise<{ code: string }>;
@@ -10,7 +10,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { code } = await params;
     const body = await request.json();
-    const { visitorId, name, userId } = body;
+    const { visitorId, name } = body;
 
     if (!code || code.length !== 6) {
       return NextResponse.json(
@@ -26,9 +26,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await connectDB();
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
 
-    const room = await Room.findOne({ code: code.toUpperCase() });
+    const room = Room.findByCode(code.toUpperCase());
 
     if (!room) {
       return NextResponse.json(
@@ -44,19 +45,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    if (room.players.length >= 4) {
-      return NextResponse.json(
-        { error: "Room is full", code: "ROOM_FULL" },
-        { status: 400 }
-      );
-    }
-
     const existingPlayer = room.players.find((p) => p.visitorId === visitorId);
     if (existingPlayer) {
       existingPlayer.isConnected = true;
       existingPlayer.lastSeen = new Date();
-      room.lastActivityAt = new Date();
-      await room.save();
+      room.save();
 
       return NextResponse.json({
         success: true,
@@ -71,7 +64,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       });
     }
 
-    const added = room.addPlayer(visitorId, name, userId || null);
+    if (room.players.length >= 4) {
+      return NextResponse.json(
+        { error: "Room is full", code: "ROOM_FULL" },
+        { status: 400 }
+      );
+    }
+
+    const added = room.addPlayer(visitorId, name);
     if (!added) {
       return NextResponse.json(
         { error: "Failed to join room" },
@@ -79,8 +79,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    room.lastActivityAt = new Date();
-    await room.save();
+    room.save();
 
     return NextResponse.json({
       success: true,

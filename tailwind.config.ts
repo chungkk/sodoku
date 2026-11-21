@@ -10,46 +10,24 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-        primary: {
-          50: "#eff6ff",
-          100: "#dbeafe",
-          200: "#bfdbfe",
-          300: "#93c5fd",
-          400: "#60a5fa",
-          500: "#3b82f6",
-          600: "#2563eb",
-          700: "#1d4ed8",
-          800: "#1e40af",
-          900: "#1e3a8a",
-        },
-        success: {
-          500: "#22c55e",
-          600: "#16a34a",
-        },
-        error: {
-          500: "#ef4444",
-          600: "#dc2626",
-        },
+        ink: "rgb(var(--ink-rgb) / <alpha-value>)",
+        "ink-soft": "var(--ink-soft)",
+        mint: "var(--mint)",
+        "mint-deep": "var(--mint-deep)",
+        "mint-pale": "var(--mint-pale)",
+        milk: "var(--milk)",
+        cherry: "var(--cherry)",
+        "cherry-pale": "var(--cherry-pale)",
+        lemon: "var(--lemon)",
+        "lemon-pale": "var(--lemon-pale)",
+        gum: "var(--gum)",
+        teal: "var(--teal)",
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        sans: ["var(--font-body)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "var(--font-body)", "sans-serif"],
       },
-      animation: {
-        "bounce-subtle": "bounce-subtle 0.3s ease-in-out",
-        "pulse-success": "pulse-success 0.5s ease-in-out",
-      },
-      keyframes: {
-        "bounce-subtle": {
-          "0%, 100%": { transform: "scale(1)" },
-          "50%": { transform: "scale(1.05)" },
-        },
-        "pulse-success": {
-          "0%": { boxShadow: "0 0 0 0 rgba(34, 197, 94, 0.4)" },
-          "100%": { boxShadow: "0 0 0 10px rgba(34, 197, 94, 0)" },
-        },
-      },
+      borderWidth: { 3: "3px", 5: "5px" },
     },
   },
   plugins: [forms],

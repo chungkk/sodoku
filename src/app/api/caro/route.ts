@@ -1,25 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import CaroRoom from "@/models/CaroRoom";
 import { v4 as uuidv4 } from "uuid";
 import { createEmptyBoard } from "@/lib/caro";
+import { denyUnlessPlayer } from "@/lib/player-auth";
+import { cleanPlayerName } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
-    const { visitorId, name } = await request.json();
+    const { visitorId, name: rawName } = await request.json();
+    const name = cleanPlayerName(rawName);
 
     if (!visitorId || !name) {
       return NextResponse.json(
-        { error: "Missing visitorId or name" },
+        { error: "Missing visitorId or invalid name" },
         { status: 400 }
       );
     }
 
-    await connectDB();
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
 
-    const code = uuidv4().slice(0, 8).toUpperCase();
+    let code = uuidv4().slice(0, 6).toUpperCase();
+    while (CaroRoom.findByCode(code)) {
+      code = uuidv4().slice(0, 6).toUpperCase();
+    }
 
-    const room = await CaroRoom.create({
+    const room = CaroRoom.create({
       code,
       players: [
         {
@@ -33,7 +39,6 @@ export async function POST(request: NextRequest) {
       board: createEmptyBoard(),
       currentTurn: "X",
       status: "waiting",
-      lastActivityAt: new Date(),
     });
 
     return NextResponse.json({
@@ -53,31 +58,9 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
-  try {
-    await connectDB();
-
-    const rooms = await CaroRoom.find({
-      status: { $in: ["waiting", "playing"] },
-      createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-    })
-      .sort({ createdAt: -1 })
-      .limit(20);
-
-    return NextResponse.json({
-      success: true,
-      rooms: rooms.map((room) => ({
-        code: room.code,
-        status: room.status,
-        playerCount: room.players.length,
-        createdAt: room.createdAt,
-      })),
-    });
-  } catch (error) {
-    console.error("Failed to fetch caro rooms:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch rooms" },
-      { status: 500 }
-    );
-  }
+export async function GET() {
+  return NextResponse.json(
+    { error: "Method not allowed" },
+    { status: 405 }
+  );
 }

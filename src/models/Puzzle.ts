@@ -1,8 +1,9 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
+import { getDb } from "../lib/db";
 
 export type Difficulty = "easy" | "medium" | "hard";
 
-export interface IPuzzle extends Document {
+export interface IPuzzle {
+  id: number;
   grid: number[][];
   solution: number[][];
   difficulty: Difficulty;
@@ -11,85 +12,75 @@ export interface IPuzzle extends Document {
   createdAt: Date;
 }
 
-const PuzzleSchema = new Schema<IPuzzle>(
-  {
-    grid: {
-      type: [[Number]],
-      required: true,
-      validate: {
-        validator: function (v: number[][]) {
-          if (v.length !== 9) return false;
-          return v.every(
-            (row) =>
-              row.length === 9 &&
-              row.every((cell) => cell >= 0 && cell <= 9)
-          );
-        },
-        message: "Grid must be 9x9 with values 0-9",
-      },
-    },
-    solution: {
-      type: [[Number]],
-      required: true,
-      validate: {
-        validator: function (v: number[][]) {
-          if (v.length !== 9) return false;
-          return v.every(
-            (row) =>
-              row.length === 9 &&
-              row.every((cell) => cell >= 1 && cell <= 9)
-          );
-        },
-        message: "Solution must be 9x9 with values 1-9",
-      },
-    },
-    difficulty: {
-      type: String,
-      enum: ["easy", "medium", "hard"],
-      required: true,
-    },
-    givenCells: {
-      type: Number,
-      required: true,
-      min: 17,
-      max: 81,
-    },
-    isPregenerated: {
-      type: Boolean,
-      default: false,
-    },
+type NewPuzzle = Omit<IPuzzle, "id" | "createdAt">;
+
+interface PuzzleRow {
+  id: number;
+  difficulty: string;
+  is_pregenerated: number;
+  given_cells: number;
+  grid: string;
+  solution: string;
+  created_at: string;
+}
+
+function fromRow(row: PuzzleRow): IPuzzle {
+  return {
+    id: row.id,
+    grid: JSON.parse(row.grid),
+    solution: JSON.parse(row.solution),
+    difficulty: row.difficulty as Difficulty,
+    givenCells: row.given_cells,
+    isPregenerated: row.is_pregenerated === 1,
+    createdAt: new Date(row.created_at),
+  };
+}
+
+const Puzzle = {
+  create(puzzle: NewPuzzle): IPuzzle {
+    const createdAt = new Date();
+    const { lastInsertRowid } = getDb()
+      .prepare(
+        `INSERT INTO puzzles (difficulty, is_pregenerated, given_cells, grid, solution, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        puzzle.difficulty,
+        puzzle.isPregenerated ? 1 : 0,
+        puzzle.givenCells,
+        JSON.stringify(puzzle.grid),
+        JSON.stringify(puzzle.solution),
+        createdAt.toISOString()
+      );
+    return { ...puzzle, id: Number(lastInsertRowid), createdAt };
   },
-  {
-    timestamps: { createdAt: true, updatedAt: false },
-  }
-);
 
-PuzzleSchema.index({ difficulty: 1, isPregenerated: 1 });
-PuzzleSchema.index({ createdAt: -1 });
+  findById(id: number | null): IPuzzle | null {
+    if (id === null) return null;
+    const row = getDb().prepare("SELECT * FROM puzzles WHERE id = ?").get(id);
+    return row ? fromRow(row as unknown as PuzzleRow) : null;
+  },
 
-PuzzleSchema.statics.getRandomByDifficulty = async function (
-  difficulty: Difficulty
-): Promise<IPuzzle | null> {
-  // Prefer pre-generated puzzles
-  const pregeneratedCount = await this.countDocuments({ 
-    difficulty, 
-    isPregenerated: true 
-  });
-  
-  if (pregeneratedCount > 0) {
-    const random = Math.floor(Math.random() * pregeneratedCount);
-    return this.findOne({ difficulty, isPregenerated: true }).skip(random);
-  }
+  /** Ưu tiên puzzle tạo sẵn, không có thì lấy bất kỳ puzzle nào cùng độ khó. */
+  getRandomByDifficulty(difficulty: Difficulty): IPuzzle | null {
+    const row = getDb()
+      .prepare(
+        `SELECT * FROM puzzles WHERE difficulty = ?
+         ORDER BY is_pregenerated DESC, RANDOM() LIMIT 1`
+      )
+      .get(difficulty);
+    return row ? fromRow(row as unknown as PuzzleRow) : null;
+  },
 
-  // Fallback to any puzzle
-  const count = await this.countDocuments({ difficulty });
-  if (count === 0) return null;
-
-  const random = Math.floor(Math.random() * count);
-  return this.findOne({ difficulty }).skip(random);
+  countPregenerated(difficulty?: Difficulty): number {
+    const db = getDb();
+    const row = difficulty
+      ? db
+          .prepare("SELECT COUNT(*) AS n FROM puzzles WHERE is_pregenerated = 1 AND difficulty = ?")
+          .get(difficulty)
+      : db.prepare("SELECT COUNT(*) AS n FROM puzzles WHERE is_pregenerated = 1").get();
+    return Number((row as { n: number }).n);
+  },
 };
-
-const Puzzle: Model<IPuzzle> =
-  mongoose.models.Puzzle || mongoose.model<IPuzzle>("Puzzle", PuzzleSchema);
 
 export default Puzzle;

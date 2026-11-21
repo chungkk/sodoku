@@ -1,54 +1,38 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { usePlayer } from "@/contexts/PlayerContext";
-import { Button } from "./ui/button";
+import { Awning } from "@/components/candy";
+import { Mascot } from "@/components/Mascot";
 
 export function Header() {
-  const { player, isGuest } = usePlayer();
+  const { player } = usePlayer();
+  const pathname = usePathname();
+  // Trên điện thoại, màn chơi dành toàn bộ chiều cao cho bàn cờ
+  const isStage = pathname.endsWith("/play") || pathname === "/practice";
 
   return (
-    <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 group">
-          <span className="text-3xl">🧩</span>
-          <span className="text-xl font-bold text-gray-900 group-hover:text-primary-500 transition-colors">
-            Solo Online
-          </span>
-        </Link>
-
-        <nav className="flex items-center gap-4">
-          <Link
-            href="/practice"
-            className="text-gray-600 hover:text-primary-500 font-medium transition-colors hidden sm:block"
-          >
-            Tập luyện
+    <header className={`relative z-30 ${isStage ? "hidden lg:block" : ""}`}>
+      <Awning />
+      <div className={`mx-auto h-14 items-center justify-between gap-3 px-4 ${pathname === "/" ? "hidden max-w-6xl lg:flex" : "flex max-w-5xl"}`}>
+        {pathname === "/" ? (
+          <span />
+        ) : (
+          <Link href="/" className="flex min-w-0 items-center gap-1.5 rounded-full">
+            <Mascot animated={false} className="w-9" />
+            <span className="whitespace-nowrap font-display text-xl text-ink">Solo Games</span>
           </Link>
+        )}
 
-          {player ? (
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600 hidden sm:block">
-                {isGuest ? "👤" : "✨"} {player.name}
-              </span>
-              {!isGuest && (
-                <Link href="/profile">
-                  <Button variant="ghost" size="sm">
-                    Hồ sơ
-                  </Button>
-                </Link>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link href="/login">
-                <Button variant="ghost" size="sm">
-                  Đăng nhập
-                </Button>
-              </Link>
-              <Link href="/register">
-                <Button size="sm">Đăng ký</Button>
-              </Link>
-            </div>
+        <nav className="flex min-w-0 items-center gap-3">
+          <Link href="/practice" className="whitespace-nowrap font-semibold underline decoration-[3px] underline-offset-4 hover:decoration-cherry">
+            Luyện tập
+          </Link>
+          {player && (
+            <span className="hidden max-w-40 truncate rounded-full border-[3px] border-ink bg-milk px-3 py-0.5 font-semibold sm:block">
+              {player.name}
+            </span>
           )}
         </nav>
       </div>

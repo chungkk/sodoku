@@ -1,13 +1,13 @@
 "use client";
 
-import { SessionProvider } from "next-auth/react";
+import { MotionConfig } from "framer-motion";
 import { PlayerProvider } from "@/contexts/PlayerContext";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <SessionProvider>
+    <MotionConfig reducedMotion="user">
       <PlayerProvider>{children}</PlayerProvider>
-    </SessionProvider>
+    </MotionConfig>
   );
 }

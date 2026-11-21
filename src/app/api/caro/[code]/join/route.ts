@@ -1,25 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import CaroRoom from "@/models/CaroRoom";
+import { denyUnlessPlayer } from "@/lib/player-auth";
+import { cleanPlayerName } from "@/lib/validation";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
   try {
-    const { code } = params;
-    const { visitorId, name } = await request.json();
+    const { code } = await params;
+    const { visitorId, name: rawName } = await request.json();
+    const name = cleanPlayerName(rawName);
 
     if (!visitorId || !name) {
       return NextResponse.json(
-        { error: "Missing visitorId or name" },
+        { error: "Missing visitorId or invalid name" },
         { status: 400 }
       );
     }
 
-    await connectDB();
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
 
-    const room = await CaroRoom.findOne({ code });
+    const room = CaroRoom.findByCode(code);
 
     if (!room) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
@@ -32,10 +35,6 @@ export async function POST(
       );
     }
 
-    if (room.players.length >= 2) {
-      return NextResponse.json({ error: "Room is full" }, { status: 400 });
-    }
-
     const existingPlayer = room.players.find(
       (p: { visitorId: string }) => p.visitorId === visitorId
     );
@@ -43,6 +42,9 @@ export async function POST(
     if (existingPlayer) {
       existingPlayer.isConnected = true;
     } else {
+      if (room.players.length >= 2) {
+        return NextResponse.json({ error: "Room is full" }, { status: 400 });
+      }
       room.players.push({
         visitorId,
         name,
@@ -52,8 +54,7 @@ export async function POST(
       });
     }
 
-    room.lastActivityAt = new Date();
-    await room.save();
+    room.save();
 
     return NextResponse.json({
       success: true,

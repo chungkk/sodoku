@@ -5,18 +5,22 @@ import {
   Difficulty,
   generatePuzzle,
   isPuzzleComplete,
+  calculateFillProgress,
   calculateProgress,
   hasConflict,
+  validateSolution,
 } from "@/lib/sudoku";
 
 type InputMode = "fill" | "note";
 
 interface GameState {
   puzzle: number[][];
-  solution: number[][];
+  /** Chỉ có ở chế độ luyện tập. Chơi đối kháng để null vì server không gửi lời giải cho client. */
+  solution: number[][] | null;
   userInput: (number | null)[][];
   notes: Set<number>[][];
   selectedCell: [number, number] | null;
+  highlightedNumber: number | null;
   mode: InputMode;
   difficulty: Difficulty;
   errors: number;
@@ -34,16 +38,27 @@ interface HistoryEntry {
 
 type GameAction =
   | { type: "START_GAME"; difficulty: Difficulty }
-  | { type: "LOAD_PUZZLE"; puzzle: number[][]; solution: number[][]; difficulty: Difficulty; userInput?: (number | null)[][] }
-  | { type: "LOAD_PUZZLE_WITH_STATE"; puzzle: number[][]; solution: number[][]; difficulty: Difficulty; userInput: (number | null)[][]; notes: Set<number>[][] }
+  | { type: "LOAD_PUZZLE"; puzzle: number[][]; solution: number[][] | null; difficulty: Difficulty; userInput?: (number | null)[][] }
+  | {
+      type: "LOAD_PUZZLE_WITH_STATE";
+      puzzle: number[][];
+      solution: number[][] | null;
+      difficulty: Difficulty;
+      userInput: (number | null)[][];
+      notes: Set<number>[][];
+      errors?: number;
+      isComplete?: boolean;
+    }
   | { type: "SELECT_CELL"; row: number; col: number }
   | { type: "INPUT_NUMBER"; number: number }
   | { type: "CLEAR_CELL" }
-  | { type: "TOGGLE_NOTE"; number: number }
   | { type: "SET_MODE"; mode: InputMode }
   | { type: "UNDO" }
-  | { type: "USE_HINT" }
   | { type: "RESET_GAME" };
+
+function isSolved(grid: number[][], solution: number[][] | null): boolean {
+  return solution ? isPuzzleComplete(grid, solution) : validateSolution(grid);
+}
 
 function createEmptyNotes(): Set<number>[][] {
   return Array(9)
@@ -67,6 +82,7 @@ const initialState: GameState = {
   userInput: createEmptyUserInput(),
   notes: createEmptyNotes(),
   selectedCell: null,
+  highlightedNumber: null,
   mode: "fill",
   difficulty: "medium",
   errors: 0,
@@ -74,6 +90,20 @@ const initialState: GameState = {
   isStarted: false,
   history: [],
 };
+
+function highlightNumber(state: GameState, number: number): GameState {
+  const currentNumber =
+    state.highlightedNumber ??
+    (state.selectedCell
+      ? state.puzzle[state.selectedCell[0]][state.selectedCell[1]] ||
+        state.userInput[state.selectedCell[0]][state.selectedCell[1]]
+      : null);
+  return {
+    ...state,
+    selectedCell: null,
+    highlightedNumber: currentNumber === number ? null : number,
+  };
+}
 
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
@@ -112,6 +142,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         userInput: action.userInput,
         notes: action.notes,
         difficulty: action.difficulty,
+        errors: action.errors ?? 0,
+        isComplete: action.isComplete ?? false,
         isStarted: true,
         history: [],
       };
@@ -119,17 +151,14 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     case "SELECT_CELL": {
       const { row, col } = action;
-      if (state.puzzle[row][col] !== 0) {
-        return { ...state, selectedCell: [row, col] };
-      }
-      return { ...state, selectedCell: [row, col] };
+      return { ...state, selectedCell: [row, col], highlightedNumber: null };
     }
 
     case "INPUT_NUMBER": {
-      if (!state.selectedCell) return state;
+      if (!state.selectedCell) return highlightNumber(state, action.number);
       const [row, col] = state.selectedCell;
 
-      if (state.puzzle[row][col] !== 0) return state;
+      if (state.puzzle[row][col] !== 0) return highlightNumber(state, action.number);
 
       const historyEntry: HistoryEntry = {
         row,
@@ -139,6 +168,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
 
       if (state.mode === "note") {
+        if (state.userInput[row][col] !== null) return state;
         const newNotes = state.notes.map((r, ri) =>
           r.map((cellNotes, ci) => {
             if (ri === row && ci === col) {
@@ -176,7 +206,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const isError = hasConflict(currentGrid, row, col, action.number);
       const newErrors = isError ? state.errors + 1 : state.errors;
 
-      const complete = isPuzzleComplete(currentGrid, state.solution);
+      const complete = isSolved(currentGrid, state.solution);
 
       return {
         ...state,
@@ -189,7 +219,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case "CLEAR_CELL": {
-      if (!state.selectedCell) return state;
+      if (!state.selectedCell) {
+        return state.highlightedNumber !== null ? { ...state, highlightedNumber: null } : state;
+      }
       const [row, col] = state.selectedCell;
 
       if (state.puzzle[row][col] !== 0) return state;
@@ -213,31 +245,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       );
 
       return { ...state, userInput: newUserInput, notes: newNotes, history: [...state.history, historyEntry] };
-    }
-
-    case "TOGGLE_NOTE": {
-      if (!state.selectedCell) return state;
-      const [row, col] = state.selectedCell;
-
-      if (state.puzzle[row][col] !== 0) return state;
-      if (state.userInput[row][col] !== null) return state;
-
-      const newNotes = state.notes.map((r, ri) =>
-        r.map((cellNotes, ci) => {
-          if (ri === row && ci === col) {
-            const updated = new Set(cellNotes);
-            if (updated.has(action.number)) {
-              updated.delete(action.number);
-            } else {
-              updated.add(action.number);
-            }
-            return updated;
-          }
-          return cellNotes;
-        })
-      );
-
-      return { ...state, notes: newNotes };
     }
 
     case "SET_MODE": {
@@ -266,41 +273,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         notes: newNotes,
         history: state.history.slice(0, -1),
         selectedCell: [row, col],
-      };
-    }
-
-    case "USE_HINT": {
-      if (!state.selectedCell) return state;
-      const [row, col] = state.selectedCell;
-
-      if (state.puzzle[row][col] !== 0) return state;
-      if (state.userInput[row][col] === state.solution[row][col]) return state;
-
-      const correctValue = state.solution[row][col];
-
-      const newUserInput = state.userInput.map((r, ri) =>
-        r.map((cell, ci) => (ri === row && ci === col ? correctValue : cell))
-      );
-
-      const newNotes = state.notes.map((r, ri) =>
-        r.map((cellNotes, ci) =>
-          ri === row && ci === col ? new Set<number>() : cellNotes
-        )
-      );
-
-      const currentGrid = state.puzzle.map((puzzleRow, r) =>
-        puzzleRow.map((cell, c) =>
-          cell !== 0 ? cell : newUserInput[r][c] || 0
-        )
-      );
-
-      const complete = isPuzzleComplete(currentGrid, state.solution);
-
-      return {
-        ...state,
-        userInput: newUserInput,
-        notes: newNotes,
-        isComplete: complete,
+        highlightedNumber: null,
       };
     }
 
@@ -322,7 +295,7 @@ export function useGame() {
 
   const loadPuzzle = useCallback((
     puzzle: number[][],
-    solution: number[][],
+    solution: number[][] | null,
     difficulty: Difficulty,
     userInput?: (number | null)[][]
   ) => {
@@ -331,12 +304,22 @@ export function useGame() {
 
   const loadPuzzleWithState = useCallback((
     puzzle: number[][],
-    solution: number[][],
+    solution: number[][] | null,
     difficulty: Difficulty,
     userInput: (number | null)[][],
-    notes: Set<number>[][]
+    notes: Set<number>[][],
+    options?: { errors?: number; isComplete?: boolean }
   ) => {
-    dispatch({ type: "LOAD_PUZZLE_WITH_STATE", puzzle, solution, difficulty, userInput, notes });
+    dispatch({
+      type: "LOAD_PUZZLE_WITH_STATE",
+      puzzle,
+      solution,
+      difficulty,
+      userInput,
+      notes,
+      errors: options?.errors,
+      isComplete: options?.isComplete,
+    });
   }, []);
 
   const selectCell = useCallback((row: number, col: number) => {
@@ -349,10 +332,6 @@ export function useGame() {
 
   const clearCell = useCallback(() => {
     dispatch({ type: "CLEAR_CELL" });
-  }, []);
-
-  const toggleNote = useCallback((number: number) => {
-    dispatch({ type: "TOGGLE_NOTE", number });
   }, []);
 
   const setMode = useCallback((mode: InputMode) => {
@@ -371,15 +350,6 @@ export function useGame() {
     dispatch({ type: "UNDO" });
   }, []);
 
-  const useHint = useCallback((): boolean => {
-    if (!state.selectedCell) return false;
-    const [row, col] = state.selectedCell;
-    if (state.puzzle[row][col] !== 0) return false;
-    if (state.userInput[row][col] === state.solution[row][col]) return false;
-    dispatch({ type: "USE_HINT" });
-    return true;
-  }, [state.selectedCell, state.puzzle, state.userInput, state.solution]);
-
   const canUndo = state.history.length > 0;
 
   const progress = useMemo(() => {
@@ -387,7 +357,9 @@ export function useGame() {
     const currentGrid = state.puzzle.map((row, r) =>
       row.map((cell, c) => (cell !== 0 ? cell : state.userInput[r][c] || 0))
     );
-    return calculateProgress(currentGrid, state.solution, state.puzzle);
+    return state.solution
+      ? calculateProgress(currentGrid, state.solution, state.puzzle)
+      : calculateFillProgress(currentGrid, state.puzzle);
   }, [state.puzzle, state.userInput, state.solution, state.isStarted]);
 
   return {
@@ -400,12 +372,10 @@ export function useGame() {
     selectCell,
     inputNumber,
     clearCell,
-    toggleNote,
     setMode,
     toggleMode,
     resetGame,
     undo,
-    useHint,
   };
 }
 

@@ -1,22 +1,13 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { CenterScreen } from "@/components/room";
 
 export default function NotFound() {
   return (
-    <div className="min-h-[60vh] flex items-center justify-center p-4">
-      <Card padding="lg" className="max-w-md text-center">
-        <div className="text-6xl mb-4">🔍</div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Không tìm thấy trang
-        </h1>
-        <p className="text-gray-600 mb-6">
-          Trang bạn đang tìm kiếm không tồn tại hoặc đã bị xóa.
-        </p>
-        <Link href="/">
-          <Button>Về trang chủ</Button>
-        </Link>
-      </Card>
-    </div>
+    <CenterScreen mood="sad" title="Không có trang này rồi">
+      <p className="mb-4 text-lg font-semibold">Trang bạn tìm không tồn tại hoặc đã bị xóa.</p>
+      <Link href="/" className="candy-gloss inline-flex min-h-12 items-center rounded-full border-4 border-ink bg-cherry px-6 font-display text-lg text-milk">
+        Về trang chủ
+      </Link>
+    </CenterScreen>
   );
 }

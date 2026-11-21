@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.env*
+!.env.example
+data
+solo
+specs
+.specify
+.factory
+.continue
+*.tsbuildinfo
+npm-debug.log*
+.DS_Store
+Dockerfile
+.dockerignore

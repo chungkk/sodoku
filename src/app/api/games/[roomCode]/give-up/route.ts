@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import Room from "@/models/Room";
+import { denyUnlessPlayer } from "@/lib/player-auth";
+import { broadcast, sudokuSocketRoom } from "@/lib/realtime";
 
 interface RouteParams {
   params: Promise<{ roomCode: string }>;
@@ -19,9 +20,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await connectDB();
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
 
-    const room = await Room.findOne({ code: roomCode.toUpperCase() });
+    const room = Room.findByCode(roomCode.toUpperCase());
 
     if (!room) {
       return NextResponse.json(
@@ -45,33 +47,28 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    player.progress = -1;
-    player.finishedAt = new Date();
-
-    const activePlayers = room.players.filter((p) => p.progress !== -1 && !p.finishedAt);
-
-    if (activePlayers.length === 0) {
-      room.status = "finished";
-      room.finishedAt = new Date();
-
-      const finishedPlayers = room.players.filter((p) => p.progress === 100 && p.finishedAt);
-      if (finishedPlayers.length > 0) {
-        const startTime = room.startedAt!.getTime();
-        finishedPlayers.sort((a, b) => {
-          const timeA = a.finishedAt!.getTime() - startTime;
-          const timeB = b.finishedAt!.getTime() - startTime;
-          if (timeA !== timeB) return timeA - timeB;
-          return (a.errors || 0) - (b.errors || 0);
-        });
-        room.winnerId = finishedPlayers[0].visitorId;
-      }
+    const wasPauser = room.pausedBy === visitorId;
+    if (!room.giveUp(visitorId)) {
+      return NextResponse.json(
+        { error: "Player already finished", code: "ALREADY_FINISHED" },
+        { status: 400 }
+      );
     }
 
-    await room.save();
+    room.save();
+
+    const socketRoom = sudokuSocketRoom(room.code);
+    broadcast(socketRoom, "player_gave_up", { visitorId, name: player.name });
+    if (wasPauser) {
+      broadcast(socketRoom, "game_paused", { visitorId, name: player.name, paused: false });
+    }
+    if (room.isFinished) {
+      broadcast(socketRoom, "game_ended", { winnerId: room.winnerId, reason: "all_gave_up" });
+    }
 
     return NextResponse.json({
       success: true,
-      gameEnded: room.status === "finished",
+      gameEnded: room.isFinished,
       winnerId: room.winnerId,
     });
   } catch (error) {

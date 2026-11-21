@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { motion } from "framer-motion";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 interface NameInputProps {
@@ -13,9 +11,16 @@ interface NameInputProps {
   initialValue?: string;
 }
 
+function validateName(value: string): string | null {
+  const trimmed = value.trim();
+  if (trimmed.length < 2) return "Tên cần ít nhất 2 ký tự";
+  if (trimmed.length > 20) return "Tên dài tối đa 20 ký tự";
+  return null;
+}
+
 export function NameInput({
   onSubmit,
-  placeholder = "Nhập tên của bạn",
+  placeholder = "Ví dụ: Minh",
   buttonText = "Tiếp tục",
   isLoading = false,
   initialValue = "",
@@ -23,67 +28,41 @@ export function NameInput({
   const [name, setName] = useState(initialValue);
   const [error, setError] = useState<string | null>(null);
 
-  const validateName = useCallback((value: string): string | null => {
-    const trimmed = value.trim();
-    if (trimmed.length < 2) {
-      return "Tên phải có ít nhất 2 ký tự";
-    }
-    if (trimmed.length > 20) {
-      return "Tên không được quá 20 ký tự";
-    }
-    return null;
-  }, []);
-
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
       const validationError = validateName(name);
-      if (validationError) {
-        setError(validationError);
-        return;
-      }
-      setError(null);
-      onSubmit(name.trim());
+      setError(validationError);
+      if (!validationError) onSubmit(name.trim());
     },
-    [name, validateName, onSubmit]
-  );
-
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setName(e.target.value);
-      if (error) {
-        const validationError = validateName(e.target.value);
-        setError(validationError);
-      }
-    },
-    [error, validateName]
+    [name, onSubmit]
   );
 
   return (
-    <motion.form
-      onSubmit={handleSubmit}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
-    >
-      <Input
-        label="Tên người chơi"
-        placeholder={placeholder}
-        value={name}
-        onChange={handleChange}
-        error={error || undefined}
-        disabled={isLoading}
-        autoFocus
-        maxLength={20}
-      />
-      <Button
-        type="submit"
-        fullWidth
-        disabled={name.trim().length < 2 || isLoading}
-        isLoading={isLoading}
-      >
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <label className="flex flex-col gap-1.5">
+        <span className="text-lg font-bold">Tên của bạn</span>
+        <input
+          type="text"
+          placeholder={placeholder}
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            if (error) setError(validateName(e.target.value));
+          }}
+          disabled={isLoading}
+          autoFocus
+          maxLength={20}
+          aria-invalid={!!error}
+          className={`w-full rounded-2xl border-4 bg-white px-4 py-3 text-xl font-semibold text-ink placeholder:text-ink-soft focus:ring-4 focus:ring-lemon disabled:opacity-60 ${
+            error ? "border-cherry focus:border-cherry" : "border-ink focus:border-ink"
+          }`}
+        />
+      </label>
+      {error && <p role="alert" className="font-semibold text-cherry">{error}</p>}
+      <Button type="submit" wrapped fullWidth size="lg" disabled={name.trim().length < 2} isLoading={isLoading}>
         {buttonText}
       </Button>
-    </motion.form>
+    </form>
   );
 }

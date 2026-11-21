@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import Room from "@/models/Room";
+import { denyUnlessPlayer } from "@/lib/player-auth";
+import { MAX_CHECKS_PER_GAME } from "@/lib/sudoku";
+import { clientProgress, isCount, isNotes, isPlayerGrid } from "@/lib/validation";
 
 interface RouteParams {
   params: Promise<{ roomCode: string }>;
@@ -19,9 +21,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await connectDB();
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
 
-    const room = await Room.findOne({ code: roomCode.toUpperCase() });
+    const room = Room.findByCode(roomCode.toUpperCase());
 
     if (!room) {
       return NextResponse.json(
@@ -47,6 +50,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       elapsedTime: player.elapsedTime || 0,
       errors: player.errors || 0,
       progress: player.progress || 0,
+      finished: player.finishedAt !== null,
+      gaveUp: player.progress === -1,
+      checksRemaining: Math.max(0, MAX_CHECKS_PER_GAME - (player.checksUsed ?? 0)),
     });
   } catch (error) {
     console.error("Get game state error:", error);
@@ -70,9 +76,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await connectDB();
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
 
-    const room = await Room.findOne({ code: roomCode.toUpperCase() });
+    const storedProgress = progress === undefined ? undefined : clientProgress(progress);
+    if (
+      storedProgress === null ||
+      (currentGrid !== undefined && !isPlayerGrid(currentGrid)) ||
+      (notes !== undefined && !isNotes(notes)) ||
+      (elapsedTime !== undefined && !isCount(elapsedTime)) ||
+      (errors !== undefined && !isCount(errors))
+    ) {
+      return NextResponse.json({ error: "Invalid game state" }, { status: 400 });
+    }
+
+    const room = Room.findByCode(roomCode.toUpperCase());
 
     if (!room) {
       return NextResponse.json(
@@ -104,7 +122,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     if (currentGrid !== undefined) {
-      player.currentGrid = currentGrid;
+      player.currentGrid = currentGrid as number[][];
     }
     if (notes !== undefined) {
       player.notes = notes;
@@ -115,12 +133,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (errors !== undefined) {
       player.errors = errors;
     }
-    if (progress !== undefined) {
-      player.progress = progress;
+    if (storedProgress !== undefined) {
+      player.progress = storedProgress;
     }
     player.lastSeen = new Date();
 
-    await room.save();
+    room.save();
 
     return NextResponse.json({
       success: true,

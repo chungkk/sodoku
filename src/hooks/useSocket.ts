@@ -6,6 +6,7 @@ import { io, Socket } from "socket.io-client";
 interface UseSocketOptions {
   visitorId: string;
   name: string;
+  token?: string;
   autoConnect?: boolean;
 }
 
@@ -23,6 +24,7 @@ interface UseSocketReturn {
 export function useSocket({
   visitorId,
   name,
+  token,
   autoConnect = true,
 }: UseSocketOptions): UseSocketReturn {
   const socketRef = useRef<Socket | null>(null);
@@ -33,14 +35,13 @@ export function useSocket({
     if (socketRef.current?.connected) return;
 
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "";
-    const isExternalSocket = socketUrl && !socketUrl.includes("localhost:3000");
     
     socketRef.current = io(socketUrl, {
-      // Only use custom path for local dev (same origin)
-      ...(isExternalSocket ? {} : { path: "/api/socketio" }),
-      auth: { visitorId, name },
+      path: "/api/socketio",
+      auth: { visitorId, name, token },
       reconnection: true,
-      reconnectionAttempts: 5,
+      // Vắng mặt quá lâu sẽ bị xử thua, nên phải thử kết nối lại tới khi được
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       transports: ["websocket", "polling"],
@@ -63,7 +64,7 @@ export function useSocket({
     socketRef.current.on("error", (data: { code: string; message: string }) => {
       setError(data.message);
     });
-  }, [visitorId, name]);
+  }, [visitorId, name, token]);
 
   const disconnect = useCallback(() => {
     if (socketRef.current) {

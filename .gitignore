@@ -35,3 +35,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 *.png
+
+# SQLite
+/data/
+
+# Impeccable working files
+.impeccable/mocks
+.impeccable/review
+.impeccable/build

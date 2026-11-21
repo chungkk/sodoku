@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import Room from "@/models/Room";
 import { Difficulty } from "@/models/Puzzle";
+import { denyUnlessPlayer } from "@/lib/player-auth";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { visitorId, hostName, difficulty, userId } = body;
+    const { visitorId, hostName, difficulty } = body;
 
     if (!visitorId || !hostName) {
       return NextResponse.json(
@@ -23,13 +23,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await connectDB();
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
 
-    const room = await Room.createRoom(
+    const room = Room.createRoom(
       visitorId,
       hostName,
-      difficulty || "medium",
-      userId || null
+      difficulty || "medium"
     );
 
     return NextResponse.json({
@@ -51,31 +51,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  try {
-    await connectDB();
-
-    const rooms = await Room.find({
-      status: { $in: ["waiting", "playing"] },
-      createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-    })
-      .sort({ createdAt: -1 })
-      .limit(20);
-
-    return NextResponse.json({
-      success: true,
-      rooms: rooms.map((room) => ({
-        code: room.code,
-        status: room.status,
-        difficulty: room.difficulty,
-        playerCount: room.players.length,
-        createdAt: room.createdAt,
-      })),
-    });
-  } catch (error) {
-    console.error("Failed to fetch rooms:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch rooms" },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json(
+    { error: "Method not allowed" },
+    { status: 405 }
+  );
 }

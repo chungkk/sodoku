@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import CaroRoom from "@/models/CaroRoom";
-import { checkWinner, isValidMove, isBoardFull } from "@/lib/caro";
+import { checkWinner, isValidMove, isBoardFull, TURN_TIMEOUT_MS } from "@/lib/caro";
+import { denyUnlessPlayer } from "@/lib/player-auth";
+import { broadcast, caroSocketRoom, caroTurnEnded, caroTurnStarted } from "@/lib/realtime";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
   try {
-    const { code } = params;
+    const { code } = await params;
     const { visitorId, row, col } = await request.json();
 
     if (visitorId === undefined || row === undefined || col === undefined) {
@@ -18,9 +19,10 @@ export async function POST(
       );
     }
 
-    await connectDB();
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
 
-    const room = await CaroRoom.findOne({ code });
+    const room = CaroRoom.findByCode(code);
 
     if (!room) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
@@ -33,7 +35,11 @@ export async function POST(
       );
     }
 
-    const player = room.players.find((p: { visitorId: string; symbol: "X" | "O" | null }) => p.visitorId === visitorId);
+    if (room.pausedBy) {
+      return NextResponse.json({ error: "Game is paused" }, { status: 400 });
+    }
+
+    const player = room.players.find((p) => p.visitorId === visitorId);
     if (!player) {
       return NextResponse.json({ error: "Player not found" }, { status: 404 });
     }
@@ -45,24 +51,34 @@ export async function POST(
       );
     }
 
-    if (!isValidMove(room.board, row, col)) {
+    if (!Number.isInteger(row) || !Number.isInteger(col) || !isValidMove(room.board, row, col)) {
       return NextResponse.json(
         { error: "Invalid move" },
         { status: 400 }
       );
     }
 
-    // Check if turn timeout (5 minutes = 300000ms)
-    const TURN_TIMEOUT = 5 * 60 * 1000;
+    // Mốc đầu lượt đã được lùi theo thời gian tạm dừng, nên lúc dừng không bị tính vào đây
     if (room.turnStartedAt) {
       const elapsed = Date.now() - room.turnStartedAt.getTime();
-      if (elapsed > TURN_TIMEOUT) {
+      if (elapsed > TURN_TIMEOUT_MS) {
         // Current player loses due to timeout
-        const opponent = room.players.find((p: { visitorId: string }) => p.visitorId !== visitorId);
+        const opponent = room.players.find((p) => p.visitorId !== visitorId);
         room.status = "finished";
         room.winnerId = opponent?.visitorId || null;
         room.finishedAt = new Date();
-        await room.save();
+        room.save();
+
+        caroTurnEnded(room.code);
+        broadcast(caroSocketRoom(room.code), "caro_turn_timeout", {
+          timedOutPlayer: visitorId,
+          winnerId: room.winnerId,
+        });
+        broadcast(caroSocketRoom(room.code), "caro_game_ended", {
+          winnerId: room.winnerId,
+          isDraw: false,
+          reason: "timeout",
+        });
 
         return NextResponse.json({
           success: false,
@@ -98,8 +114,24 @@ export async function POST(
       room.turnStartedAt = new Date();
     }
 
-    room.lastActivityAt = new Date();
-    await room.save();
+    room.save();
+
+    const socketRoom = caroSocketRoom(room.code);
+    broadcast(socketRoom, "caro_move_made", {
+      visitorId,
+      row,
+      col,
+      symbol: player.symbol,
+      board: room.board,
+      currentTurn: room.currentTurn,
+      turnStartedAt: room.turnStartedAt,
+    });
+    if (room.status === "finished") {
+      caroTurnEnded(room.code);
+      broadcast(socketRoom, "caro_game_ended", { winnerId: room.winnerId, isDraw });
+    } else {
+      caroTurnStarted(room.code);
+    }
 
     return NextResponse.json({
       success: true,

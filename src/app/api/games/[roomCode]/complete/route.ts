@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import Room from "@/models/Room";
 import Puzzle from "@/models/Puzzle";
-import { isPuzzleComplete } from "@/lib/sudoku";
+import { isSolutionOf } from "@/lib/sudoku";
+import { isNumberGrid } from "@/lib/validation";
+import { denyUnlessPlayer } from "@/lib/player-auth";
+import { broadcast, sudokuSocketRoom } from "@/lib/realtime";
 
 interface RouteParams {
   params: Promise<{ roomCode: string }>;
@@ -12,7 +14,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { roomCode } = await params;
     const body = await request.json();
-    const { visitorId, grid, time } = body;
+    const { visitorId, grid } = body;
 
     if (!roomCode || !visitorId || !grid) {
       return NextResponse.json(
@@ -21,9 +23,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await connectDB();
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
 
-    const room = await Room.findOne({ code: roomCode.toUpperCase() });
+    if (!isNumberGrid(grid)) {
+      return NextResponse.json({ error: "Invalid grid" }, { status: 400 });
+    }
+
+    const room = Room.findByCode(roomCode.toUpperCase());
 
     if (!room) {
       return NextResponse.json(
@@ -35,6 +42,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (room.status !== "playing") {
       return NextResponse.json(
         { error: "Game not in progress", code: "GAME_NOT_STARTED" },
+        { status: 400 }
+      );
+    }
+
+    // Bàn của mọi người đang bị khoá thì không ai được nộp, kể cả người đã dừng ván
+    if (room.pausedBy) {
+      return NextResponse.json(
+        { error: "Game is paused", code: "GAME_PAUSED" },
         { status: 400 }
       );
     }
@@ -54,7 +69,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const puzzle = await Puzzle.findById(room.puzzleId);
+    const puzzle = Puzzle.findById(room.puzzleId);
     if (!puzzle) {
       return NextResponse.json(
         { error: "Puzzle not found" },
@@ -62,9 +77,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const isComplete = isPuzzleComplete(grid, puzzle.solution);
-
-    if (!isComplete) {
+    if (!isSolutionOf(grid, puzzle.grid)) {
       return NextResponse.json({
         success: false,
         message: "Puzzle is not complete or has errors",
@@ -75,32 +88,27 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     player.progress = 100;
     player.currentGrid = grid;
 
-    const allFinished = room.players.every((p) => p.finishedAt !== null);
+    room.finishIfAllDone();
+    const allFinished = room.isFinished;
 
+    room.save();
+
+    const elapsed = (player.finishedAt.getTime() - room.startedAt!.getTime()) / 1000;
+    const socketRoom = sudokuSocketRoom(room.code);
+    broadcast(socketRoom, "player_completed", {
+      visitorId,
+      name: player.name,
+      time: elapsed,
+      errors: player.errors,
+    });
     if (allFinished) {
-      room.status = "finished";
-      room.finishedAt = new Date();
-
-      const rankings = [...room.players]
-        .filter((p) => p.finishedAt)
-        .sort((a, b) => {
-          const timeA = a.finishedAt!.getTime() - room.startedAt!.getTime();
-          const timeB = b.finishedAt!.getTime() - room.startedAt!.getTime();
-          if (timeA !== timeB) return timeA - timeB;
-          return (a.errors || 0) - (b.errors || 0);
-        });
-
-      if (rankings.length > 0) {
-        room.winnerId = rankings[0].visitorId;
-      }
+      broadcast(socketRoom, "game_ended", { winnerId: room.winnerId, reason: "completed" });
     }
-
-    await room.save();
 
     return NextResponse.json({
       success: true,
       finished: true,
-      time: time || (player.finishedAt.getTime() - room.startedAt!.getTime()) / 1000,
+      time: elapsed,
       errors: player.errors,
       gameEnded: allFinished,
       winnerId: room.winnerId,

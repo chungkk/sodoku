@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface DialogProps {
@@ -10,82 +10,58 @@ interface DialogProps {
 }
 
 function Dialog({ open, onClose, children }: DialogProps) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   return (
     <AnimatePresence>
       {open && (
-        <Fragment>
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            transition={{ duration: 0.18 }}
+            className="absolute inset-0 bg-ink/65"
             onClick={onClose}
           />
-          <div className="fixed inset-0 flex items-center justify-center p-4 z-50 pointer-events-none">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-auto pointer-events-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {children}
-            </motion.div>
-          </div>
-        </Fragment>
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            initial={{ opacity: 0, y: 60, scale: 0.92 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 380, damping: 26 }}
+            className="tray relative max-h-[90dvh] w-full max-w-md overflow-auto"
+          >
+            {children}
+          </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );
 }
 
-interface DialogHeaderProps {
-  children: ReactNode;
-  className?: string;
+function DialogHeader({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <div className={`px-5 pt-5 ${className}`}>{children}</div>;
 }
 
-function DialogHeader({ children, className = "" }: DialogHeaderProps) {
-  return (
-    <div className={`px-6 py-4 border-b border-gray-100 ${className}`}>
-      {children}
-    </div>
-  );
+function DialogTitle({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <h2 className={`font-display text-2xl leading-tight text-ink ${className}`}>{children}</h2>;
 }
 
-interface DialogTitleProps {
-  children: ReactNode;
-  className?: string;
+function DialogContent({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <div className={`px-5 py-3 text-ink ${className}`}>{children}</div>;
 }
 
-function DialogTitle({ children, className = "" }: DialogTitleProps) {
-  return (
-    <h2 className={`text-xl font-bold text-gray-900 ${className}`}>
-      {children}
-    </h2>
-  );
-}
-
-interface DialogContentProps {
-  children: ReactNode;
-  className?: string;
-}
-
-function DialogContent({ children, className = "" }: DialogContentProps) {
-  return <div className={`px-6 py-4 ${className}`}>{children}</div>;
-}
-
-interface DialogFooterProps {
-  children: ReactNode;
-  className?: string;
-}
-
-function DialogFooter({ children, className = "" }: DialogFooterProps) {
-  return (
-    <div className={`px-6 py-4 border-t border-gray-100 flex justify-end gap-3 ${className}`}>
-      {children}
-    </div>
-  );
+function DialogFooter({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <div className={`flex justify-end gap-2 px-5 pb-5 pt-1 ${className}`}>{children}</div>;
 }
 
 export { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter };

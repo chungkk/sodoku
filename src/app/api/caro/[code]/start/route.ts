@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import CaroRoom from "@/models/CaroRoom";
 import { createEmptyBoard } from "@/lib/caro";
+import { denyUnlessPlayer } from "@/lib/player-auth";
+import { caroTurnStarted } from "@/lib/realtime";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
   try {
-    const { code } = params;
+    const { code } = await params;
     const { visitorId } = await request.json();
 
     if (!visitorId) {
@@ -18,12 +19,20 @@ export async function POST(
       );
     }
 
-    await connectDB();
+    const denied = denyUnlessPlayer(request, visitorId);
+    if (denied) return denied;
 
-    const room = await CaroRoom.findOne({ code });
+    const room = CaroRoom.findByCode(code);
 
     if (!room) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
+    }
+
+    if (room.players[0]?.visitorId !== visitorId) {
+      return NextResponse.json(
+        { error: "Only the host can start the game" },
+        { status: 403 }
+      );
     }
 
     if (room.status !== "waiting") {
@@ -54,9 +63,9 @@ export async function POST(
     room.board = createEmptyBoard();
     room.currentTurn = "X";
     room.moves = [];
-    room.lastActivityAt = new Date();
 
-    await room.save();
+    room.save();
+    caroTurnStarted(room.code);
 
     return NextResponse.json({
       success: true,

@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useMemo } from "react";
 import { Cell } from "./Cell";
+import { Mascot } from "./Mascot";
 import { findConflicts } from "@/lib/sudoku";
 
 interface SudokuBoardProps {
@@ -9,8 +10,10 @@ interface SudokuBoardProps {
   userInput: (number | null)[][];
   notes: Set<number>[][];
   selectedCell: [number, number] | null;
+  highlightedNumber?: number | null;
   onCellClick: (row: number, col: number) => void;
   isPaused?: boolean;
+  pausedLabel?: string;
 }
 
 const SudokuBoard = memo(function SudokuBoard({
@@ -18,8 +21,10 @@ const SudokuBoard = memo(function SudokuBoard({
   userInput,
   notes,
   selectedCell,
+  highlightedNumber = null,
   onCellClick,
   isPaused = false,
+  pausedLabel = "Đang tạm dừng",
 }: SudokuBoardProps) {
   const getCellValue = useCallback(
     (row: number, col: number): number | null => {
@@ -33,6 +38,8 @@ const SudokuBoard = memo(function SudokuBoard({
     if (!selectedCell) return null;
     return getCellValue(selectedCell[0], selectedCell[1]);
   }, [selectedCell, getCellValue]);
+
+  const activeNumber = highlightedNumber ?? selectedValue;
 
   const isHighlighted = useCallback(
     (row: number, col: number): boolean => {
@@ -53,52 +60,47 @@ const SudokuBoard = memo(function SudokuBoard({
 
   const isSameNumber = useCallback(
     (row: number, col: number): boolean => {
-      if (!selectedValue) return false;
+      if (!activeNumber) return false;
       const cellValue = getCellValue(row, col);
-      return cellValue === selectedValue;
+      return cellValue === activeNumber;
     },
-    [selectedValue, getCellValue]
+    [activeNumber, getCellValue]
+  );
+
+  const currentGrid = useMemo(
+    () =>
+      puzzle.map((puzzleRow, r) =>
+        puzzleRow.map((cell, c) => (cell !== 0 ? cell : userInput[r][c] || 0))
+      ),
+    [puzzle, userInput]
   );
 
   const hasConflict = useCallback(
     (row: number, col: number): boolean => {
       const value = getCellValue(row, col);
-      if (!value || puzzle[row][col] !== 0) return false;
-
-      const currentGrid = puzzle.map((puzzleRow, r) =>
-        puzzleRow.map((cell, c) => (cell !== 0 ? cell : userInput[r][c] || 0))
-      );
-
-      const conflicts = findConflicts(currentGrid, row, col, value);
-      return conflicts.length > 0;
+      if (!value) return false;
+      return findConflicts(currentGrid, row, col, value).length > 0;
     },
-    [puzzle, userInput, getCellValue]
+    [currentGrid, getCellValue]
   );
 
   if (isPaused) {
     return (
-      <div className="relative">
-        <div className="grid-sudoku rounded-lg overflow-hidden opacity-20 blur-sm">
-          {Array(81)
-            .fill(null)
-            .map((_, index) => (
-              <div
-                key={index}
-                className="w-full aspect-square bg-gray-200"
-              />
-            ))}
-        </div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-white/90 backdrop-blur px-8 py-4 rounded-2xl shadow-lg">
-            <p className="text-xl font-semibold text-gray-800">Tạm dừng</p>
-          </div>
-        </div>
+      <div className="sudoku-board flex flex-col items-center justify-center gap-1 p-4 text-center">
+        <Mascot mood="sleep" className="w-[38%]" />
+        <p className="font-display text-2xl leading-tight [text-wrap:balance]">{pausedLabel}</p>
       </div>
     );
   }
 
   return (
-    <div className="grid-sudoku rounded-lg overflow-hidden">
+    <div className="sudoku-board">
+      {[1, 2].map((i) => (
+        <span key={`v${i}`} aria-hidden="true" className="sudoku-box-line inset-y-0 w-[3px]" style={{ left: `calc(${(i * 100) / 3}% - 1.5px)` }} />
+      ))}
+      {[1, 2].map((i) => (
+        <span key={`h${i}`} aria-hidden="true" className="sudoku-box-line inset-x-0 h-[3px]" style={{ top: `calc(${(i * 100) / 3}% - 1.5px)` }} />
+      ))}
       {Array(9)
         .fill(null)
         .map((_, row) =>

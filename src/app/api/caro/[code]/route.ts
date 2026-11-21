@@ -1,21 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
 import CaroRoom from "@/models/CaroRoom";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
   try {
-    const { code } = params;
+    const { code } = await params;
 
-    await connectDB();
-
-    const room = await CaroRoom.findOne({ code });
+    const room = CaroRoom.findByCode(code);
 
     if (!room) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
+
+    const last = room.moves.length > 0 ? room.moves[room.moves.length - 1] : null;
 
     return NextResponse.json({
       success: true,
@@ -29,10 +28,9 @@ export async function GET(
       startedAt: room.startedAt,
       finishedAt: room.finishedAt,
       turnStartedAt: room.turnStartedAt,
-      isPaused: room.isPaused,
       pausedBy: room.pausedBy,
       pausedAt: room.pausedAt,
-      remainingTime: room.remainingTime,
+      lastMove: last ? { row: last.row, col: last.col } : null,
     });
   } catch (error) {
     console.error("Failed to fetch caro room:", error);
