@@ -6,7 +6,8 @@ export class RateLimiter {
   constructor(
     private readonly limit: number,
     private readonly windowMs: number,
-    private readonly now: () => number = Date.now
+    private readonly now: () => number = Date.now,
+    private readonly maxKeys = 50_000
   ) {
     this.windowStart = now();
   }
@@ -18,7 +19,11 @@ export class RateLimiter {
       this.counts.clear();
       this.windowStart = now;
     }
-    const count = (this.counts.get(key) ?? 0) + 1;
+    const existing = this.counts.get(key);
+    if (existing === undefined && this.counts.size >= this.maxKeys) {
+      return false;
+    }
+    const count = (existing ?? 0) + 1;
     this.counts.set(key, count);
     return count <= this.limit;
   }

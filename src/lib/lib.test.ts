@@ -92,15 +92,16 @@ test("kiểm tra dữ liệu client gửi lên", () => {
   assert.equal(cleanPlayerName(5), null);
 });
 
-test("RateLimiter chặn khi vượt ngưỡng và mở lại ở cửa sổ mới", () => {
+test("RateLimiter chặn khi vượt ngưỡng, giới hạn maxKeys và mở lại ở cửa sổ mới", () => {
   let now = 0;
-  const limiter = new RateLimiter(2, 1000, () => now);
+  const limiter = new RateLimiter(2, 1000, () => now, 2);
   assert.equal(limiter.allow("a"), true);
   assert.equal(limiter.allow("a"), true);
   assert.equal(limiter.allow("a"), false);
   assert.equal(limiter.allow("b"), true);
+  assert.equal(limiter.allow("c"), false); // vượt maxKeys = 2
   now = 1000;
-  assert.equal(limiter.allow("a"), true);
+  assert.equal(limiter.allow("c"), true);
 });
 
 test("Caro: 5 quân sát mép bàn bị chặn 1 đầu vẫn thắng, chặn 2 đầu bằng đối thủ không thắng", () => {

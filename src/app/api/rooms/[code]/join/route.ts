@@ -93,6 +93,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     });
   } catch (error) {
+    if (error instanceof SyntaxError) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     console.error("Join room error:", error);
     return NextResponse.json(
       { error: "Failed to join room" },

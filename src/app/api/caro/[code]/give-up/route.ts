@@ -57,6 +57,7 @@ export async function POST(
       winnerId: room.winnerId,
     });
   } catch (error) {
+    if (error instanceof SyntaxError) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     console.error("Failed to give up:", error);
     return NextResponse.json(
       { error: "Failed to give up" },

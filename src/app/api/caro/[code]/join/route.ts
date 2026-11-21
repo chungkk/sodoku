@@ -65,6 +65,7 @@ export async function POST(
       },
     });
   } catch (error) {
+    if (error instanceof SyntaxError) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     console.error("Failed to join caro room:", error);
     return NextResponse.json(
       { error: "Failed to join room" },

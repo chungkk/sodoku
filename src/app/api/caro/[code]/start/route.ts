@@ -76,6 +76,7 @@ export async function POST(
       },
     });
   } catch (error) {
+    if (error instanceof SyntaxError) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     console.error("Failed to start caro game:", error);
     return NextResponse.json(
       { error: "Failed to start game" },

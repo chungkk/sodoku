@@ -23,6 +23,7 @@ const roomPlayers = new Map<string, Set<string>>();
 const disconnectTimeouts = new Map<string, NodeJS.Timeout>();
 const caroTurnTimeouts = new Map<string, NodeJS.Timeout>();
 const sudokuPauseTimeouts = new Map<string, NodeJS.Timeout>();
+const activeCountdowns = new Set<string>();
 // Đủ dài để khoá màn hình hay rớt mạng ngắn không bị xử thua
 const DISCONNECT_TIMEOUT = 2 * 60 * 1000;
 const CARO_START_ANNOUNCE_WINDOW_MS = 15 * 1000;
@@ -61,9 +62,9 @@ export function setupSocketHandlers(io: Server): void {
     console.log(`Player connected: ${name} (${visitorId})`);
     playerSockets.set(visitorId, playerSocket);
 
-    // Không gọi next() thì sự kiện bị bỏ qua
+    // Giới hạn theo visitorId thay vì socket.id để không né được bằng cách reconnect
     playerSocket.use((_event, next) => {
-      if (socketEventLimiter.allow(playerSocket.id)) next();
+      if (socketEventLimiter.allow(visitorId)) next();
     });
 
     /** Người chơi của phòng Sudoku này, null nếu socket không thuộc phòng. */
@@ -144,11 +145,16 @@ export function setupSocketHandlers(io: Server): void {
       const roomCode = codeOf(data);
       if (!roomCode) return;
 
-      // Ván đã được bắt đầu qua API (có kiểm tra chủ phòng); sự kiện này chỉ chạy đếm ngược
+      // Ván đã được bắt đầu qua API (có kiểm tra chủ phòng); sự kiện này chỉ chạy đếm ngược 1 lần
       const member = sudokuMember(roomCode);
       if (!member || member.room.hostId !== visitorId || member.room.status !== "playing") return;
 
+      const startedAt = member.room.startedAt?.getTime() ?? 0;
+      if (Date.now() - startedAt > CARO_START_ANNOUNCE_WINDOW_MS) return;
+
       const socketRoom = sudokuSocketRoom(roomCode);
+      if (activeCountdowns.has(socketRoom)) return;
+      activeCountdowns.add(socketRoom);
       io.to(socketRoom).emit("game_starting", { countdown: 3 });
 
       setTimeout(() => {
@@ -166,6 +172,8 @@ export function setupSocketHandlers(io: Server): void {
           });
         } catch (error) {
           console.error("Error starting game:", error);
+        } finally {
+          activeCountdowns.delete(socketRoom);
         }
       }, 3000);
     });
@@ -277,13 +285,15 @@ export function setupSocketHandlers(io: Server): void {
       if (!roomCode) return;
 
       const member = caroMember(roomCode);
-      if (!member || member.room.status !== "playing") return;
+      if (!member || member.room.status !== "playing" || member.room.players[0]?.visitorId !== visitorId) return;
 
-      // Chỉ để chạy đếm ngược ngay sau khi API bắt đầu ván; đồng hồ lượt do API khởi động
+      // Chỉ để chạy đếm ngược 1 lần ngay sau khi API bắt đầu ván; đồng hồ lượt do API khởi động
       const startedAt = member.room.startedAt?.getTime() ?? 0;
       if (Date.now() - startedAt > CARO_START_ANNOUNCE_WINDOW_MS) return;
 
       const socketRoom = caroSocketRoom(roomCode);
+      if (activeCountdowns.has(socketRoom)) return;
+      activeCountdowns.add(socketRoom);
       io.to(socketRoom).emit("caro_game_starting", { countdown: 3 });
 
       setTimeout(() => {
@@ -302,6 +312,8 @@ export function setupSocketHandlers(io: Server): void {
           });
         } catch (error) {
           console.error("Error starting caro game:", error);
+        } finally {
+          activeCountdowns.delete(socketRoom);
         }
       }, 3000);
     });

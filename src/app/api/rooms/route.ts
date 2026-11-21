@@ -41,10 +41,12 @@ export async function POST(request: NextRequest) {
       createdAt: room.createdAt,
     });
   } catch (error) {
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
     console.error("Create room error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to create room", details: errorMessage },
+      { error: "Failed to create room" },
       { status: 500 }
     );
   }

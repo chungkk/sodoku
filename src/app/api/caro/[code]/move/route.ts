@@ -143,6 +143,7 @@ export async function POST(
       isDraw,
     });
   } catch (error) {
+    if (error instanceof SyntaxError) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     console.error("Failed to make move:", error);
     return NextResponse.json(
       { error: "Failed to make move" },

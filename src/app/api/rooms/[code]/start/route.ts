@@ -105,6 +105,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       })),
     });
   } catch (error) {
+    if (error instanceof SyntaxError) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     console.error("Start game error:", error);
     return NextResponse.json(
       { error: "Failed to start game" },

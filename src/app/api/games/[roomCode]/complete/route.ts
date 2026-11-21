@@ -114,6 +114,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       winnerId: room.winnerId,
     });
   } catch (error) {
+    if (error instanceof SyntaxError) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     console.error("Complete game error:", error);
     return NextResponse.json(
       { error: "Failed to complete game" },

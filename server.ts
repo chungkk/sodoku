@@ -16,11 +16,30 @@ const apiLimiter = new RateLimiter(1200, 60 * 1000);
 const createLimiter = new RateLimiter(60, 60 * 1000);
 const CREATE_PATHS = new Set(["/api/player/session", "/api/rooms", "/api/caro"]);
 
+/** Chỉ tin X-Forwarded-For khi request đi qua reverse proxy nội bộ (Coolify/Traefik/Docker/localhost). */
+function isPrivateProxy(addr: string | undefined): boolean {
+  if (!addr) return false;
+  const ip = addr.startsWith("::ffff:") ? addr.slice(7) : addr;
+  return (
+    ip === "127.0.0.1" ||
+    ip === "::1" ||
+    ip.startsWith("10.") ||
+    ip.startsWith("192.168.") ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(ip) ||
+    ip.startsWith("fc") ||
+    ip.startsWith("fd")
+  );
+}
+
 /** Proxy (Traefik của Coolify) nối IP vừa kết nối vào cuối X-Forwarded-For; các giá trị đứng trước do client tự khai. */
 function clientIp(req: IncomingMessage): string {
-  const forwarded = req.headers["x-forwarded-for"];
-  const last = (Array.isArray(forwarded) ? forwarded.join(",") : forwarded)?.split(",").pop()?.trim();
-  return last || req.socket.remoteAddress || "unknown";
+  const remote = req.socket.remoteAddress;
+  if (isPrivateProxy(remote)) {
+    const forwarded = req.headers["x-forwarded-for"];
+    const last = (Array.isArray(forwarded) ? forwarded.join(",") : forwarded)?.split(",").pop()?.trim();
+    if (last) return last;
+  }
+  return remote || "unknown";
 }
 
 function reject(res: ServerResponse, status: number, error: string): void {
@@ -34,12 +53,14 @@ function guardApi(req: IncomingMessage, res: ServerResponse, pathname: string | 
   if (!pathname?.startsWith("/api/")) return false;
 
   if (req.method !== "GET" && req.method !== "HEAD") {
-    // Chunked không báo trước kích thước nên không kiểm tra được; trình duyệt gửi JSON luôn có Content-Length
-    if (req.headers["transfer-encoding"]) {
+    // Chunked hoặc thiếu Content-Length không kiểm tra trước được kích thước; trình duyệt gửi JSON luôn có Content-Length
+    const rawLength = req.headers["content-length"];
+    const length = rawLength !== undefined ? Number(rawLength) : NaN;
+    if (req.headers["transfer-encoding"] || !Number.isFinite(length) || length < 0) {
       reject(res, 411, "Content-Length required");
       return true;
     }
-    if (Number(req.headers["content-length"] ?? 0) > MAX_API_BODY_BYTES) {
+    if (length > MAX_API_BODY_BYTES) {
       reject(res, 413, "Request body too large");
       return true;
     }

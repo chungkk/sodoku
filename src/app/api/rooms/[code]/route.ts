@@ -48,9 +48,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
   } catch (error) {
     console.error("Get room error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to get room", details: errorMessage },
+      { error: "Failed to get room" },
       { status: 500 }
     );
   }

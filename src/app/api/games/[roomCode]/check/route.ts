@@ -95,6 +95,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       checksRemaining: Math.max(0, MAX_CHECKS_PER_GAME - player.checksUsed),
     });
   } catch (error) {
+    if (error instanceof SyntaxError) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     console.error("Check grid error:", error);
     return NextResponse.json(
       { error: "Failed to check grid" },

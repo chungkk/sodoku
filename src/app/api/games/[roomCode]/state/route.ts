@@ -144,6 +144,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       success: true,
     });
   } catch (error) {
+    if (error instanceof SyntaxError) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     console.error("Save game state error:", error);
     return NextResponse.json(
       { error: "Failed to save game state" },
