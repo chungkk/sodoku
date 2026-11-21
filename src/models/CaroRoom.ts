@@ -112,20 +112,8 @@ export default class CaroRoom {
   }
 
   static findByCode(code: string): CaroRoom | null {
-    const row = getDb().prepare("SELECT * FROM caro_rooms WHERE code = ?").get(code);
+    const row = getDb().prepare("SELECT * FROM caro_rooms WHERE code = ?").get(code.toUpperCase());
     return row ? new CaroRoom(row as unknown as CaroRow) : null;
-  }
-
-  /** Các phòng chưa kết thúc, tạo sau thời điểm `since` (mới nhất trước). */
-  static findActive(since: Date, limit: number): CaroRoom[] {
-    const rows = getDb()
-      .prepare(
-        `SELECT * FROM caro_rooms
-         WHERE status IN ('waiting', 'playing') AND created_at >= ?
-         ORDER BY created_at DESC LIMIT ?`
-      )
-      .all(since.toISOString(), limit);
-    return rows.map((row) => new CaroRoom(row as unknown as CaroRow));
   }
 
   static findPlaying(): CaroRoom[] {

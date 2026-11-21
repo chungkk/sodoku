@@ -66,12 +66,15 @@ export default function CaroPlayPage() {
         }
 
         if (data.board) {
-          loadBoard(data.board, data.currentTurn);
+          loadBoard(data.board, data.currentTurn, data.lastMove ?? null);
         }
 
         if (data.status === "playing") {
-          if (data.turnStartedAt) {
-            setTurnStartedAt(new Date(data.turnStartedAt));
+          const started = data.turnStartedAt ? new Date(data.turnStartedAt) : null;
+          if (started) {
+            setTurnStartedAt(started);
+            const refMs = data.pausedAt ? new Date(data.pausedAt).getTime() : Date.now();
+            setTimeRemaining(Math.max(0, 300 - Math.floor((refMs - started.getTime()) / 1000)));
           }
           // Vào lại trang giữa lúc đang tạm dừng thì vẫn hiện đúng trạng thái
           const pauser = data.players.find((p: CaroPlayer) => p.visitorId === data.pausedBy);
@@ -80,6 +83,8 @@ export default function CaroPlayPage() {
         }
 
         if (data.status === "finished") {
+          setIsPaused(false);
+          setPausedBy(null);
           const winningPlayer = data.winnerId 
             ? data.players.find((p: CaroPlayer) => p.visitorId === data.winnerId)
             : null;
@@ -125,6 +130,8 @@ export default function CaroPlayPage() {
 
     on<{ winnerId: string | null; isDraw: boolean; reason?: string }>("caro_game_ended", (data) => {
       setGameStatus("finished");
+      setIsPaused(false);
+      setPausedBy(null);
       if (data.winnerId) {
         const winningPlayer = roomPlayers.find((p) => p.visitorId === data.winnerId);
         setWinner(winningPlayer || null);
@@ -174,17 +181,24 @@ export default function CaroPlayPage() {
   useEffect(() => {
     if (!turnStartedAt || gameStatus !== "playing" || isPaused) return;
 
-    const interval = setInterval(() => {
+    const updateRemaining = () => {
       const elapsed = Math.floor((Date.now() - turnStartedAt.getTime()) / 1000);
-      const remaining = Math.max(0, 300 - elapsed);
-      setTimeRemaining(remaining);
+      return Math.max(0, 300 - elapsed);
+    };
 
-      if (remaining === 0) {
-        clearInterval(interval);
-      }
+    const interval = setInterval(() => {
+      const remaining = updateRemaining();
+      setTimeRemaining(remaining);
+      if (remaining === 0) clearInterval(interval);
     }, 1000);
 
-    return () => clearInterval(interval);
+    // Cập nhật ngay nhịp đầu tiên (không chờ 1 giây sau mới nhảy đồng hồ)
+    const immediate = setTimeout(() => setTimeRemaining(updateRemaining()), 0);
+
+    return () => {
+      clearTimeout(immediate);
+      clearInterval(interval);
+    };
   }, [turnStartedAt, gameStatus, isPaused]);
 
   const handlePauseToggle = () => {
@@ -242,10 +256,6 @@ export default function CaroPlayPage() {
     setShowGiveUpConfirm(false);
   };
 
-  const handleBackToRoom = () => {
-    router.push(`/caro/${code}`);
-  };
-
   const handleBackToLobby = () => {
     router.push("/caro");
   };
@@ -301,6 +311,7 @@ export default function CaroPlayPage() {
     <span className={`flex items-center gap-1 rounded-full border-[3px] border-ink py-0.5 pl-3 pr-0.5 font-bold tabular-nums ${timeRemaining <= 30 ? "bg-cherry text-milk" : "bg-milk"}`}>
       {formatTime(timeRemaining)}
       <button
+        type="button"
         onClick={handlePauseToggle}
         disabled={finished || !!(pausedBy && !pausedByMe)}
         aria-label={isPaused ? "Chạy tiếp" : "Tạm dừng"}
@@ -346,10 +357,10 @@ export default function CaroPlayPage() {
         </div>
 
         <div className="flex items-center gap-1.5 md:col-start-2 md:row-start-3 md:items-start">
-          <button onClick={finished ? handleBackToLobby : handleBackToRoom} className={toolButtonClass}>
-            <BackIcon /> {finished ? "Chơi ván mới" : "Về phòng chờ"}
+          <button type="button" onClick={handleBackToLobby} className={toolButtonClass}>
+            <BackIcon /> {finished ? "Chơi ván mới" : "Về sảnh"}
           </button>
-          <button onClick={() => setShowGiveUpConfirm(true)} disabled={finished} className={toolButtonClass}>
+          <button type="button" onClick={() => setShowGiveUpConfirm(true)} disabled={finished} className={toolButtonClass}>
             <FlagIcon /> Đầu hàng
           </button>
         </div>

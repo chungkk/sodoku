@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { checkWinner, createEmptyBoard, findWinningCells } from "./caro";
 import { pickWinnerId } from "./ranking";
 import { RateLimiter } from "./rate-limit";
 import { calculateFillProgress, countWrongCells, generatePuzzle, isSolutionOf } from "./sudoku";
@@ -94,8 +95,33 @@ test("kiểm tra dữ liệu client gửi lên", () => {
 test("RateLimiter chặn khi vượt ngưỡng và mở lại ở cửa sổ mới", () => {
   let now = 0;
   const limiter = new RateLimiter(2, 1000, () => now);
-  assert.deepEqual([limiter.allow("a"), limiter.allow("a"), limiter.allow("a")], [true, true, false]);
+  assert.equal(limiter.allow("a"), true);
+  assert.equal(limiter.allow("a"), true);
+  assert.equal(limiter.allow("a"), false);
   assert.equal(limiter.allow("b"), true);
   now = 1000;
   assert.equal(limiter.allow("a"), true);
+});
+
+test("Caro: 5 quân sát mép bàn bị chặn 1 đầu vẫn thắng, chặn 2 đầu bằng đối thủ không thắng", () => {
+  // Sát mép trái (cột 0..4 là X, cột 5 là O) -> chỉ bị chặn 1 đầu nên thắng
+  const edge = createEmptyBoard();
+  for (let c = 0; c < 5; c++) edge[0][c] = "X";
+  edge[0][5] = "O";
+  assert.equal(checkWinner(edge, 0, 2, "X"), true);
+  assert.equal(findWinningCells(edge, 0, 2, "X").length, 5);
+
+  // Chặn 2 đầu bằng O -> không thắng
+  const blocked = createEmptyBoard();
+  blocked[3][1] = "O";
+  for (let c = 2; c <= 6; c++) blocked[3][c] = "X";
+  blocked[3][7] = "O";
+  assert.equal(checkWinner(blocked, 3, 4, "X"), false);
+  assert.equal(findWinningCells(blocked, 3, 4, "X").length, 0);
+
+  // Vừa có đường ngang bị chặn 2 đầu vừa có đường dọc thắng -> trả về đúng 5 ô dọc
+  for (let r = 3; r < 8; r++) blocked[r][4] = "X";
+  const winCells = findWinningCells(blocked, 3, 4, "X");
+  assert.equal(winCells.length, 5);
+  assert.ok(winCells.every((cell) => cell.col === 4));
 });

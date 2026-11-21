@@ -14,6 +14,8 @@ export async function GET(
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
 
+    const last = room.moves.length > 0 ? room.moves[room.moves.length - 1] : null;
+
     return NextResponse.json({
       success: true,
       code: room.code,
@@ -27,6 +29,8 @@ export async function GET(
       finishedAt: room.finishedAt,
       turnStartedAt: room.turnStartedAt,
       pausedBy: room.pausedBy,
+      pausedAt: room.pausedAt,
+      lastMove: last ? { row: last.row, col: last.col } : null,
     });
   } catch (error) {
     console.error("Failed to fetch caro room:", error);

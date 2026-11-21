@@ -42,6 +42,8 @@ export async function POST(
     const opponent = room.players.find((p) => p.visitorId !== visitorId);
     room.winnerId = opponent?.visitorId ?? null;
     room.status = "finished";
+    room.pausedBy = null;
+    room.pausedAt = null;
     room.finishedAt = new Date();
     room.save();
 

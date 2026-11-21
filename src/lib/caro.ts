@@ -13,13 +13,14 @@ export function createEmptyBoard(): Board {
     .map(() => Array(BOARD_SIZE).fill(null));
 }
 
-export function checkWinner(
+export function findWinningCells(
   board: Board,
   row: number,
   col: number,
   player: CellValue
-): boolean {
-  if (!player) return false;
+): { row: number; col: number }[] {
+  if (!player) return [];
+  const opponent: CellValue = player === "X" ? "O" : "X";
 
   const directions = [
     [0, 1], // horizontal
@@ -28,92 +29,48 @@ export function checkWinner(
     [1, -1], // diagonal /
   ];
 
+  const isInBounds = (r: number, c: number) =>
+    r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE;
+
   for (const [dx, dy] of directions) {
-    let count = 1;
-    let posEnd = 0;
-    let negEnd = 0;
+    const cells: { row: number; col: number }[] = [{ row, col }];
 
-    // Check positive direction
-    for (let i = 1; i < WIN_CONDITION; i++) {
-      const newRow = row + dx * i;
-      const newCol = col + dy * i;
-      if (
-        newRow < 0 ||
-        newRow >= BOARD_SIZE ||
-        newCol < 0 ||
-        newCol >= BOARD_SIZE
-      ) {
-        posEnd = -1; // Out of bounds = blocked
-        break;
-      }
-      if (board[newRow][newCol] !== player) {
-        posEnd = board[newRow][newCol] ? -1 : 1; // Enemy = blocked, Empty = open
-        break;
-      }
-      count++;
+    // Chiều dương
+    let r = row + dx;
+    let c = col + dy;
+    while (isInBounds(r, c) && board[r][c] === player) {
+      cells.push({ row: r, col: c });
+      r += dx;
+      c += dy;
     }
+    const posBlocked = isInBounds(r, c) && board[r][c] === opponent;
 
-    // If stopped but not set, check next cell
-    if (posEnd === 0) {
-      const nextRow = row + dx * count;
-      const nextCol = col + dy * count;
-      if (
-        nextRow < 0 ||
-        nextRow >= BOARD_SIZE ||
-        nextCol < 0 ||
-        nextCol >= BOARD_SIZE
-      ) {
-        posEnd = -1;
-      } else {
-        posEnd = board[nextRow][nextCol] ? -1 : 1;
-      }
+    // Chiều âm
+    r = row - dx;
+    c = col - dy;
+    while (isInBounds(r, c) && board[r][c] === player) {
+      cells.push({ row: r, col: c });
+      r -= dx;
+      c -= dy;
     }
+    const negBlocked = isInBounds(r, c) && board[r][c] === opponent;
 
-    // Check negative direction
-    let negCount = 0;
-    for (let i = 1; i < WIN_CONDITION; i++) {
-      const newRow = row - dx * i;
-      const newCol = col - dy * i;
-      if (
-        newRow < 0 ||
-        newRow >= BOARD_SIZE ||
-        newCol < 0 ||
-        newCol >= BOARD_SIZE
-      ) {
-        negEnd = -1; // Out of bounds = blocked
-        break;
-      }
-      if (board[newRow][newCol] !== player) {
-        negEnd = board[newRow][newCol] ? -1 : 1; // Enemy = blocked, Empty = open
-        break;
-      }
-      count++;
-      negCount++;
-    }
-
-    // If stopped but not set, check next cell
-    if (negEnd === 0) {
-      const nextRow = row - dx * (negCount + 1);
-      const nextCol = col - dy * (negCount + 1);
-      if (
-        nextRow < 0 ||
-        nextRow >= BOARD_SIZE ||
-        nextCol < 0 ||
-        nextCol >= BOARD_SIZE
-      ) {
-        negEnd = -1;
-      } else {
-        negEnd = board[nextRow][nextCol] ? -1 : 1;
-      }
-    }
-
-    // Win if count >= 5 AND not both ends are blocked
-    if (count >= WIN_CONDITION && !(posEnd === -1 && negEnd === -1)) {
-      return true;
+    // Thắng khi đủ >= 5 quân liên tiếp và không bị quân đối thủ chặn cả 2 đầu
+    if (cells.length >= WIN_CONDITION && !(posBlocked && negBlocked)) {
+      return cells;
     }
   }
 
-  return false;
+  return [];
+}
+
+export function checkWinner(
+  board: Board,
+  row: number,
+  col: number,
+  player: CellValue
+): boolean {
+  return findWinningCells(board, row, col, player).length >= WIN_CONDITION;
 }
 
 export function isBoardFull(board: Board): boolean {

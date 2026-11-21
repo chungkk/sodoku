@@ -28,8 +28,11 @@ export async function POST(
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
 
-    if (!room.players.some((p) => p.visitorId === visitorId)) {
-      return NextResponse.json({ error: "Player not in room" }, { status: 403 });
+    if (room.players[0]?.visitorId !== visitorId) {
+      return NextResponse.json(
+        { error: "Only the host can start the game" },
+        { status: 403 }
+      );
     }
 
     if (room.status !== "waiting") {

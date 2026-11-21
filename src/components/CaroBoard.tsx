@@ -148,14 +148,14 @@ export const CaroBoard = memo(function CaroBoard({
   return (
     <div className="caro-board relative w-full">
       <div className="absolute -top-1 right-1 z-10 flex -translate-y-full gap-1 pb-1 md:hidden">
-        <button onClick={() => handleZoom(scale + 0.3)} disabled={scale >= MAX_SCALE} aria-label="Phóng to bàn cờ" className={zoomButton}>
+        <button type="button" onClick={() => handleZoom(scale + 0.3)} disabled={scale >= MAX_SCALE} aria-label="Phóng to bàn cờ" className={zoomButton}>
           <PlusIcon />
         </button>
-        <button onClick={() => handleZoom(scale - 0.3)} disabled={scale <= MIN_SCALE} aria-label="Thu nhỏ bàn cờ" className={zoomButton}>
+        <button type="button" onClick={() => handleZoom(scale - 0.3)} disabled={scale <= MIN_SCALE} aria-label="Thu nhỏ bàn cờ" className={zoomButton}>
           <MinusIcon />
         </button>
         {scale > MIN_SCALE && (
-          <button onClick={() => handleZoom(MIN_SCALE)} aria-label="Xem toàn bộ bàn cờ" className={zoomButton}>
+          <button type="button" onClick={() => handleZoom(MIN_SCALE)} aria-label="Xem toàn bộ bàn cờ" className={zoomButton}>
             <ExpandIcon />
           </button>
         )}
@@ -189,6 +189,7 @@ export const CaroBoard = memo(function CaroBoard({
                 return (
                   <button
                     key={`${rowIndex}-${colIndex}`}
+                    type="button"
                     onClick={() => onCellClick(rowIndex, colIndex)}
                     disabled={disabled || cell !== null}
                     aria-label={`Ô hàng ${rowIndex + 1}, cột ${colIndex + 1}, ${cell ? `quân ${cell}` : "trống"}`}

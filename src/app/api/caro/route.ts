@@ -59,23 +59,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  try {
-    const rooms = CaroRoom.findActive(new Date(Date.now() - 24 * 60 * 60 * 1000), 20);
-
-    return NextResponse.json({
-      success: true,
-      rooms: rooms.map((room) => ({
-        code: room.code,
-        status: room.status,
-        playerCount: room.players.length,
-        createdAt: room.createdAt,
-      })),
-    });
-  } catch (error) {
-    console.error("Failed to fetch caro rooms:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch rooms" },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json(
+    { error: "Method not allowed" },
+    { status: 405 }
+  );
 }

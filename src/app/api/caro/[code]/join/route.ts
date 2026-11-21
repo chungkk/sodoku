@@ -35,10 +35,6 @@ export async function POST(
       );
     }
 
-    if (room.players.length >= 2) {
-      return NextResponse.json({ error: "Room is full" }, { status: 400 });
-    }
-
     const existingPlayer = room.players.find(
       (p: { visitorId: string }) => p.visitorId === visitorId
     );
@@ -46,6 +42,9 @@ export async function POST(
     if (existingPlayer) {
       existingPlayer.isConnected = true;
     } else {
+      if (room.players.length >= 2) {
+        return NextResponse.json({ error: "Room is full" }, { status: 400 });
+      }
       room.players.push({
         visitorId,
         name,
