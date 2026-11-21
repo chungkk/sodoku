@@ -123,6 +123,8 @@ export default function CaroRoomPage() {
     }
   }, [player, loading, room]);
 
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     if (!isConnected) return;
 
@@ -140,10 +142,14 @@ export default function CaroRoomPage() {
 
     on<{ countdown: number }>("caro_game_starting", (data) => {
       setCountdown(data.countdown);
-      const interval = setInterval(() => {
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = setInterval(() => {
         setCountdown((prev) => {
           if (prev === null || prev <= 1) {
-            clearInterval(interval);
+            if (countdownIntervalRef.current) {
+              clearInterval(countdownIntervalRef.current);
+              countdownIntervalRef.current = null;
+            }
             return null;
           }
           return prev - 1;
@@ -156,6 +162,10 @@ export default function CaroRoomPage() {
     });
 
     return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
       off("caro_player_joined");
       off("caro_room_updated");
       off("caro_player_ready");
@@ -163,6 +173,20 @@ export default function CaroRoomPage() {
       off("caro_game_started");
     };
   }, [isConnected, on, off, fetchRoom, router, code]);
+
+  // Dự phòng nếu lỡ sự kiện socket khi mạng chập chờn
+  useEffect(() => {
+    if (room?.status === "playing") {
+      if (countdown !== null && countdown > 0) return;
+      router.push(`/caro/${code}/play`);
+      return;
+    }
+    if (room?.status !== "waiting") return;
+    const interval = setInterval(() => {
+      fetchRoom();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [room?.status, countdown, code, router, fetchRoom]);
 
   const handleToggleReady = () => {
     if (!player || !room) return;
@@ -196,6 +220,7 @@ export default function CaroRoomPage() {
   };
 
   const handleLeaveRoom = () => {
+    emit("caro_leave_room", { roomCode: code });
     router.push("/caro");
   };
 
@@ -213,13 +238,17 @@ export default function CaroRoomPage() {
     return <CandyLoader label="Đang mở phòng…" />;
   }
 
-  if (error || !room) {
+  if (error && !room) {
     return (
       <CenterScreen mood="sad" title="Không vào được phòng">
         <p className="mb-4 text-lg font-semibold">{error || "Không tìm thấy phòng"}</p>
         <Button onClick={() => router.push("/caro")}>Về sảnh Caro</Button>
       </CenterScreen>
     );
+  }
+
+  if (!room) {
+    return <CandyLoader label="Đang mở phòng…" />;
   }
 
   const me = room.players.find(p => p.visitorId === player?.visitorId);
@@ -246,6 +275,8 @@ export default function CaroRoomPage() {
 
       <div className="tray flex flex-col gap-4 p-4">
         <RoomCode code={code} sharePath={`/caro/${code}`} />
+
+        {error && <p role="alert" className="rounded-2xl border-[3px] border-cherry bg-cherry-pale px-3 py-2 font-semibold">{error}</p>}
 
         <ul className="flex flex-col gap-2" aria-label={`Người chơi ${room.players.length} trên 2`}>
           {room.players.map((p, index) => (

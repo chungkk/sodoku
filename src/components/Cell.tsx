@@ -41,7 +41,7 @@ const Cell = memo(function Cell({
   else if (isHighlighted) classes.push("sudoku-cell-highlighted");
   else if (isTinted) classes.push("sudoku-cell-tint");
 
-  if (hasConflict && isGiven) classes.push("text-cherry");
+  if (hasConflict && isGiven) classes.push("sudoku-cell-conflict-given");
 
   return (
     <button

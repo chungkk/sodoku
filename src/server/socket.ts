@@ -24,6 +24,7 @@ const disconnectTimeouts = new Map<string, NodeJS.Timeout>();
 const caroTurnTimeouts = new Map<string, NodeJS.Timeout>();
 const sudokuPauseTimeouts = new Map<string, NodeJS.Timeout>();
 const activeCountdowns = new Set<string>();
+const announcedStarts = new Set<string>();
 // Đủ dài để khoá màn hình hay rớt mạng ngắn không bị xử thua
 const DISCONNECT_TIMEOUT = 2 * 60 * 1000;
 const CARO_START_ANNOUNCE_WINDOW_MS = 15 * 1000;
@@ -42,6 +43,7 @@ export function setupSocketHandlers(io: Server): void {
     },
     caroTurnStarted: (roomCode) => scheduleCaroTimer(io, roomCode),
     caroTurnEnded: clearCaroTurnTimeout,
+    sudokuPauseCleared: clearSudokuPauseTimeout,
   });
 
   recoverAfterRestart(io);
@@ -103,13 +105,12 @@ export function setupSocketHandlers(io: Server): void {
     playerSocket.on("join_room", (data: { roomCode: string }) => {
       const roomCode = codeOf(data);
       if (!roomCode) return;
-      const socketRoom = sudokuSocketRoom(roomCode);
-
-      // Ai cũng theo dõi được (GET phòng vốn công khai), nhưng chỉ người trong phòng mới được báo "đã vào"
-      enterSocketRoom(socketRoom);
 
       const member = sudokuMember(roomCode);
       if (!member) return;
+
+      const socketRoom = sudokuSocketRoom(roomCode);
+      enterSocketRoom(socketRoom);
 
       const memberName = member.player.name;
       io.to(socketRoom).emit("player_joined", { visitorId, name: memberName });
@@ -124,7 +125,20 @@ export function setupSocketHandlers(io: Server): void {
 
     playerSocket.on("leave_room", (data: { roomCode: string }) => {
       const roomCode = codeOf(data);
-      if (roomCode) handleLeaveRoom(io, playerSocket, sudokuSocketRoom(roomCode));
+      if (!roomCode) return;
+      const socketRoom = sudokuSocketRoom(roomCode);
+      const member = sudokuMember(roomCode);
+      if (!member || playerSocket.roomCode !== socketRoom) return;
+
+      if (member.room.status === "waiting") {
+        member.room.removePlayer(visitorId);
+        if (member.room.players.length === 0) {
+          member.room.delete();
+        } else {
+          member.room.save();
+        }
+      }
+      handleLeaveRoom(io, playerSocket, socketRoom, false, member.player.name);
     });
 
     playerSocket.on("set_ready", (data: { roomCode: string; ready: boolean }) => {
@@ -153,7 +167,10 @@ export function setupSocketHandlers(io: Server): void {
       if (Date.now() - startedAt > CARO_START_ANNOUNCE_WINDOW_MS) return;
 
       const socketRoom = sudokuSocketRoom(roomCode);
-      if (activeCountdowns.has(socketRoom)) return;
+      const startKey = `${socketRoom}:${startedAt}`;
+      if (activeCountdowns.has(socketRoom) || announcedStarts.has(startKey)) return;
+      announcedStarts.add(startKey);
+      setTimeout(() => announcedStarts.delete(startKey), CARO_START_ANNOUNCE_WINDOW_MS + 5000).unref();
       activeCountdowns.add(socketRoom);
       io.to(socketRoom).emit("game_starting", { countdown: 3 });
 
@@ -186,7 +203,17 @@ export function setupSocketHandlers(io: Server): void {
       const roomCode = codeOf(data);
       const member = roomCode && sudokuMember(roomCode);
       const progress = clientProgress(data?.progress);
-      if (!roomCode || !member || progress === null || !isCount(data.errors)) return;
+      if (
+        !roomCode ||
+        !member ||
+        member.room.status !== "playing" ||
+        member.room.pausedBy ||
+        member.player.finishedAt ||
+        progress === null ||
+        !isCount(data.errors)
+      ) {
+        return;
+      }
 
       io.to(sudokuSocketRoom(roomCode)).emit("progress_update", {
         visitorId,
@@ -248,12 +275,12 @@ export function setupSocketHandlers(io: Server): void {
     playerSocket.on("caro_join_room", (data: { roomCode: string }) => {
       const roomCode = codeOf(data);
       if (!roomCode) return;
-      const socketRoom = caroSocketRoom(roomCode);
-
-      enterSocketRoom(socketRoom);
 
       const member = caroMember(roomCode);
       if (!member) return;
+
+      const socketRoom = caroSocketRoom(roomCode);
+      enterSocketRoom(socketRoom);
 
       const memberName = member.player.name;
       io.to(socketRoom).emit("caro_player_joined", { visitorId, name: memberName });
@@ -264,6 +291,30 @@ export function setupSocketHandlers(io: Server): void {
         playerName: memberName,
       });
       console.log(`${memberName} joined caro room ${roomCode}`);
+    });
+
+    playerSocket.on("caro_leave_room", (data: { roomCode: string }) => {
+      const roomCode = codeOf(data);
+      if (!roomCode) return;
+      const socketRoom = caroSocketRoom(roomCode);
+      const member = caroMember(roomCode);
+      if (!member || playerSocket.roomCode !== socketRoom) return;
+
+      if (member.room.status === "waiting") {
+        member.room.removePlayer(visitorId);
+        if (member.room.players.length === 0) {
+          member.room.delete();
+        } else {
+          member.room.save();
+        }
+      }
+      handleLeaveRoom(io, playerSocket, socketRoom, false, member.player.name);
+      io.to(socketRoom).emit("caro_room_updated", {
+        roomCode,
+        action: "player_left",
+        playerId: visitorId,
+        playerName: member.player.name,
+      });
     });
 
     playerSocket.on("caro_set_ready", (data: { roomCode: string; ready: boolean }) => {
@@ -292,7 +343,10 @@ export function setupSocketHandlers(io: Server): void {
       if (Date.now() - startedAt > CARO_START_ANNOUNCE_WINDOW_MS) return;
 
       const socketRoom = caroSocketRoom(roomCode);
-      if (activeCountdowns.has(socketRoom)) return;
+      const startKey = `${socketRoom}:${startedAt}`;
+      if (activeCountdowns.has(socketRoom) || announcedStarts.has(startKey)) return;
+      announcedStarts.add(startKey);
+      setTimeout(() => announcedStarts.delete(startKey), CARO_START_ANNOUNCE_WINDOW_MS + 5000).unref();
       activeCountdowns.add(socketRoom);
       io.to(socketRoom).emit("caro_game_starting", { countdown: 3 });
 
@@ -353,30 +407,38 @@ export function setupSocketHandlers(io: Server): void {
       const roomCode = playerSocket.roomCode;
       if (!roomCode || isInSocketRoom(io, visitorId, roomCode)) return;
 
+      const sudokuPrefix = sudokuSocketRoom("");
+      const caroPrefix = caroSocketRoom("");
+      const member = roomCode.startsWith(sudokuPrefix)
+        ? sudokuMember(roomCode.slice(sudokuPrefix.length))
+        : roomCode.startsWith(caroPrefix)
+          ? caroMember(roomCode.slice(caroPrefix.length))
+          : null;
+      if (!member) return;
+      const memberName = member.player.name;
+
       io.to(roomCode).emit("player_disconnected", {
         visitorId,
-        name,
+        name: memberName,
         timeout: DISCONNECT_TIMEOUT / 1000,
       });
 
       const disconnectKey = `${roomCode}_${visitorId}`;
       clearTimeout(disconnectTimeouts.get(disconnectKey));
-      disconnectTimeouts.set(
-        disconnectKey,
-        setTimeout(() => {
-          disconnectTimeouts.delete(disconnectKey);
-          if (isInSocketRoom(io, visitorId, roomCode)) return;
+      const disconnectTimer = setTimeout(() => {
+        disconnectTimeouts.delete(disconnectKey);
+        if (isInSocketRoom(io, visitorId, roomCode)) return;
 
-          handleLeaveRoom(io, playerSocket, roomCode, true);
-          io.to(roomCode).emit("player_timeout", { visitorId, name });
+        handleLeaveRoom(io, playerSocket, roomCode, true, memberName);
+        io.to(roomCode).emit("player_timeout", { visitorId, name: memberName });
 
-          // Caro không cần xử thua ở đây: đồng hồ lượt tự kết thúc ván
-          const sudokuPrefix = sudokuSocketRoom("");
-          if (roomCode.startsWith(sudokuPrefix)) {
-            forfeitSudokuPlayer(io, roomCode.slice(sudokuPrefix.length), visitorId);
-          }
-        }, DISCONNECT_TIMEOUT)
-      );
+        // Caro không cần xử thua ở đây: đồng hồ lượt tự kết thúc ván
+        if (roomCode.startsWith(sudokuPrefix)) {
+          forfeitSudokuPlayer(io, roomCode.slice(sudokuPrefix.length), visitorId);
+        }
+      }, DISCONNECT_TIMEOUT);
+      disconnectTimer.unref();
+      disconnectTimeouts.set(disconnectKey, disconnectTimer);
     });
   });
 }
@@ -385,9 +447,11 @@ function handleLeaveRoom(
   io: Server,
   playerSocket: PlayerSocket,
   roomCode: string,
-  disconnected = false
+  disconnected = false,
+  memberName?: string
 ): void {
-  const { visitorId, name } = playerSocket.auth;
+  const { visitorId } = playerSocket.auth;
+  const displayName = memberName ?? playerSocket.auth.name;
 
   playerSocket.leave(roomCode);
   const room = roomPlayers.get(roomCode);
@@ -403,11 +467,11 @@ function handleLeaveRoom(
 
   io.to(roomCode).emit("player_left", {
     visitorId,
-    name,
+    name: displayName,
     disconnected,
   });
 
-  console.log(`${name} left room ${roomCode}${disconnected ? " (disconnected)" : ""}`);
+  console.log(`${displayName} left room ${roomCode}${disconnected ? " (disconnected)" : ""}`);
 }
 
 export function getConnectedPlayers(): number {
@@ -481,20 +545,27 @@ function recoverAfterRestart(io: Server): void {
     } catch (error) {
       console.error("Failed to check absent players:", error);
     }
-  }, DISCONNECT_TIMEOUT);
+  }, DISCONNECT_TIMEOUT).unref();
 }
 
 /** Hẹn giờ tự chạy tiếp khi hết quỹ tạm dừng; không dừng thì chỉ huỷ hẹn cũ. */
+function clearSudokuPauseTimeout(roomCode: string): void {
+  const timeoutId = sudokuPauseTimeouts.get(roomCode);
+  if (timeoutId) {
+    clearTimeout(timeoutId);
+    sudokuPauseTimeouts.delete(roomCode);
+  }
+}
+
 function scheduleSudokuPauseTimer(io: Server, roomCode: string): void {
-  clearTimeout(sudokuPauseTimeouts.get(roomCode));
-  sudokuPauseTimeouts.delete(roomCode);
+  clearSudokuPauseTimeout(roomCode);
 
   const delay = Room.findByCode(roomCode)?.pauseRemainingMs();
   if (delay === null || delay === undefined) return;
 
   sudokuPauseTimeouts.set(
     roomCode,
-    setTimeout(() => handleSudokuPauseExpired(io, roomCode), delay)
+    setTimeout(() => handleSudokuPauseExpired(io, roomCode), delay).unref()
   );
 }
 
@@ -528,7 +599,7 @@ function scheduleCaroTimer(io: Server, roomCode: string): void {
 
   caroTurnTimeouts.set(
     roomCode,
-    setTimeout(() => handleCaroTimer(io, roomCode), room.nextTimerDelayMs())
+    setTimeout(() => handleCaroTimer(io, roomCode), room.nextTimerDelayMs()).unref()
   );
 }
 

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Room from "@/models/Room";
 import { denyUnlessPlayer } from "@/lib/player-auth";
-import { broadcast, sudokuSocketRoom } from "@/lib/realtime";
+import { broadcast, sudokuPauseCleared, sudokuSocketRoom } from "@/lib/realtime";
+import { readJsonObject } from "@/lib/validation";
 
 interface RouteParams {
   params: Promise<{ roomCode: string }>;
@@ -10,10 +11,13 @@ interface RouteParams {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { roomCode } = await params;
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
     const { visitorId } = body;
 
-    if (!roomCode || !visitorId) {
+    if (!roomCode || typeof visitorId !== "string" || !visitorId) {
       return NextResponse.json(
         { error: "roomCode and visitorId are required" },
         { status: 400 }
@@ -60,9 +64,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const socketRoom = sudokuSocketRoom(room.code);
     broadcast(socketRoom, "player_gave_up", { visitorId, name: player.name });
     if (wasPauser) {
+      sudokuPauseCleared(room.code);
       broadcast(socketRoom, "game_paused", { visitorId, name: player.name, paused: false });
     }
     if (room.isFinished) {
+      sudokuPauseCleared(room.code);
       broadcast(socketRoom, "game_ended", { winnerId: room.winnerId, reason: "all_gave_up" });
     }
 

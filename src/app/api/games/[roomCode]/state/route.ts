@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Room from "@/models/Room";
 import { denyUnlessPlayer } from "@/lib/player-auth";
 import { MAX_CHECKS_PER_GAME } from "@/lib/sudoku";
-import { clientProgress, isCount, isNotes, isPlayerGrid } from "@/lib/validation";
+import { clientProgress, isCount, isNotes, isPlayerGrid, readJsonObject } from "@/lib/validation";
 
 interface RouteParams {
   params: Promise<{ roomCode: string }>;
@@ -66,10 +66,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { roomCode } = await params;
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
     const { visitorId, currentGrid, notes, elapsedTime, errors, progress } = body;
 
-    if (!roomCode || !visitorId) {
+    if (!roomCode || typeof visitorId !== "string" || !visitorId) {
       return NextResponse.json(
         { error: "roomCode and visitorId are required" },
         { status: 400 }
@@ -106,6 +109,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    if (room.pausedBy) {
+      return NextResponse.json(
+        { error: "Game is paused", code: "GAME_PAUSED" },
+        { status: 400 }
+      );
+    }
+
     const player = room.players.find((p) => p.visitorId === visitorId);
     if (!player) {
       return NextResponse.json(
@@ -127,11 +137,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (notes !== undefined) {
       player.notes = notes;
     }
+    // Không cho client hạ thấp số lỗi hay thời gian đã ghi nhận (errors dùng để phân thắng thua khi hoà thời gian)
     if (elapsedTime !== undefined) {
-      player.elapsedTime = elapsedTime;
+      player.elapsedTime = Math.max(player.elapsedTime || 0, elapsedTime);
     }
     if (errors !== undefined) {
-      player.errors = errors;
+      player.errors = Math.max(player.errors || 0, errors);
     }
     if (storedProgress !== undefined) {
       player.progress = storedProgress;

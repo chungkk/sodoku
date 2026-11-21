@@ -27,8 +27,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     if (stored) {
       try {
         const parsed = JSON.parse(stored) as PlayerSession;
-        // Phiên cũ chưa có token thì không dùng được nữa: để người chơi nhập tên lại
-        if (parsed.token) {
+        // Phiên cũ không có hạn dùng hoặc đã hết hạn thì xoá để người chơi nhập tên lại
+        const dot = typeof parsed.token === "string" ? parsed.token.indexOf(".") : -1;
+        const expSec = dot > 0 ? Number(parsed.token.slice(0, dot)) : NaN;
+        if (parsed.token && Number.isFinite(expSec) && expSec * 1000 > Date.now()) {
           setPlayer(parsed);
         } else {
           localStorage.removeItem(GUEST_SESSION_KEY);

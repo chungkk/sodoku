@@ -25,10 +25,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       errors: p.errors,
       isConnected: p.isConnected,
       finishedAt: p.finishedAt,
+      time:
+        p.progress === 100 && p.finishedAt && room.startedAt
+          ? Math.max(0, (p.finishedAt.getTime() - room.startedAt.getTime()) / 1000)
+          : null,
     }));
 
     return NextResponse.json({
       status: room.status,
+      startedAt: room.startedAt,
       players: playersProgress,
     });
   } catch (error) {

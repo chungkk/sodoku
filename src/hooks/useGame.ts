@@ -27,6 +27,7 @@ interface GameState {
   isComplete: boolean;
   isStarted: boolean;
   history: HistoryEntry[];
+  future: HistoryEntry[];
 }
 
 interface HistoryEntry {
@@ -54,6 +55,7 @@ type GameAction =
   | { type: "CLEAR_CELL" }
   | { type: "SET_MODE"; mode: InputMode }
   | { type: "UNDO" }
+  | { type: "REDO" }
   | { type: "RESET_GAME" };
 
 function isSolved(grid: number[][], solution: number[][] | null): boolean {
@@ -76,9 +78,13 @@ function createEmptyUserInput(): (number | null)[][] {
     .map(() => Array(9).fill(null));
 }
 
+function createZeroGrid(): number[][] {
+  return Array.from({ length: 9 }, () => Array(9).fill(0));
+}
+
 const initialState: GameState = {
-  puzzle: Array(9).fill(Array(9).fill(0)),
-  solution: Array(9).fill(Array(9).fill(0)),
+  puzzle: createZeroGrid(),
+  solution: createZeroGrid(),
   userInput: createEmptyUserInput(),
   notes: createEmptyNotes(),
   selectedCell: null,
@@ -89,6 +95,7 @@ const initialState: GameState = {
   isComplete: false,
   isStarted: false,
   history: [],
+  future: [],
 };
 
 function highlightNumber(state: GameState, number: number): GameState {
@@ -184,7 +191,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           })
         );
 
-        return { ...state, notes: newNotes, history: [...state.history, historyEntry] };
+        return { ...state, notes: newNotes, history: [...state.history, historyEntry], future: [] };
       }
 
       const newUserInput = state.userInput.map((r, ri) =>
@@ -215,6 +222,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         errors: newErrors,
         isComplete: complete,
         history: [...state.history, historyEntry],
+        future: [],
       };
     }
 
@@ -244,7 +252,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         )
       );
 
-      return { ...state, userInput: newUserInput, notes: newNotes, history: [...state.history, historyEntry] };
+      return { ...state, userInput: newUserInput, notes: newNotes, history: [...state.history, historyEntry], future: [] };
     }
 
     case "SET_MODE": {
@@ -256,6 +264,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
       const lastEntry = state.history[state.history.length - 1];
       const { row, col, prevValue, prevNotes } = lastEntry;
+      const redoEntry: HistoryEntry = {
+        row,
+        col,
+        prevValue: state.userInput[row][col],
+        prevNotes: new Set(state.notes[row][col]),
+      };
 
       const newUserInput = state.userInput.map((r, ri) =>
         r.map((cell, ci) => (ri === row && ci === col ? prevValue : cell))
@@ -272,6 +286,45 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         userInput: newUserInput,
         notes: newNotes,
         history: state.history.slice(0, -1),
+        future: [...state.future, redoEntry],
+        selectedCell: [row, col],
+        highlightedNumber: null,
+      };
+    }
+
+    case "REDO": {
+      if (state.future.length === 0) return state;
+
+      const nextEntry = state.future[state.future.length - 1];
+      const { row, col, prevValue, prevNotes } = nextEntry;
+      const undoEntry: HistoryEntry = {
+        row,
+        col,
+        prevValue: state.userInput[row][col],
+        prevNotes: new Set(state.notes[row][col]),
+      };
+
+      const newUserInput = state.userInput.map((r, ri) =>
+        r.map((cell, ci) => (ri === row && ci === col ? prevValue : cell))
+      );
+
+      const newNotes = state.notes.map((r, ri) =>
+        r.map((cellNotes, ci) =>
+          ri === row && ci === col ? new Set(prevNotes) : cellNotes
+        )
+      );
+
+      const currentGrid = state.puzzle.map((puzzleRow, r) =>
+        puzzleRow.map((cell, c) => (cell !== 0 ? cell : newUserInput[r][c] || 0))
+      );
+
+      return {
+        ...state,
+        userInput: newUserInput,
+        notes: newNotes,
+        isComplete: isSolved(currentGrid, state.solution),
+        history: [...state.history, undoEntry],
+        future: state.future.slice(0, -1),
         selectedCell: [row, col],
         highlightedNumber: null,
       };
@@ -350,7 +403,12 @@ export function useGame() {
     dispatch({ type: "UNDO" });
   }, []);
 
+  const redo = useCallback(() => {
+    dispatch({ type: "REDO" });
+  }, []);
+
   const canUndo = state.history.length > 0;
+  const canRedo = state.future.length > 0;
 
   const progress = useMemo(() => {
     if (!state.isStarted) return 0;
@@ -366,6 +424,7 @@ export function useGame() {
     ...state,
     progress,
     canUndo,
+    canRedo,
     startGame,
     loadPuzzle,
     loadPuzzleWithState,
@@ -376,6 +435,7 @@ export function useGame() {
     toggleMode,
     resetGame,
     undo,
+    redo,
   };
 }
 

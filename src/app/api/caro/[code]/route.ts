@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import CaroRoom from "@/models/CaroRoom";
+import { isValidRoomCode } from "@/lib/validation";
 
 export async function GET(
   request: NextRequest,
@@ -7,6 +8,10 @@ export async function GET(
 ) {
   try {
     const { code } = await params;
+
+    if (!isValidRoomCode(code)) {
+      return NextResponse.json({ error: "Invalid room code" }, { status: 400 });
+    }
 
     const room = CaroRoom.findByCode(code);
 

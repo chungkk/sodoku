@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Room from "@/models/Room";
 import { denyUnlessPlayer } from "@/lib/player-auth";
+import { cleanPlayerName, isValidRoomCode, readJsonObject } from "@/lib/validation";
 
 interface RouteParams {
   params: Promise<{ code: string }>;
@@ -9,19 +10,23 @@ interface RouteParams {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { code } = await params;
-    const body = await request.json();
-    const { visitorId, name } = body;
-
-    if (!code || code.length !== 6) {
+    if (!isValidRoomCode(code)) {
       return NextResponse.json(
         { error: "Invalid room code" },
         { status: 400 }
       );
     }
 
-    if (!visitorId || !name) {
+    const body = await readJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+    const { visitorId, name: rawName } = body;
+    const name = cleanPlayerName(rawName);
+
+    if (typeof visitorId !== "string" || !visitorId || !name) {
       return NextResponse.json(
-        { error: "visitorId and name are required" },
+        { error: "visitorId and valid name are required" },
         { status: 400 }
       );
     }

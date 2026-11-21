@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useRef, useState, useCallback } from "react";
+import { memo, useRef, useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import type { Board } from "@/lib/caro";
 import { CandyO, CandyX } from "@/components/candy";
@@ -137,11 +137,34 @@ export const CaroBoard = memo(function CaroBoard({
     setIsDragging(false);
   }, []);
 
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    handleZoom(scale * delta);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      handleZoom(scale * delta);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
   }, [scale, handleZoom]);
+
+  const [focusedCell, setFocusedCell] = useState<[number, number]>([7, 7]);
+  const cellRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const handleCellKeyDown = useCallback((row: number, col: number, e: React.KeyboardEvent) => {
+    let nextRow = row;
+    let nextCol = col;
+    if (e.key === "ArrowUp") nextRow = Math.max(0, row - 1);
+    else if (e.key === "ArrowDown") nextRow = Math.min(BOARD_SIZE - 1, row + 1);
+    else if (e.key === "ArrowLeft") nextCol = Math.max(0, col - 1);
+    else if (e.key === "ArrowRight") nextCol = Math.min(BOARD_SIZE - 1, col + 1);
+    else return;
+
+    e.preventDefault();
+    setFocusedCell([nextRow, nextCol]);
+    cellRefs.current[nextRow * BOARD_SIZE + nextCol]?.focus();
+  }, []);
 
   const zoomButton = "flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-ink bg-milk text-lg transition-colors hover:bg-lemon-pale disabled:opacity-45";
 
@@ -168,7 +191,6 @@ export const CaroBoard = memo(function CaroBoard({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          onWheel={handleWheel}
         >
           <div
             ref={boardRef}
@@ -186,12 +208,22 @@ export const CaroBoard = memo(function CaroBoard({
                 const isLast = isLastMove(rowIndex, colIndex);
                 const canPlay = !disabled && cell === null;
 
+                const isFocusedTarget = focusedCell[0] === rowIndex && focusedCell[1] === colIndex;
+
                 return (
                   <button
                     key={`${rowIndex}-${colIndex}`}
+                    ref={(el) => {
+                      cellRefs.current[rowIndex * BOARD_SIZE + colIndex] = el;
+                    }}
                     type="button"
-                    onClick={() => onCellClick(rowIndex, colIndex)}
-                    disabled={disabled || cell !== null}
+                    tabIndex={isFocusedTarget ? 0 : -1}
+                    onFocus={() => setFocusedCell([rowIndex, colIndex])}
+                    onKeyDown={(e) => handleCellKeyDown(rowIndex, colIndex, e)}
+                    onClick={() => {
+                      if (canPlay) onCellClick(rowIndex, colIndex);
+                    }}
+                    aria-disabled={disabled || cell !== null}
                     aria-label={`Ô hàng ${rowIndex + 1}, cột ${colIndex + 1}, ${cell ? `quân ${cell}` : "trống"}`}
                     className={`
                       group relative flex h-full w-full items-center justify-center p-[7%]

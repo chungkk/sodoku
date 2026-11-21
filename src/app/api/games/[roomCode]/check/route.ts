@@ -3,7 +3,7 @@ import Puzzle from "@/models/Puzzle";
 import Room from "@/models/Room";
 import { denyUnlessPlayer } from "@/lib/player-auth";
 import { countWrongCells, MAX_CHECKS_PER_GAME } from "@/lib/sudoku";
-import { isNumberGrid } from "@/lib/validation";
+import { isNumberGrid, readJsonObject } from "@/lib/validation";
 
 interface RouteParams {
   params: Promise<{ roomCode: string }>;
@@ -16,10 +16,13 @@ interface RouteParams {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { roomCode } = await params;
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
     const { visitorId, grid } = body;
 
-    if (!roomCode || !visitorId || !grid) {
+    if (!roomCode || typeof visitorId !== "string" || !visitorId || !grid) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }

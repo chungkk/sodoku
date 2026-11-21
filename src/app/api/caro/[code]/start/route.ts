@@ -3,6 +3,7 @@ import CaroRoom from "@/models/CaroRoom";
 import { createEmptyBoard } from "@/lib/caro";
 import { denyUnlessPlayer } from "@/lib/player-auth";
 import { caroTurnStarted } from "@/lib/realtime";
+import { isValidRoomCode, readJsonObject } from "@/lib/validation";
 
 export async function POST(
   request: NextRequest,
@@ -10,9 +11,16 @@ export async function POST(
 ) {
   try {
     const { code } = await params;
-    const { visitorId } = await request.json();
+    if (!isValidRoomCode(code)) {
+      return NextResponse.json({ error: "Invalid room code" }, { status: 400 });
+    }
+    const body = await readJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+    const { visitorId } = body;
 
-    if (!visitorId) {
+    if (typeof visitorId !== "string" || !visitorId) {
       return NextResponse.json(
         { error: "Missing visitorId" },
         { status: 400 }

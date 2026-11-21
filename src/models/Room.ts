@@ -1,6 +1,7 @@
 import { getDb, toDate } from "../lib/db";
 import { pickWinnerId } from "../lib/ranking";
 import { MAX_PAUSE_MS_PER_PLAYER } from "../lib/sudoku";
+import { generateRoomCode, uniquePlayerName } from "../lib/validation";
 import type { Difficulty } from "./Puzzle";
 
 export type RoomStatus = "waiting" | "playing" | "finished";
@@ -76,12 +77,7 @@ function newPlayer(visitorId: string, name: string, isHost: boolean): IPlayer {
 }
 
 function generateCode(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let code = "";
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
+  return generateRoomCode();
 }
 
 export default class Room {
@@ -205,7 +201,8 @@ export default class Room {
     if (this.status !== "waiting") return false;
     if (this.players.some((p) => p.visitorId === visitorId)) return false;
 
-    this.players.push(newPlayer(visitorId, name, false));
+    const uniqueName = uniquePlayerName(cleanName(name), this.players.map((p) => p.name));
+    this.players.push(newPlayer(visitorId, uniqueName, false));
     return true;
   }
 

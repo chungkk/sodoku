@@ -199,3 +199,44 @@ test("phòng Caro quá 24 giờ bị dọn khi tạo phòng mới, phòng còn h
   assert.equal(CaroRoom.findByCode("OLD001"), null);
   assert.ok(CaroRoom.findByCode("KEEP01"));
 });
+
+test("rời phòng chờ chuyển quyền chủ phòng và xoá phòng khi trống (Sudoku & Caro)", () => {
+  const sRoom = Room.createRoom("host1", "Host", "easy");
+  sRoom.addPlayer("guest1", "Guest");
+  sRoom.save();
+  assert.equal(sRoom.removePlayer("host1"), true);
+  sRoom.save();
+  const sReload = Room.findByCode(sRoom.code)!;
+  assert.equal(sReload.hostId, "guest1");
+  assert.equal(sReload.players.length, 1);
+  assert.equal(sReload.players[0].isHost, true);
+
+  const cRoom = CaroRoom.create({
+    code: "LEAVE1",
+    players: [
+      { visitorId: "cx", name: "X", symbol: "X", isReady: false, isConnected: true },
+      { visitorId: "co", name: "O", symbol: "O", isReady: false, isConnected: true },
+    ],
+    board: createEmptyBoard(),
+    currentTurn: "X",
+    status: "waiting",
+  });
+  assert.equal(cRoom.removePlayer("cx"), true);
+  cRoom.save();
+  const cReload = CaroRoom.findByCode("LEAVE1")!;
+  assert.equal(cReload.players.length, 1);
+  assert.equal(cReload.players[0].visitorId, "co");
+  assert.equal(cReload.players[0].symbol, "X");
+  cReload.delete();
+  assert.equal(CaroRoom.findByCode("LEAVE1"), null);
+});
+
+test("tự phân biệt tên trùng khi vào cùng phòng Sudoku", () => {
+  const room = Room.createRoom("u1", "Minh", "easy");
+  assert.equal(room.addPlayer("u2", "minh"), true);
+  assert.equal(room.addPlayer("u3", "Minh"), true);
+  assert.deepEqual(
+    room.players.map((p) => p.name),
+    ["Minh", "minh (2)", "Minh (3)"]
+  );
+});

@@ -3,6 +3,7 @@ import Room from "@/models/Room";
 import Puzzle from "@/models/Puzzle";
 import { generatePuzzle } from "@/lib/sudoku";
 import { denyUnlessPlayer } from "@/lib/player-auth";
+import { isValidRoomCode, readJsonObject } from "@/lib/validation";
 
 interface RouteParams {
   params: Promise<{ code: string }>;
@@ -11,17 +12,20 @@ interface RouteParams {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { code } = await params;
-    const body = await request.json();
-    const { visitorId } = body;
-
-    if (!code || code.length !== 6) {
+    if (!isValidRoomCode(code)) {
       return NextResponse.json(
         { error: "Invalid room code" },
         { status: 400 }
       );
     }
 
-    if (!visitorId) {
+    const body = await readJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+    const { visitorId } = body;
+
+    if (typeof visitorId !== "string" || !visitorId) {
       return NextResponse.json(
         { error: "visitorId is required" },
         { status: 400 }

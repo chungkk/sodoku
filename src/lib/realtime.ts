@@ -6,6 +6,7 @@ export interface Realtime {
   emit(socketRoom: string, event: string, data: unknown): void;
   caroTurnStarted(roomCode: string): void;
   caroTurnEnded(roomCode: string): void;
+  sudokuPauseCleared?: (roomCode: string) => void;
 }
 
 const store = globalThis as typeof globalThis & { __soloRealtime?: Realtime };
@@ -27,4 +28,8 @@ export function caroTurnStarted(roomCode: string): void {
 
 export function caroTurnEnded(roomCode: string): void {
   store.__soloRealtime?.caroTurnEnded(roomCode);
+}
+
+export function sudokuPauseCleared(roomCode: string): void {
+  store.__soloRealtime?.sudokuPauseCleared?.(roomCode);
 }

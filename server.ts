@@ -52,7 +52,7 @@ function reject(res: ServerResponse, status: number, error: string): void {
 function guardApi(req: IncomingMessage, res: ServerResponse, pathname: string | null): boolean {
   if (!pathname?.startsWith("/api/")) return false;
 
-  if (req.method !== "GET" && req.method !== "HEAD") {
+  if (req.method !== "GET" && req.method !== "HEAD" && req.method !== "OPTIONS") {
     // Chunked hoặc thiếu Content-Length không kiểm tra trước được kích thước; trình duyệt gửi JSON luôn có Content-Length
     const rawLength = req.headers["content-length"];
     const length = rawLength !== undefined ? Number(rawLength) : NaN;
@@ -91,13 +91,29 @@ app.prepare().then(() => {
     }
   });
 
+  const configuredOrigin = (dev ? `http://localhost:${port}` : process.env.NEXTAUTH_URL)?.replace(/\/+$/, "");
+
+  const isAllowedOrigin = (origin: string | undefined, host: string | undefined): boolean => {
+    if (!origin) return true;
+    const normalized = origin.replace(/\/+$/, "");
+    if (configuredOrigin && normalized === configuredOrigin) return true;
+    if (host && (normalized === `http://${host}` || normalized === `https://${host}`)) return true;
+    return false;
+  };
+
   const io = new SocketIOServer(httpServer, {
     path: "/api/socketio",
     maxHttpBufferSize: MAX_API_BODY_BYTES,
     cors: {
-      origin: dev ? "http://localhost:3000" : process.env.NEXTAUTH_URL,
+      origin: configuredOrigin || false,
       methods: ["GET", "POST"],
       credentials: true,
+    },
+    allowRequest: (req, callback) => {
+      if (!isAllowedOrigin(req.headers.origin, req.headers.host)) {
+        return callback("Origin not allowed", false);
+      }
+      callback(null, true);
     },
     pingTimeout: 60000,
     pingInterval: 25000,
@@ -111,4 +127,14 @@ app.prepare().then(() => {
     );
     console.log("> Socket.io server running on /api/socketio");
   });
+
+  const shutdown = (signal: string) => {
+    console.log(`> Received ${signal}, shutting down gracefully...`);
+    io.close(() => {
+      httpServer.close(() => process.exit(0));
+    });
+    setTimeout(() => process.exit(1), 5000).unref();
+  };
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => shutdown("SIGINT"));
 });

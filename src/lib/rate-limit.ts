@@ -1,30 +1,60 @@
-/** Giới hạn theo cửa sổ cố định, nằm trong bộ nhớ của process; đủ dùng vì app chỉ chạy một process. */
+/**
+ * Bộ giới hạn lưu lượng dạng sliding-window approximation kết hợp LRU eviction,
+ * nằm trong bộ nhớ của process (đủ dùng vì app chạy một process).
+ * - Tránh burst 2x ở ranh giới cửa sổ bằng trọng số của cửa sổ trước.
+ * - Khi chạm maxKeys, xoá khóa cũ nhất thay vì từ chối toàn bộ người dùng mới.
+ */
+interface Bucket {
+  windowIndex: number;
+  prevCount: number;
+  currCount: number;
+}
+
 export class RateLimiter {
-  private counts = new Map<string, number>();
-  private windowStart: number;
+  private buckets = new Map<string, Bucket>();
 
   constructor(
     private readonly limit: number,
     private readonly windowMs: number,
     private readonly now: () => number = Date.now,
     private readonly maxKeys = 50_000
-  ) {
-    this.windowStart = now();
-  }
+  ) {}
 
   allow(key: string): boolean {
     const now = this.now();
-    if (now - this.windowStart >= this.windowMs) {
-      // Xoá hết khi qua cửa sổ mới để Map không lớn dần
-      this.counts.clear();
-      this.windowStart = now;
+    const windowIndex = Math.floor(now / this.windowMs);
+    const elapsedInWindow = now - windowIndex * this.windowMs;
+    const prevWeight = (this.windowMs - elapsedInWindow) / this.windowMs;
+
+    const existing = this.buckets.get(key);
+    let bucket: Bucket;
+
+    if (!existing) {
+      if (this.buckets.size >= this.maxKeys) {
+        const oldestKey = this.buckets.keys().next().value;
+        if (oldestKey !== undefined) this.buckets.delete(oldestKey);
+      }
+      bucket = { windowIndex, prevCount: 0, currCount: 0 };
+    } else {
+      // Làm mới vị trí LRU bằng cách xoá rồi ghi lại ở cuối Map
+      this.buckets.delete(key);
+      if (existing.windowIndex === windowIndex) {
+        bucket = existing;
+      } else if (existing.windowIndex === windowIndex - 1) {
+        bucket = { windowIndex, prevCount: existing.currCount, currCount: 0 };
+      } else {
+        bucket = { windowIndex, prevCount: 0, currCount: 0 };
+      }
     }
-    const existing = this.counts.get(key);
-    if (existing === undefined && this.counts.size >= this.maxKeys) {
+
+    const effectiveCount = bucket.prevCount * prevWeight + bucket.currCount;
+    if (effectiveCount + 1 > this.limit) {
+      this.buckets.set(key, bucket);
       return false;
     }
-    const count = (existing ?? 0) + 1;
-    this.counts.set(key, count);
-    return count <= this.limit;
+
+    bucket.currCount += 1;
+    this.buckets.set(key, bucket);
+    return true;
   }
 }

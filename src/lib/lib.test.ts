@@ -1,10 +1,21 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkWinner, createEmptyBoard, findWinningCells } from "./caro";
+import { checkWinner, createEmptyBoard, findWinningCells, isBoardFull, isValidMove } from "./caro";
+import { generateVisitorId, isValidPlayerToken, signPlayerToken } from "./player-token";
 import { pickWinnerId } from "./ranking";
 import { RateLimiter } from "./rate-limit";
 import { calculateFillProgress, countWrongCells, generatePuzzle, isSolutionOf } from "./sudoku";
-import { clientProgress, cleanPlayerName, isNotes, isNumberGrid, isPlayerGrid } from "./validation";
+import {
+  clientProgress,
+  cleanPlayerName,
+  generateRoomCode,
+  isNotes,
+  isNumberGrid,
+  isPlayerGrid,
+  isValidRoomCode,
+  readJsonObject,
+  uniquePlayerName,
+} from "./validation";
 
 const player = (visitorId: string, progress: number, finishedAtMs: number | null, errors = 0) => ({
   visitorId,
@@ -88,20 +99,30 @@ test("kiểm tra dữ liệu client gửi lên", () => {
   assert.equal(clientProgress(-1), null);
   assert.equal(clientProgress("50"), null);
   assert.equal(cleanPlayerName("  An  "), "An");
+  assert.equal(cleanPlayerName("A"), null);
   assert.equal(cleanPlayerName("x".repeat(21)), null);
   assert.equal(cleanPlayerName(5), null);
+  assert.equal(uniquePlayerName("Alice", ["Bob"]), "Alice");
+  assert.equal(uniquePlayerName("Alice", ["alice"]), "Alice (2)");
+  assert.equal(uniquePlayerName("Alice", ["Alice", "Alice (2)"]), "Alice (3)");
+  assert.ok(uniquePlayerName("A".repeat(20), ["A".repeat(20)]).length <= 20);
 });
 
-test("RateLimiter chặn khi vượt ngưỡng, giới hạn maxKeys và mở lại ở cửa sổ mới", () => {
-  let now = 0;
+test("RateLimiter sliding-window chặn burst ranh giới và LRU eviction không khoá người mới", () => {
+  let now = 900;
   const limiter = new RateLimiter(2, 1000, () => now, 2);
   assert.equal(limiter.allow("a"), true);
   assert.equal(limiter.allow("a"), true);
   assert.equal(limiter.allow("a"), false);
+  // Qua ranh giới cửa sổ mới (t=1050): cửa sổ cũ vẫn còn trọng số 95% nên không cho burst 2x
+  now = 1050;
+  assert.equal(limiter.allow("a"), false);
+  // Thêm khóa mới vượt maxKeys=2 sẽ đuổi khóa cũ nhất (LRU) thay vì từ chối toàn cục
   assert.equal(limiter.allow("b"), true);
-  assert.equal(limiter.allow("c"), false); // vượt maxKeys = 2
-  now = 1000;
   assert.equal(limiter.allow("c"), true);
+  // Sau khi qua hẳn cửa sổ tiếp theo, khóa a được mở lại
+  now = 2100;
+  assert.equal(limiter.allow("a"), true);
 });
 
 test("Caro: 5 quân sát mép bàn bị chặn 1 đầu vẫn thắng, chặn 2 đầu bằng đối thủ không thắng", () => {
@@ -125,4 +146,70 @@ test("Caro: 5 quân sát mép bàn bị chặn 1 đầu vẫn thắng, chặn 2 
   const winCells = findWinningCells(blocked, 3, 4, "X");
   assert.equal(winCells.length, 5);
   assert.ok(winCells.every((cell) => cell.col === 4));
+});
+
+test("Caro: kiểm tra thắng chéo chính, chéo phụ, hoà và nước đi hợp lệ", () => {
+  const diag1 = createEmptyBoard();
+  for (let i = 0; i < 5; i++) diag1[2 + i][2 + i] = "X";
+  assert.equal(checkWinner(diag1, 4, 4, "X"), true);
+
+  const diag2 = createEmptyBoard();
+  for (let i = 0; i < 5; i++) diag2[2 + i][10 - i] = "O";
+  assert.equal(checkWinner(diag2, 4, 8, "O"), true);
+
+  assert.equal(isValidMove(diag1, -1, 0), false);
+  assert.equal(isValidMove(diag1, 0, 15), false);
+  assert.equal(isValidMove(diag1, 2, 2), false);
+  assert.equal(isValidMove(diag1, 0, 0), true);
+
+  const full = createEmptyBoard().map((row, r) => row.map((_, c): "X" | "O" | null => ((r + c) % 2 === 0 ? "X" : "O")));
+  assert.equal(isBoardFull(full), true);
+  full[0][0] = null;
+  assert.equal(isBoardFull(full), false);
+});
+
+test("generateRoomCode và isValidRoomCode sinh mã 6 ký tự chữ-số hợp lệ", () => {
+  const codes = new Set<string>();
+  for (let i = 0; i < 50; i++) {
+    const code = generateRoomCode();
+    assert.equal(isValidRoomCode(code), true);
+    codes.add(code);
+  }
+  assert.ok(codes.size >= 49);
+  assert.equal(isValidRoomCode("ABC12"), false);
+  assert.equal(isValidRoomCode("ABC1234"), false);
+  assert.equal(isValidRoomCode("ABC-12"), false);
+  assert.equal(isValidRoomCode(null), false);
+});
+
+test("readJsonObject chỉ nhận JSON object phẳng, từ chối null/mảng/chuỗi lỗi", async () => {
+  const mk = (raw: string) => new Request("http://localhost/test", { method: "POST", body: raw });
+  assert.deepEqual(await readJsonObject(mk('{"a":1}')), { a: 1 });
+  assert.equal(await readJsonObject(mk("null")), null);
+  assert.equal(await readJsonObject(mk("[1,2,3]")), null);
+  assert.equal(await readJsonObject(mk('"hello"')), null);
+  assert.equal(await readJsonObject(mk("{broken")), null);
+});
+
+test("player-token: xác thực chữ ký HMAC, hạn dùng và từ chối giả mạo/hết hạn", () => {
+  const id = generateVisitorId();
+  const now = 1_700_000_000_000;
+  const token = signPlayerToken(id, now);
+  assert.equal(isValidPlayerToken(id, token, now + 1000), true);
+  assert.equal(isValidPlayerToken(id, token, now + 31 * 24 * 60 * 60 * 1000), false, "token hết hạn phải bị từ chối");
+  assert.equal(isValidPlayerToken(id, "legacy-no-dot-token", now), false);
+  assert.equal(isValidPlayerToken(id, token + "x", now), false);
+  assert.equal(isValidPlayerToken("guest_other", token, now), false);
+  assert.equal(isValidPlayerToken(null, token, now), false);
+  assert.equal(isValidPlayerToken(id, undefined, now), false);
+});
+
+test("Sudoku extreme sinh nhanh, đúng ngưỡng <= 21 ô và lời giải hợp lệ", () => {
+  const t0 = performance.now();
+  for (let i = 0; i < 10; i++) {
+    const p = generatePuzzle("extreme");
+    assert.ok(p.givenCells >= 17 && p.givenCells <= 21, `expected 17..21 givens, got ${p.givenCells}`);
+    assert.equal(isSolutionOf(p.solution, p.grid), true);
+  }
+  assert.ok(performance.now() - t0 < 500, "10 đề extreme phải sinh xong dưới 500ms");
 });

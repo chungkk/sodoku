@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import Room from "@/models/Room";
 import Puzzle from "@/models/Puzzle";
 import { isSolutionOf } from "@/lib/sudoku";
-import { isNumberGrid } from "@/lib/validation";
+import { isNumberGrid, readJsonObject } from "@/lib/validation";
 import { denyUnlessPlayer } from "@/lib/player-auth";
-import { broadcast, sudokuSocketRoom } from "@/lib/realtime";
+import { broadcast, sudokuPauseCleared, sudokuSocketRoom } from "@/lib/realtime";
 
 interface RouteParams {
   params: Promise<{ roomCode: string }>;
@@ -13,10 +13,13 @@ interface RouteParams {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { roomCode } = await params;
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
     const { visitorId, grid } = body;
 
-    if (!roomCode || !visitorId || !grid) {
+    if (!roomCode || typeof visitorId !== "string" || !visitorId || !grid) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -102,6 +105,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       errors: player.errors,
     });
     if (allFinished) {
+      sudokuPauseCleared(room.code);
       broadcast(socketRoom, "game_ended", { winnerId: room.winnerId, reason: "completed" });
     }
 

@@ -11,6 +11,7 @@
   --mint-pale: #dcf7ee;
   --milk: #fffaf3;
   --cherry: #d92c45;
+  --cherry-deep: #9e1b30;
   --cherry-pale: #ffd9dd;
   --lemon: #ffd24d;
   --lemon-pale: #fff0bd;
@@ -177,6 +178,10 @@
 
   .sudoku-cell-conflict-bg {
     background: var(--cherry-pale);
+  }
+
+  .sudoku-cell-conflict-given {
+    color: var(--cherry-deep);
   }
 
   /* Viên kẹo số người chơi thả vào ô */

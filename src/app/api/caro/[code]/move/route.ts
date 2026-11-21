@@ -3,6 +3,7 @@ import CaroRoom from "@/models/CaroRoom";
 import { checkWinner, isValidMove, isBoardFull, TURN_TIMEOUT_MS } from "@/lib/caro";
 import { denyUnlessPlayer } from "@/lib/player-auth";
 import { broadcast, caroSocketRoom, caroTurnEnded, caroTurnStarted } from "@/lib/realtime";
+import { isValidRoomCode, readJsonObject } from "@/lib/validation";
 
 export async function POST(
   request: NextRequest,
@@ -10,9 +11,16 @@ export async function POST(
 ) {
   try {
     const { code } = await params;
-    const { visitorId, row, col } = await request.json();
+    if (!isValidRoomCode(code)) {
+      return NextResponse.json({ error: "Invalid room code" }, { status: 400 });
+    }
+    const body = await readJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+    const { visitorId, row, col } = body;
 
-    if (visitorId === undefined || row === undefined || col === undefined) {
+    if (typeof visitorId !== "string" || !visitorId || row === undefined || col === undefined) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -51,7 +59,13 @@ export async function POST(
       );
     }
 
-    if (!Number.isInteger(row) || !Number.isInteger(col) || !isValidMove(room.board, row, col)) {
+    if (
+      typeof row !== "number" ||
+      typeof col !== "number" ||
+      !Number.isInteger(row) ||
+      !Number.isInteger(col) ||
+      !isValidMove(room.board, row, col)
+    ) {
       return NextResponse.json(
         { error: "Invalid move" },
         { status: 400 }

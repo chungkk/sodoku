@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Room from "@/models/Room";
+import { isValidRoomCode } from "@/lib/validation";
 
 interface RouteParams {
   params: Promise<{ code: string }>;
@@ -9,7 +10,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { code } = await params;
 
-    if (!code || code.length !== 6) {
+    if (!isValidRoomCode(code)) {
       return NextResponse.json(
         { error: "Invalid room code" },
         { status: 400 }

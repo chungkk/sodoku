@@ -2,21 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import Room from "@/models/Room";
 import { Difficulty } from "@/models/Puzzle";
 import { denyUnlessPlayer } from "@/lib/player-auth";
+import { cleanPlayerName, readJsonObject } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { visitorId, hostName, difficulty } = body;
+    const body = await readJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+    const { visitorId, hostName: rawHostName, difficulty } = body;
+    const hostName = cleanPlayerName(rawHostName);
 
-    if (!visitorId || !hostName) {
+    if (typeof visitorId !== "string" || !visitorId || !hostName) {
       return NextResponse.json(
-        { error: "visitorId and hostName are required" },
+        { error: "visitorId and valid hostName are required" },
         { status: 400 }
       );
     }
 
     const validDifficulties: Difficulty[] = ["easy", "medium", "hard"];
-    if (difficulty && !validDifficulties.includes(difficulty)) {
+    if (difficulty !== undefined && difficulty !== null && !validDifficulties.includes(difficulty as Difficulty)) {
       return NextResponse.json(
         { error: "Invalid difficulty level" },
         { status: 400 }
@@ -29,7 +34,7 @@ export async function POST(request: NextRequest) {
     const room = Room.createRoom(
       visitorId,
       hostName,
-      difficulty || "medium"
+      (difficulty as Difficulty) || "medium"
     );
 
     return NextResponse.json({

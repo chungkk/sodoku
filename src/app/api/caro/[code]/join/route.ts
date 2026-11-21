@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import CaroRoom from "@/models/CaroRoom";
 import { denyUnlessPlayer } from "@/lib/player-auth";
-import { cleanPlayerName } from "@/lib/validation";
+import { cleanPlayerName, isValidRoomCode, readJsonObject, uniquePlayerName } from "@/lib/validation";
 
 export async function POST(
   request: NextRequest,
@@ -9,10 +9,17 @@ export async function POST(
 ) {
   try {
     const { code } = await params;
-    const { visitorId, name: rawName } = await request.json();
+    if (!isValidRoomCode(code)) {
+      return NextResponse.json({ error: "Invalid room code" }, { status: 400 });
+    }
+    const body = await readJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+    const { visitorId, name: rawName } = body;
     const name = cleanPlayerName(rawName);
 
-    if (!visitorId || !name) {
+    if (typeof visitorId !== "string" || !visitorId || !name) {
       return NextResponse.json(
         { error: "Missing visitorId or invalid name" },
         { status: 400 }
@@ -47,7 +54,7 @@ export async function POST(
       }
       room.players.push({
         visitorId,
-        name,
+        name: uniquePlayerName(name, room.players.map((p) => p.name)),
         symbol: "O",
         isReady: false,
         isConnected: true,

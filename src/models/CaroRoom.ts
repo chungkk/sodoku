@@ -164,6 +164,20 @@ export default class CaroRoom {
     return Math.max(0, deadline - now.getTime());
   }
 
+  removePlayer(visitorId: string): boolean {
+    const index = this.players.findIndex((p) => p.visitorId === visitorId);
+    if (index === -1) return false;
+    this.players.splice(index, 1);
+    if (this.players.length > 0 && this.players[0].symbol !== "X") {
+      this.players[0].symbol = "X";
+    }
+    return true;
+  }
+
+  delete(): void {
+    getDb().prepare("DELETE FROM caro_rooms WHERE code = ?").run(this.code);
+  }
+
   save(): void {
     getDb()
       .prepare("UPDATE caro_rooms SET status = ?, data = ? WHERE code = ?")

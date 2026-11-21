@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { CandyLoader, CandyO, CandyX, MascotSay, WrapperRain } from "@/components/candy";
 import { CaroBoard } from "@/components/CaroBoard";
@@ -28,9 +28,11 @@ export default function CaroPlayPage() {
   const params = useParams();
   const code = params.code as string;
   const router = useRouter();
-  const { player } = usePlayer();
+  const { player, isLoading: playerLoading } = usePlayer();
 
   const [roomPlayers, setRoomPlayers] = useState<CaroPlayer[]>([]);
+  const roomPlayersRef = useRef<CaroPlayer[]>([]);
+  const submittingMoveRef = useRef(false);
   const [gameStatus, setGameStatus] = useState<"waiting" | "playing" | "finished">("playing");
   const [showResultModal, setShowResultModal] = useState(false);
   const [winner, setWinner] = useState<CaroPlayer | null>(null);
@@ -57,6 +59,7 @@ export default function CaroPlayPage() {
       const res = await apiFetch(`/api/caro/${code}`);
       if (res.ok) {
         const data = await res.json();
+        roomPlayersRef.current = data.players;
         setRoomPlayers(data.players);
         setGameStatus(data.status);
         
@@ -100,6 +103,12 @@ export default function CaroPlayPage() {
   }, [code, player, loadBoard]);
 
   useEffect(() => {
+    if (!playerLoading && !player) {
+      router.replace(`/caro/${code}`);
+    }
+  }, [playerLoading, player, code, router]);
+
+  useEffect(() => {
     if (player) {
       fetchRoomData();
     }
@@ -133,8 +142,12 @@ export default function CaroPlayPage() {
       setIsPaused(false);
       setPausedBy(null);
       if (data.winnerId) {
-        const winningPlayer = roomPlayers.find((p) => p.visitorId === data.winnerId);
-        setWinner(winningPlayer || null);
+        const winningPlayer = roomPlayersRef.current.find((p) => p.visitorId === data.winnerId);
+        if (winningPlayer) {
+          setWinner(winningPlayer);
+        } else {
+          fetchRoomData();
+        }
       } else {
         setWinner(null);
       }
@@ -175,7 +188,7 @@ export default function CaroPlayPage() {
       off("caro_game_started");
       off("caro_game_paused");
     };
-  }, [isConnected, on, off, applyServerMove, roomPlayers, fetchRoomData]);
+  }, [isConnected, on, off, applyServerMove, fetchRoomData]);
 
   // Timer countdown effect
   useEffect(() => {
@@ -210,12 +223,13 @@ export default function CaroPlayPage() {
   };
 
   const handleCellClick = async (row: number, col: number) => {
-    if (!player || gameStatus !== "playing" || !mySymbol || isPaused) return;
+    if (!player || gameStatus !== "playing" || !mySymbol || isPaused || submittingMoveRef.current) return;
     if (game.currentTurn !== mySymbol) return;
 
     const success = game.makeMove(row, col, mySymbol);
     if (!success) return;
 
+    submittingMoveRef.current = true;
     // Reset timer for next turn
     setTurnStartedAt(new Date());
 
@@ -237,6 +251,8 @@ export default function CaroPlayPage() {
     } catch (error) {
       console.error("Failed to make move:", error);
       fetchRoomData();
+    } finally {
+      submittingMoveRef.current = false;
     }
   };
 

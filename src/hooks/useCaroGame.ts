@@ -74,6 +74,15 @@ export function useCaroGame(): UseCaroGameReturn {
     setCurrentTurn(turn);
     if (nextLastMove !== undefined) {
       setLastMove(nextLastMove);
+      if (nextLastMove) {
+        const piece = nextBoard[nextLastMove.row]?.[nextLastMove.col] ?? null;
+        const cells = piece ? findWinningCells(nextBoard, nextLastMove.row, nextLastMove.col, piece) : [];
+        setWinningCells(cells);
+        setWinner(cells.length > 0 ? piece : null);
+      } else {
+        setWinningCells([]);
+        setWinner(null);
+      }
     }
   }, []);
 

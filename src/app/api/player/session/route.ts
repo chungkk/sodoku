@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateVisitorId, signPlayerToken } from "@/lib/player-token";
+import { readJsonObject } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
     const { name } = body;
 
     if (!name || typeof name !== "string") {

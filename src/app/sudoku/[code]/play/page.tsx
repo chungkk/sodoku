@@ -35,13 +35,14 @@ export default function GamePlayPage() {
   const params = useParams();
   const code = params.code as string;
   const router = useRouter();
-  const { player } = usePlayer();
+  const { player, isLoading: playerLoading } = usePlayer();
 
   const [playersProgress, setPlayersProgress] = useState<PlayerProgress[]>([]);
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [showGiveUpConfirm, setShowGiveUpConfirm] = useState(false);
   const [winnerId, setWinnerId] = useState<string | null>(null);
   const [gameEnded, setGameEnded] = useState(false);
+  const [gaveUp, setGaveUp] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pausedBy, setPausedBy] = useState<{ visitorId: string; name: string } | null>(null);
   const [stateLoaded, setStateLoaded] = useState(false);
@@ -200,16 +201,22 @@ export default function GamePlayPage() {
           Boolean(meInRoom?.finishedAt) ||
           meInRoom?.progress === 100 ||
           meInRoom?.progress === -1;
-        const alreadySolved =
-          alreadyFinished && savedState?.gaveUp !== true && meInRoom?.progress !== -1;
+        const alreadyGaveUp = savedState?.gaveUp === true || meInRoom?.progress === -1;
+        const alreadySolved = alreadyFinished && !alreadyGaveUp;
 
         if (alreadyFinished) {
           submittedRef.current = true;
         }
+        if (alreadyGaveUp) {
+          setGaveUp(true);
+        }
 
         if (savedState && savedState.currentGrid && savedState.currentGrid.length > 0) {
-          const userInput = savedState.currentGrid.map((row: (number | null)[]) =>
-            row.map((cell: number | null) => (cell === 0 ? null : cell))
+          // Loại bỏ các ô đề bài để userInput chỉ giữ số người chơi tự điền
+          const userInput = savedState.currentGrid.map((row: (number | null)[], r: number) =>
+            row.map((cell: number | null, c: number) =>
+              puzzleData.puzzle[r]?.[c] !== 0 || cell === 0 ? null : cell
+            )
           );
 
           const notes: Set<number>[][] = savedState.notes && savedState.notes.length > 0
@@ -278,6 +285,12 @@ export default function GamePlayPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, router, player, loadLocalState]);
+
+  useEffect(() => {
+    if (!playerLoading && !player) {
+      router.replace(`/sudoku/${code}`);
+    }
+  }, [playerLoading, player, code, router]);
 
   useEffect(() => {
     if (player) {
@@ -485,7 +498,16 @@ export default function GamePlayPage() {
         game.toggleMode();
       } else if (e.key.toLowerCase() === "z" && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
-        handleUndo();
+        if (e.shiftKey) {
+          setCheckResult(null);
+          game.redo();
+        } else {
+          handleUndo();
+        }
+      } else if (e.key.toLowerCase() === "y" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setCheckResult(null);
+        game.redo();
       } else if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
         e.preventDefault();
         if (!game.selectedCell) {
@@ -562,17 +584,26 @@ export default function GamePlayPage() {
 
       setShowGiveUpConfirm(false);
 
+      if (response.ok) {
+        submittedRef.current = true;
+        setGaveUp(true);
+        timer.pause();
+        setPlayersProgress((prev) =>
+          prev.map((p) =>
+            p.visitorId === player.visitorId ? { ...p, progress: -1, gaveUp: true } : p
+          )
+        );
+      }
+
       if (data.gameEnded) {
         setGameEnded(true);
         setWinnerId(data.winnerId);
         setShowResultsModal(true);
-      } else {
-        router.push(`/sudoku/${code}`);
       }
     } catch (error) {
       console.error("Give up error:", error);
     }
-  }, [player, code, router]);
+  }, [player, code, timer]);
 
   const handlePauseToggle = useCallback(() => {
     if (gameEnded || submittedRef.current) return;
@@ -611,32 +642,34 @@ export default function GamePlayPage() {
 
   const say = gameEnded
     ? "Ván này xong rồi!"
-    : finishedWaiting
-      ? "Giỏi quá! Chờ mọi người xong nhé."
-      : pausedByMe
-        ? "Bấm nút chạy tiếp khi sẵn sàng nhé."
-        : pausedBy
-          ? `Chờ ${pausedBy.name} quay lại một chút nhé.`
-          : checkResult
-            ? checkResult.wrongCount === 0
-              ? `Các ô đã điền đều đúng! (còn ${checkResult.checksRemaining} lượt)`
-              : `Đang có ${checkResult.wrongCount} ô sai! (còn ${checkResult.checksRemaining} lượt)`
-            : game.mode === "note"
-              ? "Chạm số để ghi chú vào ô nhé."
-              : game.selectedCell
-                ? "Chọn số để thả vào ô nào!"
-                : "Chạm một ô trống đi nào!";
+    : gaveUp
+      ? "Bạn đã bỏ cuộc, chờ mọi người xong nhé."
+      : finishedWaiting
+        ? "Giỏi quá! Chờ mọi người xong nhé."
+        : pausedByMe
+          ? "Bấm nút chạy tiếp khi sẵn sàng nhé."
+          : pausedBy
+            ? `Chờ ${pausedBy.name} quay lại một chút nhé.`
+            : checkResult
+              ? checkResult.wrongCount === 0
+                ? `Các ô đã điền đều đúng! (còn ${checkResult.checksRemaining} lượt)`
+                : `Đang có ${checkResult.wrongCount} ô sai! (còn ${checkResult.checksRemaining} lượt)`
+              : game.mode === "note"
+                ? "Chạm số để ghi chú vào ô nhé."
+                : game.selectedCell
+                  ? "Chọn số để thả vào ô nào!"
+                  : "Chạm một ô trống đi nào!";
 
   return (
     <>
       <SudokuStage
         game={game}
         seconds={timer.seconds}
-        locked={timer.isPaused || gameEnded}
+        locked={timer.isPaused || gameEnded || gaveUp}
         lockedLabel={lockedLabel}
-        frozen={gameEnded || game.isComplete}
+        frozen={gameEnded || game.isComplete || gaveUp}
         paused={!!pausedBy}
-        pauseDisabled={gameEnded || game.isComplete || !!(pausedBy && !pausedByMe)}
+        pauseDisabled={gameEnded || game.isComplete || gaveUp || !!(pausedBy && !pausedByMe)}
         onPauseToggle={handlePauseToggle}
         onNumber={handleNumberClick}
         onClear={handleClear}
@@ -645,15 +678,17 @@ export default function GamePlayPage() {
         mood={
           pausedBy
             ? "sleep"
-            : finishedWaiting
-              ? "cheer"
-              : checkResult
-                ? checkResult.wrongCount === 0
-                  ? "cheer"
-                  : "wow"
-                : game.selectedCell
-                  ? "think"
-                  : "happy"
+            : gaveUp
+              ? "sad"
+              : finishedWaiting
+                ? "cheer"
+                : checkResult
+                  ? checkResult.wrongCount === 0
+                    ? "cheer"
+                    : "wow"
+                  : game.selectedCell
+                    ? "think"
+                    : "happy"
         }
         badge={`Phòng ${code}`}
         toolbarColumns={4}
@@ -663,20 +698,30 @@ export default function GamePlayPage() {
             <button
               type="button"
               onClick={handleCheckBoard}
-              disabled={timer.isPaused || gameEnded || game.isComplete || checking || checksRemaining <= 0}
+              disabled={timer.isPaused || gameEnded || gaveUp || game.isComplete || checking || checksRemaining <= 0}
               className={toolButtonClass}
               title={`Kiểm tra số ô đang sai (còn ${checksRemaining}/${MAX_CHECKS_PER_GAME} lượt)`}
             >
               <CheckIcon /> Kiểm tra ({checksRemaining})
             </button>
-            <button
-              type="button"
-              onClick={() => setShowGiveUpConfirm(true)}
-              disabled={timer.isPaused || gameEnded}
-              className={toolButtonClass}
-            >
-              <FlagIcon /> Bỏ cuộc
-            </button>
+            {gaveUp ? (
+              <button
+                type="button"
+                onClick={handleNewGame}
+                className={toolButtonClass}
+              >
+                <FlagIcon /> Về sảnh
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowGiveUpConfirm(true)}
+                disabled={timer.isPaused || gameEnded || game.isComplete}
+                className={toolButtonClass}
+              >
+                <FlagIcon /> Bỏ cuộc
+              </button>
+            )}
           </>
         }
       />

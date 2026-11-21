@@ -11,6 +11,7 @@ function Icon({ children, ...props }: IconProps & { children: ReactNode }) {
 }
 
 export const UndoIcon = (p: IconProps) => <Icon {...p}><path d="M9 7 4 12l5 5" /><path d="M4 12h10a5 5 0 0 1 5 5v1" /></Icon>;
+export const RedoIcon = (p: IconProps) => <Icon {...p}><path d="M15 7l5 5-5 5" /><path d="M20 12H10a5 5 0 0 0-5 5v1" /></Icon>;
 export const EraseIcon = (p: IconProps) => <Icon {...p}><path d="M9 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6-7Z" /><path d="m12 10 4 4M16 10l-4 4" /></Icon>;
 export const PencilIcon = (p: IconProps) => <Icon {...p}><path d="M4 20l1-5L16 4l4 4L9 19Z" /><path d="m14 6 4 4" /></Icon>;
 export const PauseIcon = (p: IconProps) => <Icon {...p}><path d="M8 5v14M16 5v14" /></Icon>;
